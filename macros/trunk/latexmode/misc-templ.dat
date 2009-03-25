@@ -1,0 +1,94 @@
+
+TABLE\begin{table}
+ \begin{center}
+  \begin{tabular}{|c|c|l|} \hline
+%   X   & Y     & Z \\ \hline \hline
+   \multicolumn{1}{|c}{X} &
+   \multicolumn{1}{|c}{Y} &
+   \multicolumn{1}{|c|}{Z} \\ \hline \hline
+   1.01 & 1.3   & text \\
+   2    & 2.3   & longer text \\ \hline
+  \end{tabular}
+ \end{center}
+ \caption{Three Blind Mice Table}
+ \label{tb:Xname}
+\end{table}
+
+FIGURE\begin{figure}[p] %Use [ht] instead of [p] to place the figure here or at the top of a nearby page.
+  \begin{center}
+   %\epsfxsize 3.25 in
+   \epsfysize 3.25 in
+   \epsffile{Xfile.eps}
+  \end{center}
+  \caption{Three Blind Mice Figure}
+  \label{fg:Xname}
+\end{figure}
+
+PS-FRAG\begin{figure}[p] %Use [ht] instead of [p] to place the figure here or at the top of a nearby page.
+ % Use the following command to replace text tags in the eps file 
+ % with arbitrary typeset text or even another eps file!
+ \psfrag{tag}[b][B]{replacement}
+  \begin{center}
+   % arguments: {xsize}{ysize}
+   \resizebox{!}{3.25in}{\includegraphics{Xfile.eps}}
+   % The exclamation point makes the other dimension automatic to keep the
+   % aspect ratio of the image constant.
+   %
+   % As an option, the following command can be used to resize the figure.
+   % The text replacements will not scale with the figure as they do with the
+   % above command.
+   %\includegraphics[height=3.25in]{Xfile.eps}
+   % Explore documentation on the graphics package for other options such as
+   % width, angle, scale, bb, and clip.
+  \end{center}
+  \caption{Three Blind Mice Figure}
+  \label{fg:Xname}
+\end{figure}
+
+HELP PSPSfrag Information:
+
+The general command syntax is:
+\psfrag{tag}[posn][psposn][scale][rot]{replacement}
+
+tag             - The text string in the eps file
+posn            - The LaTeX text reference point (optional)
+                   Up to two letters from {t,b,B} (top, bottom, baseline)
+                   and {l,r} (left, right) may be chosen.  Ex: [bl]
+                   The default is [Bl].  If a letter is omitted, then
+                   it is equivalent to "centered."
+psposn          - The PostScript reference point (optional)
+                   Same possibilities as posn
+                   The combination [b][B] is a good choice for replacing
+                   axis commands on Matlab plots.
+scale           - Scale the replacement (optional)
+                   Default is 1.
+rot             - Rotate the replacement (optional)
+                   Default is 0.  Units are degrees.
+replacement     - The LaTeX replacement
+
+The PSfrag replacements can be defined for an entire document 
+(outside of an environment) or for a particular graphic 
+(inside an environment).
+
+README COLOR\usepackage{color}
+% Pre-Defined:
+% red, green, blue
+% yellow, cyan
+% magenta, black
+% white
+\definecolor{ColorName}{rgb}{.8,.8,.8}
+% rgb can be cmyk or gray:
+% \definecolor{ColorName}{cmyk}{0,0,1,0}
+% \definecolor{ColorName}{gray}{.4}
+
+Page Background\pagecolor{yellow}
+
+COLOR Text\textcolor{blue}{Text to Display}
+
+COLOR all Text\color{magenta}
+
+Text Background\colorbox{red}{Text to Display}
+
+Framed Text\fcolorbox{red}{green}{Text to Display}
+
+

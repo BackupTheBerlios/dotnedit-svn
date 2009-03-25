@@ -1,0 +1,14 @@
+HELP Page 2        -           EXPANSIONS
+Next page  -  Shift+F1
+-------------------------------
+(× indicates the cursor position. To see and
+change all expansions, hit Alt+Shift+E )
+
+'e       ...      \epsilon
+'ve     ...      \varepsilon
+
+fra      ...      \frac{×}{}
+
+enu    ...      \begin{enumerate}
+                  \item×
+                  \end{enumerate}

@@ -1,0 +1,113 @@
+# jf_append_fontset
+# jf_set_fontset
+
+# Appends the font set in the current window to the font set file
+define jf_append_fontset {
+ # this file variable must be the same as in jf_set_fontset() !
+ file = $jf_path_to["jf_fonts.nm"] "nedit-font-sets.txt"
+ 
+ fontsetsstr = read_file(file)
+ 
+ # if file doesn't exist or is empty, create the start conditions
+ if (fontsetsstr == "") 
+    write_file("; NEdit font sets file\n" \
+               "; Format is 'fontsetname\\nnormal-font\\n" \
+               "italic-font\\nboldfont\\nbolditalicfont\\n\\n"\
+               "fontsetname\\nnormal-font\\n ...\n" \
+               "; where \\n is a newline and lines starting with ; "\
+               "hard at the left margin are comments.\n;\n"\
+               "; Notice: There must be at least 2 newlines separating font sets and\n"\
+               "; fontsetnames must be unique non-empty strings not startig with -,\n" \
+               "; while fontnames all must start with -.\n", file)
+ 
+ fontset = $font_name"\n"$font_name_italic"\n"$font_name_bold"\n"\
+             $font_name_bold_italic"\n"
+ name = string_dialog("Give name for font set:\n\n" fontset\
+              "\n\n to append to" file, "OK", "Cancel")
+ if (name != "" && $string_dialog_button == 1) {
+     # strip leading dashes if any
+     pos = search_string(name, "^-+", 0, "regex")
+     if (pos == 0) name = substring(name, $search_end, length(name))
+     if (name != "") {
+        # check if name is already in file
+        pos = search_string(fontsetsstr, "\n"name"\n", 0, "case")
+#        dialog(pos)
+        if (pos == -1)
+            append_file("\n"name"\n"fontset, file)
+        else
+            dialog("Chosen font set name \""name"\" is not unique.")
+    }
+    else
+        dialog("Chosen font set name is empty")
+ }
+}
+
+
+# jf_set_fontset([fontsetname])
+# Sets the text fonts of the current window to fontsetname.
+# If the function is called w/o parameter, loads a list of font sets
+# from a file and presents dialog choice 
+define jf_set_fontset {
+ # this file variable must be the same as in jf_append_fontset() !
+ file =  $jf_path_to["jf_fonts.nm"] "nedit-font-sets.txt"
+ 
+ # possibility to call jf_set_fontset() with a font set name
+ if ($n_args == 0) fontsetname = ""
+     else fontsetname = $1
+
+ fontset = $empty_array
+ names = ""
+ fontsetsstr = read_file(file)
+
+ # format is : name \n normal \n italic \n bold \n bolditalic \n\n name \n normal \n ...
+ if (fontsetsstr != "") {
+     # remove the comments
+     fontsetsstr = replace_in_string(fontsetsstr, ";.*", "", "regex", "copy")
+#      dialog("***"fontsetsstr)
+     fontsets = split(fontsetsstr, "\n\n+", "regex")
+#     dialog("***"fontsets[0])
+     # get the (user-defined) names 
+     for (i = 0; i < fontsets[]; i++) {
+         pos = search_string(fontsets[i], "^[^-].+\n", 0, "regex")
+         if (pos != -1) {
+             name = substring(fontsets[i], pos, $search_end)
+             if (name in fontset) 
+             dialog("Warning: font set name\n"name"is not unique in "file"\nOnly the last"\
+                    "defined font set with this name will be loadable.")
+             fontset[name] = substring(fontsets[i], $search_end, length(fontsets[i]))
+             names = names name
+ #             dialog(names)
+         }
+     }
+     # remove trailing \n
+     names = substring(names, 0, length(names) - 1)
+     # choose the set, if not given as parameter
+     if (fontsetname == "") {
+         if (names != "") fontsetname = list_dialog("Choose set:", names, "OK")
+         else {
+             dialog("There were no font set names found.")
+             return
+         }
+     }
+     # if fontsetname was given as parameter or via list_dialog
+     if (fontsetname != "") {
+         fontsetname = fontsetname"\n"
+         if (fontsetname in fontset) {
+             # set window to the new fonts
+             fonts = split(fontset[fontsetname], "\n")
+             if (fonts[] >= 4) { # possibly 5, because of trailing \n
+             set_fonts(fonts[0], fonts[1], fonts[2], fonts[3])
+             }
+             else dialog("The font set name\n"fontsetname" doesn't exist in\n"file)
+         }
+
+     }
+     else dialog("No font set name was given.")
+
+ }
+ else {
+     if ($read_status == 0) dialog("The font sets file "file" doesn't exist yet.")
+     else dialog("The font sets file "file" is empty.")
+ }
+
+}

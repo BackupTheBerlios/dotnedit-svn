@@ -1,0 +1,24 @@
+.. Document Type is reStructuredText
+ 
+ - tcl_hook into assistant, so latexmode needn't be loaded.  We see
+   ``tcl_hook`` as general interface independent from latexmode, hence
+   the variable ``$tk`` should be set in ``tcl_hook``, and not in
+   latexmode.
+ - ``ltx_assistant()`` renamed to ``tcl_assistant()`` and moved to
+   ``tcl_hook``. Maybe we should rename ``tcl_hook.nm`` to
+   ``tcl_interface.nm``
+   
+ - In this connection, we use ``$daemon`` which depends on the shell in
+   use.  Why we don't have an internal ``$command_shell`` variable?
+ 
+ - latexmode: 
+ 
+   * ltx_insert() depends on $data via menu call in nedit.rc
+   
+   * global array to reduce the number of global variables
+   
+     + this allows for if defined checks, so we reduce interdependencies
+     + allows fine tuning
+     + currently, the color chooser for SGML/HTML depends on latexmode!
+ 
+ - keyboard handling (we can hide menus)

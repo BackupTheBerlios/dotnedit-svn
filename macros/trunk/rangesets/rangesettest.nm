@@ -1,0 +1,30 @@
+  
+  20:47:20
+ 20:49:23
+{21:19:12
+} {21:21:14}
+
+2002-12-27
+12-27-02
+
+#      open(path e_file)
+#      focus_window(path e_file)
+#      goto_line_number(lnum)
+###        CallTips    showing help
+#      write_file("",$data "output")
+#      shell_command("nc -geometry 20x15+1+1 " $data "output" ,"")
+#      focus_window("last")
+#      set_statistics_line(0)
+#      set_wrap_margin(0)
+#      set_wrap_text("continuous")
+
+
+$mein=rangeset_create()
+$index_a=rangeset_add($mein,161,170)
+$index_b=rangeset_add($mein,175,180)
+rangeset_set_color($mein,"red")
+a=rangeset_range($mein,$index_b)
+dialog(a["start"] "\n" a["end"])
+rangeset_destroy($mein) 
+rangeset_set_mode($mein,"exclude")
+

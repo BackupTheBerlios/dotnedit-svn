@@ -1,0 +1,379 @@
+###################################################################################
+# Copyright (C) 2001-2002 Jörg Fischer, jf505@gmx.de, http://nedit.gmxhome.de     #
+#                                                                                 #
+# This is free software; you can redistribute it and/or modify it under the terms #
+# of the GNU General Public License as published by the Free Software Foundation; #
+# either version 2 of the License, or (at your option) any later version.         #
+###################################################################################
+
+#==========================================================================
+#
+# EXPANSION MACROS (expanding abbreviations) for NEdit (http://www.nedit.org)
+#
+#==========================================================================
+
+#------------------
+# INITIALIZATIONS
+#--------------------
+#
+# Set the following X resources in your .Xdefaults or .Xresources file
+# to let this macro be executed:
+#
+# nedit*text.Translations: #override \n\
+#  Shift<Key>space : insert_string(" ") \n\
+#  Ctrl<Key>space : macro_menu_command(Expander>auto_select)\n\
+#  <Key>space : macro_menu_command(Expander>auto@keys) \n
+#----------------------------------------------------------------------------------
+
+#--------------------
+# GLOBAL VARIABLES
+#----------------------
+#
+# abbrevation for our base path defined in autoload.nm
+$expansionspath = $jf_path_to["expansions.nm"]
+
+$ex_flag = 0
+$ex_dic = $empty_array
+$expansions_on = 1
+$ex_update = 0
+
+$sep1="\a"
+$sep2="\b"
+$sep3="\f"
+
+#----------------------------------------------------------------------------------
+
+#first argument start position of abbreviation 
+#second argument end position of abbreviation = cursor position!
+#third argument -> "noindent" for doing no indentation regardless of auto-indent settings
+# returns -1 if nothing was expanded, else returns 0
+define expand_it {
+  #for recursive expansion
+  rec_expa="\\|\\>.+?\\<\\|"
+  #getting arguments
+  if ($n_args < 3) {
+    dialog("expand_it: Too few arguments")
+    return -1
+  }
+  start=$1
+  end=$2 #!!!!!
+  noindent = $3
+
+  # search for the word plus the delimiters
+  str=get_range(start,end)
+  abbrev=$sep1 str $sep2
+  findab=search_string($ex_dic[$language_mode],abbrev,0,"forward","case")
+
+  #if nothing found
+  if (findab==-1) return(-1)
+
+  #found match in dictionary
+  defbeg=$search_end
+
+  #get expansion
+  defend=search_string($ex_dic[$language_mode],$sep3,defbeg,"forward", "case")   
+  def=substring($ex_dic[$language_mode], defbeg+1, defend)
+
+  #split expansion in rows in order to respect possible indentation
+  rows=split(def,"\n","regex")
+
+  # Expand the abbreviation 
+  # shell command, if first sign is an @
+  if (substring(str,0,1)=="@") {
+      if (rows[]==1) {
+          out=shell_command(rows[0],"")
+          if ($shell_cmd_status==0) {
+              select(start,end)
+              # delete the terminating newline from shell-command
+              insert_string(substring(out,0,length(out)-1))
+          }
+          else {
+            dialog("Shell command error: Exit status" $shell_cmd_status \
+            "\n" out)
+          }
+      }
+      else {
+        dialog("Only one command line allowed for shell command")
+      }
+  }
+  else {
+    select(start,end)
+    if (noindent == "noindent") {
+        # expansion w/o indentation
+        for (i=0;i<rows[] ;i++) {
+            insert_string(rows[i])
+            if (i<rows[]-1) newline_no_indent()
+        }
+    }
+    else {
+        # expansion possibly with indentation
+        for (i=0;i<rows[] ;i++) {
+            insert_string(rows[i])
+            if (i<rows[]-1) newline()
+        }
+    }
+  }
+  #recursive levels of expansion
+  again=search(rec_expa, $cursor, "regex", "backward")
+  while (again!=-1 && start<=again)
+	  {
+	  again_end=$search_end
+
+	  #get abbrev inside |>abbrev<|
+	  str=get_range(again+2,again_end-2)
+	  if (str=="s")
+	     {
+	     $ex_flag=1
+	     }
+	  abbrev=$sep1 str $sep2
+	  findab=search_string($ex_dic[$language_mode],abbrev,0,"forward","case")
+
+	  #if found -> expand
+	  if (findab!=-1)
+		  {
+		  #produce start situation for recursion
+		  #deleting brackets
+		  select(again,again+2)
+		  delete_selection()
+		  #the above deletion changes the position about 2 !
+		  select(again_end-4,again_end-2)
+		  delete_selection()
+		  expand_it(again,$cursor, noindent)
+		  }
+	  again=search(rec_expa, again-1, "regex", "backward")
+	  }
+
+  #if something was expanded
+  return(0)
+}
+
+
+
+#
+#MENU ENTRY Expander>Init
+#
+
+define expansions_init {
+# Name of the `Edit Data File'-macro, change it when you change the menu name
+menu_edit_data="Expander>Edit Dat"
+# Go to language specific expansions
+# get simple abbreviations and spelling corrections (German or English)
+file = $file_path $file_name
+$jfKeyboard[""] = 0
+
+if ("mode" in $jfKeyboard) {
+    if (!(file in  $jfKeyboard["mode"]))
+         $jfKeyboard["mode"][file] = "en"
+
+    if ($jfKeyboard["mode"][file] == "de") {
+        if ($language_mode=="LaTeX") {
+	    abbr_correct="abcor_de_tex.dat"
+        }
+        else {
+	    abbr_correct="abcor_de.dat"
+	}
+    }
+    else {
+        abbr_correct="abcor_en.dat"
+    }
+}
+else {
+    abbr_correct="abcor_en.dat"
+}
+# LANGUAGE SPECIFIC EXPANSIONS
+# -----------------------------
+# List files separated by commas! Abbr. and corrections at the end -> low priority
+# NOTICE: The default expansion file is expand_<language>.dat, which is not listed here
+# Here you have the possibility to add further expansion files
+expansions["Plain"] = abbr_correct
+expansions["LaTeX"] =  abbr_correct ",persoenlich.dat,templates_lat.dat"
+expansions["SGML HTML"] =  abbr_correct
+expansions["XML"] =  abbr_correct
+#expansions["NEdit Macro"] = ""
+
+language=replace_in_string($language_mode," ","_")
+if (language=="") language=$language_mode
+language=tolower(language)
+file=$expansionspath "expand_" language ".dat"
+exlist=read_file(file)
+if ($read_status==0) {
+    expansions_edit()
+    expansions_init()
+    }
+
+if ($language_mode in expansions) {
+    externals[ $language_mode]= split(expansions[ $language_mode],",")
+    for (j=0;j<externals[$language_mode][];j++)
+        {
+        # $expansionspath contains the path name
+        file=$expansionspath externals[$language_mode][j]
+        exfile=read_file(file)
+        if ($read_status==0) {
+            dialog("File: " file "not found.")
+            }
+
+        exlist= exlist "\n" exfile
+        }
+   }
+$ex_dic[$language_mode]=exlist
+# --------------------------
+
+# check if there are expansions
+test = search_string($ex_dic[$language_mode],$sep1,0)
+if (test == -1) {
+   expansions_edit()
+   }
+   else {
+   $expansions_on = 1
+   }
+
+}
+
+#
+# MENU ENTRY Expander>Expand It
+#
+define expansions_main {
+# No expansions for artificial $language_mode `Data'
+if ($language_mode=="Data") {
+    insert_string(" ")
+    return
+    }
+# for turning off indentation in the expansion depending on language mode
+indent = ""
+if ($language_mode == "DTX" ) {
+    indent = "noindent"
+}
+# check whether an update is necessary,  set $expansions_on=0 in autoload.nm if you want no
+# automatically enabled expander at start-up.
+if ($ex_update==1 || (!($language_mode in $ex_dic) && $expansions_on==1))
+    {
+    $ex_update=0
+    expansions_init()
+    }
+
+# Handle Expansion with selection.
+nbrRemovedSpaces = 0
+selection = ""
+endSelectionAddition = 0
+if ($selection_end != -1)  {
+   selection = get_selection()
+   delete_selection()
+   # this shall avoid that the cursor isn't at the end of abbreviation
+   while (get_range($cursor-1, $cursor) == " ")  {
+      delete_previous_character("nobell")
+      nbrRemovedSpaces++
+   }
+  # This is a evil hack.  We add the selection temporarily to the
+  # expansion dictionary.  So, we can use the same loop of actions.
+  str = "\n" $sep1 "s" $sep2 "\n" selection $sep3 "\n"
+  endSelectionAddition = length(str)
+  $ex_dic[$language_mode]= str $ex_dic[$language_mode]
+
+}
+
+if($expansions_on == 1 && $language_mode in $ex_dic && $selection_start == -1)   {
+  end = $cursor                                                           
+  # find the start of the abbreviation, assuming the cursor is directly behind it
+  start0 = search("[ \n\t\\$_\\^\\(\\{\\[\\>=]", end - 1, "backward", "regex") + 1
+  if (start0 == end) {
+      dialog("Nothing found to expand.")
+      return
+  }
+  #test
+  str = get_range(start0,end)
+  abbrev = $sep1 str $sep2
+  findab = search_string($ex_dic[$language_mode],abbrev,0,"forward","case")
+  #if  found insert marker
+  if (findab!=-1) {
+      deselect_all()
+      insert_string($sub_sep)
+      backward_character()
+  }
+
+  #If nothing expanded, expand_it returns -1.
+  if (expand_it(start0, end, indent) != -1) {
+      # Clean the dictionary from the temporarily added selection
+      if (endSelectionAddition != 0) {
+          $ex_dic[$language_mode] = substring($ex_dic[$language_mode], endSelectionAddition,\
+	                                      length($ex_dic[$language_mode]))
+      }
+      # After expansion -> setting cursor position
+      # and deleting the ending mark !
+      end=search($sub_sep,start0)
+      cs=search("|><|", start0)
+      #found
+      if (cs!=-1 && cs<end)
+	      {
+	      #delete ending mark
+	      select(end,end+1)
+	      delete_selection()
+	      #set cursor at |><|
+	      select(cs,$search_end)
+	      delete_selection()
+	      return
+	      }
+      #not found, new search
+      cs=search("\\|\\>.+?\\<\\|", start0, "regex")
+      #found
+      if (cs!=-1 && cs<end)
+	      {
+	      select(end,end+1)
+	      delete_selection()
+	      set_cursor_pos($search_end)
+	      select(cs,$search_end)
+	      return
+	      }
+      #nothing found, delete only ending mark
+      select(end,end+1)
+      delete_selection()
+  }
+  else {
+      # Nothing expanded.  Reconstruct start situation.
+      for (i = 1; i <= nbrRemovedSpaces; i++) {
+          insert_string(" ")
+      }
+      insert_string(selection)
+      select($cursor - length(selection), $cursor)
+  }
+} # expansions off
+else   {
+  beep()
+  dialog("Expansions are turned off.")
+}
+
+}
+#
+# MENU ENTRY Expander>Edit Dat
+#
+define expansions_edit {
+# indicate a change
+$ex_update=1
+new_one="This is an example file.\n\n\aabbreviation\b\nexpansion\f\n\n\a\b\n\f\n"
+language=replace_in_string($language_mode," ","_")
+if (language=="") language=$language_mode
+language=tolower(language)
+file=$expansionspath "expand_" language ".dat"
+
+# check if file exists, if not create one
+if (read_file(file)=="")
+   {
+   if (write_file(new_one, file)==1)
+      {
+	 # successful -> open it
+	 open(file)
+	 }
+      else
+	    {
+	    dialog("Error while creating file","")
+	    }
+	 
+   }
+   else
+      {
+	 open(file)
+	 }
+   
+}
+
+#==================================================================================
+

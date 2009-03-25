@@ -1,0 +1,535 @@
+# :author: Dr.J.Fischer
+# :version: 1.0.3
+# :date: 
+
+# documentation of the functions is in the file ``fillParagraph.ad.txt``
+
+# - fix in jf_fill_paragraph, so it works at beginning of file
+# - fixed typo jf_format: blanks in indenting got multipied,
+#   because they weren't all removed (" ?" should be " *")
+
+
+# jf_fill_paragraph
+# jf_format
+# jf_lists
+# jf_wrap
+# jfCapitalizeSentence
+
+
+
+#==================================================================================
+# jf_fill_paragraph()
+#==================================================================================
+
+define jf_fill_paragraph {
+if ($selection_start == -1) {
+    pos = $cursor
+    end = search("^\\s*$", $cursor, "regex")
+    if (end == -1) 
+        end = $text_length
+    # the search seems to fail at the start of the document, ie 
+    # the very first paragraph
+    search("^\\s*\n", $cursor, "regex", "backward")
+    # however, if search fails, $search_end is set to 0, so we are at the
+    # start of the document
+    start = $search_end
+    replace_range(start, end, jf_format(get_range(start,end), $wrap_margin, -1, 1))
+    set_cursor_pos(pos)
+}
+else {
+    ss = $selection_start
+    se = $selection_end
+
+    # test for rectangle
+    if ($selection_left == -1) {
+        # no rectangle
+
+        # expand selection to line start and end
+        ls = search("^", ss + 1, "regex", "backward")
+        if ($column != 0)
+            le = search("$", se - 1, "regex")
+        else
+            le = $cursor
+        
+        set_cursor_pos(le)
+        select(ls, le)
+        replace_selection(jf_format(get_selection(),$wrap_margin, -1,1))
+        select(ls, $cursor)
+    }
+    else {
+        # rectangular selection
+        width = $selection_right - $selection_left
+        set_cursor_pos($selection_end)
+        sl = $selection_left
+        sr = $selection_right
+
+        # Try to include all the text right of the rectangle
+        select_rectangle(ss, se, sl, 10*$wrap_margin)
+        replace_selection(jf_format(get_selection(), width, -1, 1))
+        select_rectangle(ss, $cursor, sl, sr)
+        
+        # adjust the selection to the fill_paragraph() behaviour, ie
+        # not selecting to $cursor but to end of the wrapped text
+        txt = get_selection()
+        t = search_string(txt, "\\S\n*", length(txt), "regex", "backward")
+        se = $cursor - ($search_end - t - 1) * (sl + 1)
+        select_rectangle(ss, se, sl, sr)
+    }
+}
+}
+
+#==================================================================================
+# jf_format(str, width, n_spaces_after_quote, fix_sentence_endings, replace_multispaces, expand_tabs)
+#==================================================================================
+
+define jf_format {
+# one argument (= string) required
+if ($n_args == 0) {
+    dialog("Missing argument(s)! Aborting.")
+    return ""
+}
+
+# If only whitespaces -> nothing to wrap
+t = search_string($1, "\\S", 0, "regex")
+if (t == -1) return $1
+
+
+# HANDLING OF PARAMETER LIST
+#---------------------------
+text = $1
+
+# Assign default values, 0 = FALSE, all other numbers = TRUE
+width = $wrap_margin
+n_spaces = -1
+sentences = 0
+multispaces = 1
+expand_tabs = 1
+
+if ($n_args > 1) 
+    if (valid_number($2)) width = $2
+
+if ($n_args > 2)
+    if (valid_number($3)) n_spaces = $3
+
+if ($n_args > 3)
+    if (valid_number($4)) sentences = $4
+
+if ($n_args > 4)
+    if (valid_number($5)) multispaces = $5
+
+if ($n_args > 5)
+    if (valid_number($6)) expand_tabs = $6
+
+#----------------------------------------------
+
+# Local Variables
+
+quotes = "(?:[!#%=|:](?![a-z])|(?:[a-z]\\w*)?\\>+)"
+quot_pats = "(?i^([ \t]*)((?:(?:"quotes"(?:[ \t]*"quotes")*))))"
+quot_pats_no_start = "(?i([ \t]*)((?:(?:"quotes"(?:[ \t]*"quotes")*))))"
+
+escape_pat = "(\\<|\\>|\\[|\\]|\\{|\\}|\\(|\\)|\\||\\*|\\+|\\-|\\.)"
+newtext = ""
+
+end_of_quote = 0
+blanks = "                                        "
+
+# ALGORITHM WORKS ONLY FOR TEXT W/O TABS
+
+# Expand tabs (requires command "expand" on the system)
+if (expand_tabs) {
+    t = search_string(text, "\t", 0)
+    if (t != -1) {
+        t = shell_command("expand -t "$tab_dist, text)
+        if ($shell_cmd_status == 0) 
+            text = t
+        else {
+            b = dialog("Expansion of tabs failed.\nCheck if you have \"expand\"."\
+                    "\nAborting and returning text or go on anway?", "Abort",\
+                    "Go on")
+            if (b == 1) return text
+        }
+    }
+}
+
+
+
+quote_start = search_string(text, quot_pats, 0, "regex")
+end_of_qstart = $search_end
+# dialog(quote_start)
+
+# What about indents ?
+if (quote_start == -1) {
+    # determine indent by indent of first line
+    indent = ""
+    s = search_string(text, "^ *", 0, "regex")
+    if (s == 0) indent = substring(text, 0, $search_end)
+    # remove indent from start of lines to avoid doubling it
+    text = replace_in_string(text, "^"indent, "", "regex", "copy")
+    return(jf_lists(text, width, indent, sentences, multispaces, expand_tabs))
+}
+
+while (quote_start != -1) {
+    # part before quote, therefore unquoted
+    if (end_of_quote < quote_start) {
+        indent = ""
+        s = search_string(text, "^ *", end_of_quote, "regex")
+        if (s == end_of_quote) indent = substring(text, end_of_quote, $search_end)
+        newtext = newtext jf_lists(substring(text, end_of_quote, quote_start), width,\
+                                indent, sentences, multispaces, expand_tabs)
+    }
+    # find end of current quote
+    # indent contains the quotation signs, better name would be prefix
+    indent = substring(text, quote_start, end_of_qstart)
+    indent_pat_esc = replace_in_string(indent, escape_pat, "\\\\\\1", "regex", "copy")
+    indent_pat = "(^"indent_pat_esc"[^\n]*(?:\n|$))+"
+    t = search_string(text, indent_pat, quote_start, "regex")
+    if (t != quote_start) {
+        dialog("indent_pat broken:\n" indent_pat)
+        return
+    }
+    end_of_quote = $search_end
+    
+    # Now, check if it is really the end.
+    # If we have >> followed by >>>, then end_of_quote would now be after >>>, and not after >>
+    t = search_string(text, indent_pat_esc quot_pats_no_start, quote_start, "regex")
+
+    if (t != -1) end_of_quote = t
+    
+    # add missing blanks to indent
+    if (n_spaces > 50) n_spaces = 50
+    if (n_spaces < 0) {
+        # determine spaces by indent of the first quote line
+        t = search_string(text, " +", end_of_qstart, "regex")
+        if (t == end_of_qstart) {
+            indent = indent substring(text, end_of_qstart, $search_end)
+        }
+    }
+    else
+        indent = indent substring(blanks, 0, n_spaces)
+
+    # send current quote minus quotations+leading blanks to jf_lists for rewrapping
+    newtext = newtext \
+             jf_lists(replace_in_string(substring(text, quote_start, end_of_quote),\
+                          indent_pat_esc" *", "", "regex", "copy"),\
+                           width, indent, sentences, multispaces, expand_tabs) 
+
+    quote_start = search_string(text, quot_pats, end_of_quote, "regex")
+    end_of_qstart = $search_end
+}
+
+# Possible last unquoted part of text
+if (end_of_quote < length(text)) {
+    # determine indent by indent of first line of this part
+    indent = ""
+    s = search_string(text, "^ +", end_of_quote, "regex")
+    if (s == end_of_quote) indent = substring(text, end_of_quote, $search_end)
+    newtext = newtext \
+              jf_lists(substring(text, end_of_quote, length(text)), width, indent,\
+                            sentences, multispaces, expand_tabs)
+}
+
+return newtext
+}
+
+#==================================================================================
+# jf_lists(str, width, indent, fix_sentence_endings, replace_multispaces, expand_tabs)
+#==================================================================================
+
+define jf_lists {
+# one argument (= string) required
+if ($n_args == 0) {
+    dialog("Missing argument(s)! Aborting.")
+    return ""
+}
+
+
+
+# HANDLING OF PARAMETER LIST
+#---------------------------
+text = $1
+
+# Assign default values, 0 = FALSE, all other numbers = TRUE
+width = $wrap_margin
+indent = ""
+sentences = 0
+multispaces = 1
+expand_tabs = 1
+
+if ($n_args > 1) 
+    if (valid_number($2)) width = $2
+
+if ($n_args > 2)
+    indent = $3
+
+if ($n_args > 3)
+    if (valid_number($4)) sentences = $4
+
+if ($n_args > 4)
+    if (valid_number($5)) multispaces = $5
+
+if ($n_args > 5)
+    if (valid_number($6)) expand_tabs = $6
+
+#----------------------------------------------
+
+# If only whitespaces -> nothing to wrap, don't forget the indent = quotation signs
+t = search_string(text, "\\S", 0, "regex")
+if (t == -1) return (indent text)
+
+# Local Variables
+
+list_pats = "^\\s*(?:[\\d\\l][\\.\\)]|[o\\-\\*])\\s+"
+blanks = "                                                     "
+newtext = ""
+initial_indent = ""
+subsequent_indent = ""
+
+# dialog("lists\n\n"text)
+
+# Expand tabs (requires command "expand" on the system)
+if (expand_tabs) {
+    t = search_string(text, "\t", 0)
+    if (t != -1) {
+        t = shell_command("expand -t "$tab_dist, text)
+        if ($shell_cmd_status == 0) 
+            text = t
+        else {
+            b = dialog("Expansion of tabs failed.\nCheck if you have \"expand\"."\
+                    "\nAborting and returning text or go on anway?", "Abort",\
+                    "Go on")
+            if (b == 1) return text
+        }
+    }
+}
+
+
+list_start = search_string(text, list_pats, 0, "regex")
+list_mark_end = $search_end
+
+if (list_start == -1) 
+    return(jf_wrap(text, width, indent, indent, sentences, multispaces, expand_tabs))
+
+# possible first part before list
+if (list_start > 0)
+    newtext = newtext jf_wrap(substring(text, 0, list_start), width, indent, indent,\
+                            sentences, multispaces, expand_tabs)
+# dialog(list_start)
+while (list_start != -1) {
+    start = list_mark_end
+
+    # determine indents -> Warning: Tabs must be expanded before this
+    initial_indent = indent substring(text, list_start, list_mark_end)
+    subsequent_indent = indent substring(blanks, 0, list_mark_end - list_start)
+#     dialog(length(initial_indent))
+    # find end of current list-item = start of next list-item
+    list_start = search_string(text, list_pats, list_mark_end, "regex")
+    list_mark_end = $search_end
+
+    if (list_start == -1) 
+        list_end = length(text)
+    else
+        list_end = list_start
+    
+    newtext = newtext jf_wrap(substring(text, start, list_end), width, \
+                initial_indent, subsequent_indent, sentences, multispaces, expand_tabs) 
+#     dialog(newtext"||")
+}
+
+return newtext
+}
+
+#==================================================================================
+# jf_wrap(str, width, initial_indent, subsequent_indent, fix_sentence_endings, 
+#           replace_multispaces, expand_tabs, trailing_spaces)
+#==================================================================================
+
+define jf_wrap {
+# one argument (= string) required
+if ($n_args == 0) {
+    dialog("Missing argument(s)! Aborting.")
+    return ""
+}
+
+# If only whitespaces -> nothing to wrap
+t = search_string($1, "\\S", 0, "regex")
+if (t == -1) return $1
+
+# HANDLING OF PARAMETER LIST
+#---------------------------
+text = $1
+
+# Assign default values, 0 = FALSE, all other numbers = TRUE
+width = $wrap_margin
+initial_indent = ""
+subsequent_indent = ""
+sentences = 0
+multispaces = 1
+expand_tabs = 1
+trailing_spaces = 1
+
+if ($n_args > 1) 
+    if (valid_number($2)) width = $2
+
+if ($n_args > 2) {
+    initial_indent = $3
+    subsequent_indent = initial_indent
+}
+
+if ($n_args > 3) 
+    subsequent_indent = $4
+
+if ($n_args > 4)
+    if (valid_number($5)) sentences = $5
+
+if ($n_args > 5)
+    if (valid_number($6)) multispaces = $6
+
+if ($n_args > 6)
+    if (valid_number($7)) expand_tabs = $7
+
+if ($n_args > 7)
+    if (valid_number($8)) trailing_spaces = $8
+
+#----------------------------------------------
+
+if (width - max(length(initial_indent), length(subsequent_indent)) <= 0) {
+    dialog("Error: Can't wrap, because width below length of indent\n"\
+           "Abort and returning unchanged text")
+    return $1
+}
+
+# Local Variables
+first_line = ""
+# Special case if text ends with \n
+eot = substring(text, length(text) - 1, length(text))
+
+# Expand tabs (requires command "expand" on the system)
+if (expand_tabs) {
+    t = search_string(text, "\t", 0)
+    if (t != -1) {
+        t = shell_command("expand -t "$tab_dist, text)
+        if ($shell_cmd_status == 0) 
+            text = t
+        else {
+            b = dialog("Expansion of tabs failed.\nCheck if you have \"expand\"."\
+                    "\nAborting and returning text or go on anway?", "Abort",\
+                    "Go on")
+            if (b == 1) return text
+        }
+    }
+}
+
+# Prepare text for wrapping
+
+# keep blank lines
+if (search_string(text, "^\\s*$", 0, "regex") != -1) {
+    text = replace_in_string(text, "^\\s*\n", $sub_sep, "regex", "copy")
+}
+
+if (multispaces)
+    text = replace_in_string(text, "\\s*\n\\s*|\\s{2,}", " ", "regex", "copy")
+else
+    text = replace_in_string(text, "\\s*\n\\s*", " ", "regex", "copy")
+
+# dialog(text)
+# My attempt to find the ending of sentences excluding certain dots (but not too many)
+if (sentences) {
+    eos = "([!?]|(?<!(?:\\d|etc|pp|ph|ph\\.?d|\\y[A-Z]{1,2}[a-z]?|\\y[a-z]))\\.[\"')\\]]?)\\s+([A-ZÜÖÄ])"
+    text = replace_in_string(text, eos, "\\1  \\2", "regex", "copy")
+}
+
+# Determine width wrt indents. Special case of 1. line, if length of initial_indent 
+# doesn't equal length of subsequent indent.
+if (length(initial_indent) == length(subsequent_indent))
+    width -= length(initial_indent)
+else {
+    # Special Treatment For First Line
+    # omit leading blanks -> if fails, $search_end = 0
+    search_string(text, "^\\s+", 0, "regex")
+    boFirstLine = $search_end
+    eoFirstLine = search_string(text, "\\s+", width - length(initial_indent) + boFirstLine, "regex", "backward")
+    if (eoFirstLine != -1) {
+        first_line = substring(text, boFirstLine, eoFirstLine) "\n"
+        text = substring(text, $search_end, length(text))
+    }
+    # No else, because then 1. line will not fit, anyway.
+
+    width -= length(subsequent_indent)
+}
+
+# omit leading blanks -> if fails, $search_end = 0
+search_string(text, "^\\s+", 0, "regex")
+
+# THE ACTUAL WRAPPING
+text = replace_in_string(substring(text, $search_end, length(text)), \
+   "([^"$sub_sep"]{0,"width"})(?:\\s+|(?<!"$sub_sep")$)", "\\1\n", "regex", "copy")
+
+
+# Add first line again, if it was missing
+if (first_line != "") text  = first_line text
+
+# Restore empty lines (losing the blanks). The single blank in front of \n is 
+# required for indenting
+if (search_string(text, $sub_sep, 0) != -1) {
+    text = replace_in_string(text, $sub_sep, " \n")
+}
+
+# fix end of text (= eot)
+if (eot != "\n") {
+    # if eot = $, we may get an extra \n. If so, remove it.
+    if (substring(text, length(text) - 1, length(text)) == "\n") {
+        text = substring(text, 0, length(text) - 1)
+    }
+
+}
+
+# INDENTING
+#-----------
+if (initial_indent == subsequent_indent) {
+    if (initial_indent != "")
+        text = replace_in_string(text, "^(.)", initial_indent"\\1", "regex", "copy")
+}
+else {
+    if (initial_indent != "")
+        text = initial_indent text
+
+    if (subsequent_indent != "")
+        text = replace_in_string(text, "(?<=\n)(.)", subsequent_indent"\\1", "regex", "copy")
+}
+
+# fix trailing spaces
+if (trailing_spaces)
+    text = replace_in_string(text, " +$", "", "regex", "copy")
+else
+    text = replace_in_string(text, "(?<!\\s)\n", " \n", "regex", "copy")
+
+return(text)
+}
+
+#==================================================================================
+
+define jfCapitalizeSentence {
+  cpos = $cursor
+  
+  # Check for language mode.
+  lModes = "Plain\nMail\nLaTeX\nResText\nSGML HTML\nXML"
+  
+  if (search_string(lModes, $language_mode, 0, "caseWord") == -1)  {
+      return
+  }
+  # Check if enabled.
+  
+  eos = "(?:[!?:]|(?<!(?:\\d|etc|pp|ph|ph\\.?d|\\y[A-Z]{1,2}[a-z]?))\\.[\"')\\]]?)[\\s\n]+[a-züöäß]+,? ?"
+  # look back for end of sentence
+  search(eos, cpos, "regex", "backward")
+  if ($search_end == cpos) {
+      jf_require("case-noloc-wrapper.nm")
+      # The word directly before the cursor is a start of a new sentence,
+      # but it consists only of small letters.  Capitalize it.
+      # In case of locale = C (cygwin), we can't do a simple regex replace.
+      search("[\\s\n]", cpos - 2, "regex", "backward")
+      wordStart = $search_end
+      replace_range(wordStart, wordStart + 1, toupper_wrapper(get_range(wordStart, wordStart+1)))
+  }
+}

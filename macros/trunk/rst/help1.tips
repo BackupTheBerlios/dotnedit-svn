@@ -1,0 +1,7 @@
+*emphasis*, **strong emphasis**, ``inline literal``
+`phrase reference`_, \*escape* \``with`` "\\"
+
+Block literal start with two colons and a blank
+line::
+
+   this is *literal*

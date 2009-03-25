@@ -1,0 +1,2833 @@
+#########################################
+# Version 0.9.1  - Released April 2005
+#
+# L a T e X - M O D E
+#
+######################
+
+########################################################################################
+# Copyright (C) 2001-2005 Jörg Fischer, joerg.fischer@gmx-topmail.de 
+#
+# Homepage of the LaTeXMode at http://nedit.gmxhome.de   
+#                                                                                      #
+# This is free software; you can redistribute it and/or modify it under the terms of   #
+# the GNU General Public License as published by the Free Software Foundation; either  #
+# version 2 of the License, or (at your option) any later version.                     #
+# See http://www.gnu.org/licenses/gpl.html
+########################################################################################
+
+# These macros are only my personal customizations. Since editing styles, needs and
+# tastes are completely different, you should adjust everything to suit your needs,
+# preferences and habits. Make your text editor work the way you want, rather than
+# the other way round!
+
+#==================================================================================
+# latex_mode.nm -- LaTeXMode macros for the Nirvana text editor
+
+# Depends on  $jf_path_to and jf_require() defined in 
+# autoload.nm, cf. macro setup.
+errMsg = "WARNING:\nThe \""$file_name"\" file is tied to a special path setup,\n"\
+           "given by a special \"autoload.nm\" file.  The latter file\n"\
+           "seems to be missing or changed."
+$jf_path_to[""] = 0
+if (!("/NEDIT_HOME/" in $jf_path_to)) {
+   calltip(errMsg)
+}
+
+
+#-------------------
+# GLOBAL VARIABLES 
+#-------------------
+
+$ltx_globals[""] = 0
+
+
+# abbrevation for our base path defined in autoload.nm
+$ltxpath = $jf_path_to["latex_mode.nm"]
+# If you want to use the Windows `feature' to have paths with blanks in their name,
+# make sure to escape these path names, see $win_esc.
+
+# if you need nc and have only a local install directory e.g. ~/bin
+#$nedit_client = getenv("HOME") "/bin/nc"
+
+
+# We need some general utilities, what about expansions, wordcompletion, snippets?
+errMsg = jf_require("utilities.nm")
+if (errMsg != "")
+    calltip(errMsg)
+
+
+# If nobody else determined the OS, we try it here.
+$NE_globals[""] = 0
+if (!("op_system" in  $NE_globals)) {
+     nedit_v = shell_command("nedit -V", "")
+     if (search_string(nedit_v, "Built on: Win\\w*", 0, "regex") != -1) {
+      $NE_globals["op_system"] = "mswindows"
+     }
+     else {
+      $NE_globals["op_system"] = "unix"
+     }
+}
+
+# Setup for MS Windows + MiKTeX
+if ($NE_globals["op_system"] == "mswindows") {
+   jf_require("cygspecial.nm")
+   #better license
+   $NE_globals["lesstif"] = "true"
+   # I use MikTeX :-)
+   $previewer = "yap "
+   # Handling of weird Windows path and file names
+   $win_esc = "\""
+   # I use aspell :-)
+   $spellchecker = "/cygdrive/c/programme/aspell/bin/aspell "
+}
+else {
+  #setup for Unix and teTeX
+  $previewer = "xdvi "
+  $win_esc = ""
+  $spellchecker = "aspell "
+}
+
+
+
+# Show-Calltip macros
+$tips = $empty_array
+$tips_call = -1
+$tips_pos = ""
+$tips_key_reg = ""
+# Fixing the Calltip positioning bugs !!!
+$ctp_fix_mes = "Nothing yet"
+$help_call = ""
+$help_index = ""
+
+
+$main_file = ""
+$main_path = ""
+# either dvi or pdf, if empty no compilation so far
+$ltx_mode = ""
+$ltx_back_file = ""
+$ltx_back_pos = 0
+$ltx_last_err_mes = ""
+# You need a c shell (tcsh or csh) for this
+# Notice that even with the correct redirection syntax it does not work for bourne 
+# shells prior to NEdit v5.5! (Still doesn't work under Cygwin for bourne shells.)
+$daemon = " >& /dev/null &"
+#$daemon_sh = " < /dev/null > /dev/null 2>&1"
+$sep1 = "\a"
+$sep2 = "\b"
+$sep3 = "\f"
+$sep4 = "\v"
+$sep5 = $sub_sep
+
+$ltx_project_sources = $empty_array
+
+# local globals
+$enum_flag = 0
+
+
+#==================================================================================
+#  <Key>Return : macro_menu_command(Expander>lists@LaTeX) \n\  !!!
+#
+#MENU ENTRY Expander>lists@LaTeX
+#
+
+define ltx_auto_list {
+
+  items[1] = "\\item"
+  items[2] = "\\bibitem"
+  for (aKey in items) { 
+        fst = search(items[aKey],$cursor,"backward") 
+        newl = search("\n",$cursor-1,"regex","backward")
+        if (fst>=newl) {
+           newline()
+           insert_string(items[aKey] "")
+           return
+           }
+         }
+   newline()     
+
+}
+
+#==================================================================================
+#
+# Recursively searching for LABELS (and/or hypertargets, newcommands, sections or 
+# whatever) in multiple files.
+#
+# Arguments are $1: file path, $2: file name, $3: array of strings to search for,
+# i.e., \label,\newcommand, etc
+#
+# The string of length $4 after the label is displayed, too
+#
+#
+# Returns a newline separated list 
+# $sep1 name of label $sep2 search string $sep3 file name $sep4 position where found $sep5
+#
+# NOTICE that input and include files are expected to be in the SAME directory
+# as the main file!!!
+#==================================================================================
+
+# $3 is a regular expression  (?:chapter|section|include|input)\\{
+
+define ltx_getlabels {
+  if ($n_args != 4) {
+    dialog("Wrong number of arguments: You need 4!")
+    return(" ")
+  }
+  # $3 for search string!
+  such = "\\\\endinput|(?:"$3")"
+  klam = "\\}|$"
+  labelliste = ""
+  # attention $1 is the main_path ! $2 is the filename relative to the main_path
+  # get it separately
+  datei = read_file($1 $2)
+
+  # check if file could be read
+  if ($read_status == 0) {
+     # failed to read file, inform user
+     dialog("File " $1 $2 " could not be read!","OK")
+     }
+# handle DOS format, search positions will be wrong if <cr>'s are in string!!
+datei = replace_in_string(datei, "\r", "", "copy")
+# special part for displaying the sectioning
+indent["part"] = ""
+indent["addpart"] = ""
+indent["chapter"] = " "
+indent["addchap"] = " "
+indent["section"] = "  "
+indent["addsec"] = "  "
+indent["subsection"] = "   "
+indent["subsubsection"] = "    "
+indent["paragraph"] = "     "
+indent["subparagraph"] = "     "
+indent["subsubparagraph"] = "      "
+indent["subsubsubparagraph"] = "       "
+indent["minisec"] = ""
+
+  pos = 0 
+  while(search_string(datei,such,pos,"regex")!= -1)  {
+      anf = search_string(datei,such,pos,"regex")
+      pos = $search_end
+
+      # look if uncommented
+      test = search_string(datei, "%|\n", anf - 1, "regex", "backward")
+      if (test != -1) {
+        if (substring(datei, test, $search_end) != "\n") {
+            # we have a %, check that it is not a \%
+            if (substring(datei, test-1, test) != "\\") {
+                newpos = search_string(datei, "\n", pos)
+                if (newpos != -1) {
+                   pos = ++newpos
+                   continue
+                }
+                else {
+                pos = pos + 2
+                continue
+                }
+            }
+        }
+      }
+      
+      
+      # check if endinput
+      test = substring(datei, anf, pos)
+      if (test == "\\endinput") {
+         pos = length(datei)
+         continue
+         }
+
+      # check whether include or input
+      hit = substring(datei,anf+1,pos)
+      k = search_string(hit, "{", length(hit), "backward")
+      hit = substring(hit, 0, k)
+      # get the position of the closing } in end
+      end = search_string(datei,klam,pos, "regex")
+      if (hit == "include" || hit == "input") {
+          # if file name hasn't already .tex at the end, that will be added,
+          # because the TeX-compiler does this, too.
+          neudatei = substring(datei, pos, end)
+          if (search_string(neudatei,".",0) == -1) {
+             neudatei = neudatei ".tex"
+             }
+          #$1 is the file_path !
+          if (substring(neudatei, 0, 1) == "/") {
+              # full(!) file name was given
+              last = search_string(neudatei, "/", length(neudatei), "backward")
+              new_relative_path = substring(neudatei, 0, $search_end)
+              neudatei = substring(neudatei, $search_end, length(neudatei))
+              labelliste = labelliste ltx_getlabels(new_relative_path, neudatei, $3, $4)
+              }
+              else {
+              labelliste = labelliste ltx_getlabels($1, neudatei, $3, $4)
+              }
+          
+          }
+          else {
+            pos = search_string(datei, "{", pos, "backward") + 1
+            name = substring(datei, pos, end) 
+            if ($4) name = name " }}"substring(datei, end+2, end+2+$4)
+            # special case indent for displaying the sectioning
+            test_bra = search_string(hit, "[", 0)
+            if (test_bra != -1) hit = substring(hit, 0, test_bra)
+            # first hit could have a * at the end when section isn't to be numbered
+            star = substring(hit,length(hit)-1,length(hit))
+            if (star == "*") {
+                hit0 = substring(hit,0,length(hit)-1)
+                }
+                else {
+                  hit0 = hit
+                  }
+            if (hit0 in indent) {
+                name = "\n" $sep1 indent[hit0] name $sep2
+                if (search_string(indent[hit0], "*", 0) == -1)
+                    indent["minisec"] = indent[hit0] "*"
+                }
+                else {
+                  name = "\n" $sep1 name $sep2
+                  }
+
+            # special case label
+            # determine the environment !!!
+            if (hit == "label") {
+                start_line = search_string(datei, "^", anf, "regex", "backward")
+                line = substring(datei, start_line, anf)
+                f = search_string(line, "\\\\begin\\{.*?\\}", 0, "regex")
+                if (f != -1) {
+                    hit = hit "\t" substring(line, f + 7, $search_end - 1)
+                    }
+                }
+            labelliste = labelliste name hit $sep3 $1 $2 $sep4 anf $sep5
+            }
+       }
+  
+  return(labelliste)
+}
+
+#THIS WAS THE SUBROUTINE
+
+
+#
+# MENU ENTRIES Labels@LaTeX or Commands@LaTeX
+#
+
+define ltx_dialog_labels {
+srchwhat = "\\\\(?:include|input|label|hypertarget)\\{"
+ltx_save_all()
+work = ltx_main_file()
+ltx_newtheorem_type()
+datas = ltx_getlabels(work["path"],work["file"],srchwhat, 100)
+# if still empty, nothing found
+if (datas == "") {
+    dialog("No labels found!","OK")
+    return
+    }
+# Windows9x/Me version ! (for NT,2000 and XP shell commands should work generally, 
+# but note, what is necessary to make them work.)
+# liste = shell_command("sort",$1)
+liste = qsort_list(get_list(datas,$sep1,$sep2))
+choice = list_dialog("Choose one",liste,"Ref","EqRef","Jump to","Cancel")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "regex", "copy")
+  # Attention, here ltx_getlabels displays "label }} string"
+  pos = search_string(choice, " }}", 0)
+  label_name = substring(choice, 0, pos)
+
+#Cancel
+if ($list_dialog_button == 4) # 4
+        {
+        beep()
+        return
+        }
+
+# Ref  
+if ($list_dialog_button == 1) {
+    # with environment
+    a = "\\ref{" label_name "}"
+    hit = get_item(datas, $sep2, $sep3,\
+        $sep1 choice $sep2)
+    type = split(hit, "\t")
+    if (1 in type) {
+        if (type[1] in $ltx_newtheorems)
+        a = $ltx_newtheorems[type[1]] " " a
+        }
+    insert_string(a)
+    return
+    }
+
+# EqRef  
+if ($list_dialog_button == 2) {
+    insert_string("\\eqref{" label_name "}")
+    return
+    }   
+# Jump to
+if ($list_dialog_button == 3) # 2
+        {
+        #get file_name, and look_for
+        file_name = get_item(datas,$sep3,$sep4,\
+        $sep1 choice $sep2)
+        #this may need modification
+        pos = get_item(datas,$sep4,$sep5,\
+        $sep1 choice $sep2)
+        ltx_goto(file_name, pos)
+        }
+        
+}
+
+
+# for bibliography
+define ltx_dialog_bibliography {
+button = dialog("List citations:", "All", "Containing keyword")
+if (button != 1 && button !=2) return
+if (button == 1) datas = ltx_list_citations()
+if (button == 2) {
+    pat = string_dialog("Give in keyword (as regex): ", "OK", "Cancel")
+    if ($string_dialog_button != 1) return
+    datas = ltx_list_citations("", pat)
+}
+
+
+if (datas == "") {
+    dialog("citation_list empty")
+    return
+    }
+citation_list = qsort_list(get_list(datas,$sep1,$sep2))
+citation_list = qsort_list(citation_list)
+choice = list_dialog("Citations", citation_list, "cite", "cite[ ]", "Jump to", "Cancel")
+
+#Cancel
+if ($list_dialog_button == 4) # 4
+        {
+        beep()
+        return
+        }
+# cite  
+if ($list_dialog_button == 1) {
+    insert_string("\\cite{" choice "}")
+    return
+    }
+
+# cite[]  
+if ($list_dialog_button == 2) {
+    insert_string("\\cite[]{" choice "}")
+    pos = search("\\cite[", $cursor, "backward")
+    set_cursor_pos($search_end)
+    return
+    }   
+# Jump to
+if ($list_dialog_button == 3) # 2
+        {
+        #get file_name, and look_for
+        file_name = get_item(datas,$sep2,$sep3,\
+        $sep1 choice $sep2)
+        #this may need modification
+        pos = get_item(datas,$sep3,$sep4,\
+        $sep1 choice $sep2)
+        ltx_goto(file_name, pos)
+        }
+
+}
+
+#for newcommands
+define ltx_dialog_commands {
+srchwhat = "\\\\(?:include|input|newcommand|DeclareMathOperator)\\{"
+# save all open files before looking for the labels
+ltx_save_all()
+work = ltx_main_file()
+datas = ltx_getlabels(work["path"],work["file"],srchwhat, 0)
+# if still empty, nothing found
+if (datas == "") {
+    dialog("No labels found!","OK")
+    return
+    }
+liste = qsort_list(get_list(datas,$sep1,$sep2))
+
+choice=list_dialog("Choose one",liste,"Insert","Jump to","Cancel")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "regex", "copy")
+
+if ($list_dialog_button == 3) 
+        {
+        beep()
+        return
+        }
+
+if ($list_dialog_button == 1) 
+        {
+        insert_string(choice)
+        return
+        }
+
+if ($list_dialog_button == 2) # 3
+        {
+        #get file_name, and look_for
+        file_name = get_item(datas,$sep3,$sep4,\
+        $sep1 choice $sep2)
+        #this may need modification
+        pos = get_item(datas,$sep4,$sep5,\
+        $sep1 choice $sep2)
+        ltx_goto(file_name, pos)
+        }
+
+}
+
+#==================================================================================
+# menu entry Sectioning@LaTeX
+#\\\\(?:include|input)\\{|(?:label|hypertarget)\\{
+define ltx_dialog_sections {
+srchwhat = "\\\\(?:include|input)\\{|\\\\(?:(add)?part|(add)?chap(ter)?|(add)?sec(tion)?|"\
+ "subsection|subsubsection|minisec|"\
+ "paragraph|subparagraph|subsubparagraph|subsubsubparagraph)\\*?(?:\\[[^\\]]*\\])?\\{"
+
+# save all open files before looking for the labels
+ltx_save_all()
+work = ltx_main_file()
+datas = ltx_getlabels(work["path"],work["file"],srchwhat, 0)
+# if still empty, nothing found
+if (datas == "") {
+    dialog("No labels found!","OK")
+    return
+    }
+liste = get_list(datas,$sep1,$sep2)
+
+choice = list_dialog("Sectioning:",liste,"Go to","Cancel","                   ")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "regex", "copy")
+
+if ($list_dialog_button == 1) # 
+        {
+        #get file_name, and look_for
+        file_name = get_item(datas,$sep3,$sep4,\
+        $sep1 choice $sep2)
+        #this may need modification
+        pos = get_item(datas,$sep4,$sep5,\
+        $sep1 choice $sep2)
+        ltx_goto(file_name, pos)
+        }
+        else { 
+        beep()
+        }
+
+}
+#==================================================================================
+define ltx_next_prev_begin {
+ if ($1 == 0) {
+     pos = search("\n\\begin{", $cursor)
+ }
+ else {
+     pos = search("\n\\begin{", $cursor - 2, "backward")
+ }
+
+ if (pos != -1) {
+     set_cursor_pos(++pos)
+ }
+ else {
+     beep()
+ }
+}
+
+
+#==================================================================================
+# two rewrapping functions required by displaying calltips only
+define ltx_para_rewrap {
+para_in = $1
+margin = $2
+para_in = replace_in_string(para_in,"(?n\\s+)"," ","regex","copy")
+para_out = ""
+while (length(para_in) > margin) {
+     space = search_string(para_in," ",margin,"backward")
+     if (space != -1) {
+         para_out = para_out substring(para_in, 0, space) "\n"
+         para_in = substring(para_in, space + 1, length(para_in))
+         }
+         else {
+         dialog("Doesn't fit into margin")
+         return($1)
+         }
+     }
+para_out = para_out para_in #"\n"
+return(para_out)
+}
+
+define ltx_line_break {
+lines_in = $1
+margin = $2
+lines_in = replace_in_string(lines_in,"\\s+"," ","regex","copy")
+lines_in = split(lines_in, "\n", "regex")
+lines_out = ""
+for (i = 0; i < lines_in[]; i++) {
+    while (length(lines_in[i]) > margin) {
+         space = search_string(lines_in[i]," ",margin,"backward")
+         if (space != -1) {
+             lines_out = lines_out substring(lines_in[i], 0, space) "\n"
+             lines_in[i] = substring(lines_in[i], space + 1, length(lines_in[i]))
+             }
+             else {
+             dialog("Can't break line")
+             return($1)
+             }
+         }
+    lines_out = lines_out lines_in[i] "\n"
+    }
+return(lines_out)
+}
+#==================================================================================
+
+
+define ltx_show_label {
+margin = $1
+len = $2
+# get start of references \\cite(?:\[[\l\s\d\.:;\\,]*\])?\{[^}]*\}
+ref_pat = "(?:\\\\(eq)?ref\\{|\\\\cite\\l*(?:\\[[^]]*\\])?\\{)[^}]*\\}"
+start_item = search(ref_pat, $cursor, "regex", "backward")
+if (start_item != -1) {
+    if (start_item <= $cursor && $cursor <= $search_end) {
+        item = get_range(start_item, $search_end)
+        }
+        else {
+        dialog("Cursor not at reference")
+        return
+        }
+        
+    }
+    else {
+    dialog("No reference found")
+    return
+    }
+    
+# \eqref, \ref and \hyperref \newcommand so far 
+pattern = "\\\\(eq)?ref\\{|\\\\cite\\l*(?:\\[[^]]*\\])?\\{"
+srch_what["\\eqref{"] = "\\label{"
+srch_what["\\ref{"] = "\\label{"
+
+pos = search_string(item, pattern, 0, "regex")
+if (pos == -1) {
+    dialog("no start of ref")
+    return
+    }
+f = substring(item, pos, $search_end)
+name_of_references = substring(item, $search_end, length(item) - 1)
+# buffer offset for name of references
+offset = start_item + $search_end
+
+#dialog(f)
+# checken if label ok
+#label = replace_in_string()
+
+work = ltx_main_file()
+work_path = work["path"]
+$ltx_project_sources = $empty_array
+$ltx_project_sources[work["path"] work["file"]] = work["file"]
+ltx_project(read_file(work["path"] work["file"]), work["path"])
+flag = -1
+datas = ""
+if (f in srch_what) {
+    for (project_file in $ltx_project_sources) {
+        temp = read_file(project_file)
+        found = search_string(temp, srch_what[f] name_of_references "}", 0)
+        if (found == -1) {
+            continue
+            }
+            else {
+              search_end = $search_end + 1
+              if (flag == -1) {
+                  start = search_string(temp, "^", found, "backward", "regex")
+                  datas = substring(temp, start, start + len)
+                  datas = ltx_para_rewrap(datas, margin)
+                  datas = substring(datas, 0, length(datas) - 1)
+                  }
+              flag++
+              found = search_string(temp, srch_what[f] name_of_references "}", search_end)
+              if (found != -1) {
+                  flag++
+                  }
+              }
+            
+        }
+        
+    }
+    else { #Check for citation
+    test = substring(f, 0, 5)
+    if (test == "\\cite") {
+        # handling of \cite{a,b,c}
+        f = search_string(name_of_references, ",", 0)
+        if (f != -1 && get_character($cursor - 1) != "}" && $cursor > offset) {
+            f = search("\\}|,", $cursor, "regex")
+            if (get_range(f, $search_end) == "}") {
+                name_of_references = name_of_references ","
+            }
+            else {
+                f = f - offset + 1
+                name_of_references = substring(name_of_references, 0, f)
+            }
+        }
+    ltx_show_citation(name_of_references, margin)
+    return
+    }
+    else {
+      dialog("citation check failed, but it should not")
+      return
+      }
+    
+    }
+
+if (flag == -1) {
+    calltip("No label found!")
+    }
+    else {
+    if (flag > 0) {
+        datas = datas "\n\nWARNING:More than 1 label found. Check it."
+        }
+    if (datas != "") {
+        calltip(datas)
+        }
+        else {
+        dialog("Label found, but can't show???")
+        }
+        
+    }
+    
+}
+
+#==================================================================================
+define ltx_show_citation {
+name_of_references = $1 
+# if name_of_references contains commas, it is a list
+name_of_references = split(name_of_references, ",")
+
+# if more than one references, and last one empty, show only the last - 1 one
+if (name_of_references[] > 1 && name_of_references[name_of_references[]- 1] == "") {
+    name_of_references[0] = name_of_references[name_of_references[]- 2]
+    for (i = name_of_references[]- 1; i > 0; i--) {
+        delete name_of_references[i]
+    }
+}
+margin = $2
+datas = $empty_array
+flag = -1
+work = ltx_main_file()
+work_path = work["path"]
+# Check first whether `thebibliography' or bibtex
+t = -1
+for (project_file in $ltx_project_sources) {
+    temp = read_file(project_file)
+    if ($read_status != 1) {
+        dialog("Couldn't read file: " project_file)
+        }
+    found = search_string(temp, "\\\\begin\\{thebibliography}|\\\\bibliography\\{",0,"regex")
+    if (found != -1) {
+        t++
+        break
+        }
+    }
+if (t != 0) {
+    calltip("No bibliography found!")
+    return
+    }
+# Here we have either `thebibliography' or bibtex, check which one
+check = substring(temp, found, found + 4)
+if (check != "\\beg" && check != "\\bib") {
+    dialog("Error. Bibtest found: " temp)
+    return
+    }
+if (check == "\\beg") { # thebibliography version
+    for (j = 0; j < name_of_references[]; j++) {
+      for (project_file in $ltx_project_sources) {
+          temp = read_file(project_file)
+          found = search_string(temp, "\\bibitem{" name_of_references[j] "}", 0)
+          if (found == -1) {
+              continue
+              }
+              else {
+                search_end = $search_end + 1
+                start = search_string(temp, "^", found, "backward", "regex")
+                end = search_string(temp, "\\\\bibitem|\\\\end\\{thebibliography",\
+                       search_end, "regex" )
+                datas[j] = substring(temp, start, end)
+                datas[j] = ltx_para_rewrap(datas[j], margin)
+                datas[j] = substring(datas[j], 0, length(datas[j]) - 1)
+                found = search_string(temp, "\\bibitem{" name_of_references[j] "}", search_end)
+                if (found != -1) {
+                    flag++
+                    }
+                }
+          }
+      }
+    }
+
+if (check == "\\bib") { # bibtex version
+    start_pat = "^\\s*@\\l+\\s*\\{"
+    # first get the bibfiles: \bibliography{file1, file2, ...}
+    start = $search_end
+    end = search_string(temp, "}", found)
+    files = substring(temp, start, end)
+    files = split(files, "\\s*,\\s*", "regex")
+    for (j = 0; j < name_of_references[]; j++) {
+      for (i = 0; i < files[]; i++) {
+          test = search_string(files[i], ".", 0)
+          if (test == -1) {
+              files[i] = files[i] ".bib"
+              }
+          temp = read_file(work_path files[i])
+          if ($read_status != 1) {
+              dialog("Couldn't read file: " work_path files[i])
+              }
+          found = search_string(temp, start_pat name_of_references[j] ",", 0, "regex")
+          if (found == -1) {
+              continue
+              }
+              else {
+                search_end = $search_end + 1
+                end = search_string(temp, "^\\s*\\}", search_end, "regex" )
+                datas[j] = substring(temp, found, end + 1)
+                datas[j] = ltx_line_break(datas[j], margin)
+                datas[j] = substring(datas[j], 0, length(datas[j]) - 1)
+                found = search_string(temp, start_pat name_of_references[j] ",", search_end)
+                if (found != -1) {
+                    flag++
+                    }
+                }
+          }
+      }
+    }
+
+text = ""
+if (datas[] == 0) {
+    calltip("No label found!")
+}
+else {
+  for (i = 0; i < name_of_references[]; i++) {
+    if (i in datas) {
+        text = text datas[i] "\n\n"
+    }
+  }
+  text = substring(text, 0, length(text) - 2)
+  if (flag > -1) {
+      text = text "\n\nWARNING:More than 1 bibentry found. Check it."
+  }
+  calltip(text)
+
+}
+
+}
+
+# May take a parameter which is the start of an bib entry
+# returns a list of all bibitems or bib entries (which match the start of the
+# given entry)
+define ltx_list_citations {
+keyword = ""
+entry = ""
+if ($n_args == 1) {
+    entry = $1
+    }
+if ($n_args == 2) {
+    entry = ""
+    keyword = $2
+    }
+work = ltx_main_file()
+work_path = work["path"]
+$ltx_project_sources = $empty_array
+$ltx_project_sources[work["path"] work["file"]] = work["file"]
+ltx_project(read_file(work["path"] work["file"]), work["path"])
+# Check first whether `thebibliography' or bibtex
+t = -1
+for (project_file in $ltx_project_sources) {
+    temp = read_file(project_file)
+    if ($read_status != 1) {
+        dialog("Couldn't read file: " project_file)
+        }
+    found = search_string(temp, "\\\\begin\\{thebibliography}|\\\\bibliography\\{",0,"regex")
+    if (found != -1) {
+        t++
+        break
+        }
+    }
+if (t != 0) {
+    calltip("No bibliography found!")
+    return("")
+    }
+# Here we have either `thebibliography' or bibtex, check which one
+check = substring(temp, found, found + 4)
+if (check != "\\beg" && check != "\\bib") {
+    dialog("Error. Bibtest found: " temp)
+    return("")
+    }
+
+list = "\n"
+offset = 0
+if (check == "\\beg") { # thebibliography version
+    # we assume that all bibitems are in the file with \begin{thebibliography}
+    end = search_string(temp, "\\end{thebibliography}", found)
+    if (end == -1) {
+        dialog("No end of thebibliography found")
+        return(" ")
+    }
+    offset = found
+    temp = substring(temp, offset, $search_end)
+    if (keyword == "") { # list all bib entries
+        found = search_string(temp, "\\bibitem{" entry, 0)
+        while (found != -1) {
+             start = search_string(temp, "{", $search_end, "backward") + 1
+             end = search_string(temp, "}", start)
+             if (end != -1) {
+                 list = list $sep1 substring(temp, start, end) $sep2 project_file $sep3\
+                            found + offset $sep4 "\n"
+                 }
+             found = search_string(temp, "\\bibitem{" entry, start +1)
+             }
+    }
+    else { # list only those bib entries containing keyword
+        found = search_string(temp, keyword, 0, "regex")
+        while (found != -1) {
+            start = search_string(temp, "\\bibitem{", found, "backward")
+            if (start == -1) {
+                dialog("bibitem not found")
+                return(" ")
+            }
+            start = $search_end
+            end = search_string(temp, "}", start)
+            if (end != -1) {
+                list = list $sep1 substring(temp, start, end) $sep2 project_file $sep3\
+                            found $sep4 "\n"
+            }
+            # jump to next entry to avoid double matches
+            next = search_string(temp, "\\bibitem{", found)
+            if (next != -1) {
+                found = search_string(temp, keyword, next, "regex")
+            }
+            else {
+                break
+            }
+            
+        }
+    }
+    return(list)
+    }
+
+if (check == "\\bib") { # bibtex version
+    start_pat = "(?i(?!^\\s*@(?:s|prea)))^\\s*@\\l+\\s*\\{" entry
+    # first get the bibfiles: \bibliography{file1, file2, ...}
+    start = $search_end
+    end = search_string(temp, "}", found)
+    files = substring(temp, start, end)
+    files = split(files, "\\s*,\\s*", "regex")
+    for (i = 0; i < files[]; i++) {
+        test = search_string(files[i], ".", 0)
+        if (test == -1) {
+            files[i] = files[i] ".bib"
+            }
+        temp = read_file(work_path files[i])
+        if ($read_status != 1) {
+            dialog("Couldn't read file: " work_path files[i])
+            }
+        if (keyword == "") { # list all bib entries
+            found = search_string(temp, start_pat, 0, "regex")
+            while (found != -1) {
+                 start = search_string(temp, "{", $search_end, "backward") + 1
+                 end = search_string(temp, ",|$", start, "regex")
+                 if (end != -1) {
+                     list = list $sep1 substring(temp, start, end)  $sep2 work_path files[i]\
+                                $sep3 found $sep4 "\n"
+                     }
+                 found = search_string(temp, start_pat, start + 1, "regex")
+                 }
+            }
+            else { # list only those bib entries containing keyword
+                found = search_string(temp, keyword, 0, "regex")
+                while (found != -1) {
+                    start = search_string(temp, start_pat, found, "regex", "backward")
+                    if (start == -1) {
+                        dialog("bib entry not found")
+                        return(" ")
+                    }
+                    start = $search_end
+                    end = search_string(temp, ",|$", start, "regex")
+                    if (end != -1) {
+                        list = list $sep1 substring(temp, start, end)  $sep2 work_path files[i]\
+                                   $sep3 found $sep4 "\n"
+                        }
+                    # jump to next entry to avoid double matches
+                    next = search_string(temp, start_pat, found, "regex")
+                    if (next != -1) {
+                        found = search_string(temp, keyword, next, "regex")
+                    }
+                    else {
+                        break
+                    }
+                    
+                }
+            }
+        }
+    return(list)
+    }
+}
+#==================================================================================
+# index things
+define ltx_insert_nomencl {
+nomen = get_selection()
+set_cursor_pos($selection_end)
+if (get_character($cursor) == " ") replace_range($cursor, $cursor + 1, "")
+text = nomen "%\n\\nomenclature{"nomen"}{ }\n"
+replace_selection(text)
+process_up()
+end_of_line()
+backward_character()
+backward_character()
+}
+
+#==================================================================================
+
+define ltx_goto {
+#requires full file name
+file = $1
+position = $2
+# save current location to jump back
+if (substring(file,0,1) != "/") {
+    dialog("Need file name including full path")
+    }
+
+$ltx_back_file = $file_path $file_name
+$ltx_back_pos = $cursor
+if (file != ($file_path $file_name)) {
+
+    open(file)
+    focus_window(file)
+    # Avoid annoying lesstif bug
+#     if ($NE_globals["op_system"] == "mswindows" && $wrap_text == "continuous") {
+#         split_window()
+#         close_pane()
+#         }
+    }
+#go to position
+set_cursor_pos(position)
+end_of_line()
+beginning_of_line("extend")
+}
+
+#==================================================================================
+# menu entry Back@LaTeX
+
+define ltx_goback {
+if ($ltx_back_file != ($file_path $file_name) && $ltx_back_file != "") {
+    open($ltx_back_file)
+    focus_window($ltx_back_file)
+    raise_window()
+    }
+set_cursor_pos($ltx_back_pos)
+}
+
+
+#==================================================================================
+# Word completion for LaTeX
+#==================================================================================
+define ltx_wcomplete {
+
+# Requires wordcompletion!
+errMsg = jf_require("code_word_comp.nm")
+if (errMsg != "") {
+    dialog(errMsg)
+    return
+}
+
+word_chars="\\läÄüÜöÖß\""
+com_chars="\\l"
+
+
+# if cycling do nothing
+if ($CWM_old_start==$cursor) {
+    jf_complete_word(0)
+    }
+    else {
+    if ($main_file!="" && $main_path!="") {
+        workfile= $main_file 
+        workpath= $main_path 
+        }
+        else {
+        workfile=$file_name
+        workpath=$file_path
+        }
+
+    # check whether word or code completion
+    found=search("\\\\\\l+",$cursor,"regex","backward")
+    if ($search_end==$cursor) {
+        # code completion
+        # LaTeX commands
+        commands = read_file($ltxpath "ltx_cmd.txt")
+        # get user defined commands
+        srchwhat="\\\\(?:include|input|newcommand|DeclareMathOperator)\\{"
+        ltx_save_all()
+        datas=ltx_getlabels(workpath,workfile,srchwhat, 0)
+#        comp = shell_command("sort",get_list(datas,$sep1,$sep2))
+        comp=qsort_list(replace_in_string(datas, \
+                        $sep1"|"$sep2".*"$sep5,"","regex","copy"))
+        comp = replace_in_string(comp, "\\", "", "copy")
+        comp= comp "\n" commands
+        jf_complete_word(0,0,comp,com_chars)
+        return
+        }
+    found=search("\\\\(?:eq)?ref\\{[\\w:_\\-]+",$cursor,"regex","backward")
+    if ($search_end==$cursor) {
+        # get labels
+        found = search("\\{[\\w:_\\-]+", $cursor, "regex", "backward")
+        srchwhat="\\\\(?:include|input)\\{|\\\\(?:label|hypertarget)\\{" get_range(found + 1, $search_end)
+        ltx_save_all()
+        datas=ltx_getlabels(workpath,workfile,srchwhat,0)
+#        comp = shell_command("sort",get_list(datas,$sep1,$sep2))
+        comp=qsort_list(replace_in_string(datas, \
+                        $sep1"|"$sep2".*"$sep5,"","regex","copy"))
+        jf_complete_word(0,0,comp,com_chars)
+        return
+        }
+    found = search("\\\\cite\\l*(?:\\[[^]]*\\])?\\{[\\w:_\\-]+", $cursor, "regex", "backward")
+    if ($search_end == $cursor) {
+        # get bib
+        found = search("\\{[\\w:_\\-]+", $cursor, "regex", "backward")
+        datas = ltx_list_citations(get_range(found+1, $search_end))
+        comp = qsort_list(replace_in_string(datas, \
+                        $sep1"|"$sep2".*"$sep4,"","regex","copy"))
+        jf_complete_word(0, 0, comp, com_chars)
+        return
+        }
+    found=search("\\\\(?:begin|end)\\{\\l+",$cursor,"regex","backward")
+    if ($search_end==$cursor) {
+        # get environments
+        umgeb=read_file($ltxpath "ltx_env.txt")
+        # get user defined ones
+        srchwhat="\\\\(?:newenvironment)\\{"
+        ltx_save_all()
+        datas=ltx_getlabels(workpath,workfile,srchwhat,0)
+#        comp = shell_command("sort",get_list(datas,$sep1,$sep2))
+        comp=qsort_list(replace_in_string(datas, \
+                        $sep1"|"$sep2".*"$sep5,"","regex","copy"))
+        comp= comp "\n" umgeb
+        jf_complete_word(0,0,comp,com_chars)
+        return
+        }
+    # word completion, if everthing else should fail
+    # get special words, german or english - latex!
+    special=read_file($ltxpath "my_en_tex.txt")
+    jf_complete_word(1,1,special,word_chars)
+    }
+}
+
+
+#==================================================================================
+
+
+
+#===============================================
+#
+# SUBPROCEDURES FOR FORMAT, ENVIRO, ENUMERATION
+#
+#===============================================
+# Takes as argument a string that looks like
+#
+# separator1 item sep2 item sep3 item sep4 \n
+# separator1 item sep2 item sep3 item sep4 \n
+#
+# and so on. Moreover takes as arguments to separator signs, e.g.
+# sep2 and sep3. 
+# Returns a string consisting of all items between sep2 and sep3, separated by
+# newlines. If the string contains already newlines, these are replaced
+# with $sub_sep. If the string contains $sub_sep, things will go wrong !!!
+#
+define get_list {
+  #string in which the names are
+  list = $1
+  sgn_start = $2
+  sgn_end = $3
+  dsply = ""
+  pos = 0
+  while (search_string(list,sgn_start,pos,"case") != -1) 
+          {
+          beg_name = $search_end
+          end_name = search_string(list,sgn_end,beg_name,"case")
+          pos = $search_end + 1
+          name = substring(list, beg_name, end_name)
+          # replace newlines !!!
+          name = replace_in_string(name, "\n", $sub_sep, "regex", "copy")
+          dsply = dsply name "\n"
+          }
+  return(dsply)
+}
+
+#===============================================
+# Takes as argument a string that looks like
+#
+# separator1 item sep2 item sep3 item sep4 \n
+# separator1 item sep2 item sep3 item sep4 \n
+#
+#and so on. Moreover takes as arguments an item and two separators.
+#Returns the item between the separators in the same row as the given item.
+define get_item {
+  file = $1
+  sgn_start = $2
+  sgn_end = $3
+  # What if double entries?
+  look_for= $4 
+  pos0 = search_string(file,look_for,0,"case")
+  # start of line
+  pos = search_string(file,"\n" $sep1,pos0,"backward","case")
+  beg_item = search_string(file,sgn_start,pos,"case")+1
+  end_item = search_string(file,sgn_end,pos,"case")
+  #missing error handling
+  return(substring(file, beg_item, end_item))
+}
+
+#===============================================
+# Takes as argument a string1 that looks like
+#
+# separator1 item sep2 item sep3 item sep4 \n
+# separator1 item sep2 item sep3 item sep4 \n
+#
+#and so on. Moreover takes another string2 of the form sep2 str sep3.
+#Returns the substring of string1, in that all lines contain sep2 str sep3
+
+define list_items {
+  #string in which the names are
+  list = $1
+  pat = $2
+  newlist = "\n"
+  pos = 0
+  pos1 = search_string(list,pat,pos,"case")
+  while (pos1 != -1)
+          {
+          pos2 = $search_end
+          start = search_string(list,$sep1,pos1+1,"case","backward")
+          end = search_string(list,$sep5,pos2,"case")
+          part = substring(list,start,end+1)
+          newlist = newlist part "\n"
+          pos1 = search_string(list,pat,end+1,"case")
+          } 
+
+  return(newlist)
+}
+
+
+#====================================
+# Inserting MISCELLANEOUS-TEMPLATES 
+#====================================
+# !!!! rename to ltx_insert
+define ltx_insert {
+  dsply = ""
+  
+  # we simply assume currently that the filename is relative to $ltxpath
+  filename = $ltxpath $1
+  datas = read_file(filename)
+  #if failed stop
+  if (datas == "") 
+      {
+      dialog("File " file " not found or empty!")
+      return
+      }
+
+  #get names and list  --- get_list() user defined function in latex_mode.nm
+  choice = list_dialog("Choose one",get_list(datas,$sep1,$sep2),\
+  "Insert","Cancel")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "regex", "copy")
+  if ($list_dialog_button == 2) 
+     {
+     beep()
+     return
+     }
+
+  insert_string(get_item(datas,$sep2,$sep3,\
+  $sep1 choice $sep2))
+}
+
+
+
+#===================================
+# ENUMERATION, menu entry Lists
+#===================================
+define ltx_insert_lists {
+#choice menu
+file = $ltxpath "enum.dat"
+dsply = ""
+datas = read_file(file)
+if (datas == "") 
+   {
+   dialog("File " file " not found or empty!")
+   return
+   }
+
+choice = list_dialog("Choose one",get_list(datas,$sep1,$sep2), "Insert","Cancel")
+
+if ($list_dialog_button == 2) 
+   {
+   beep()
+   return
+   }
+
+what = get_item(datas,$sep2,$sep3,$sep1 choice $sep2)
+what2 = get_item(datas,$sep3,$sep4,$sep1 choice $sep2)
+what_end = what
+pos = search_string(what, "[", 0)
+
+if (pos != -1) {
+    what_end = substring(what, 0, pos)
+    if ($enum_flag == 0) {
+        $enum_flag = 1
+        calltip("This will require \\usepackage{enumerate} or\n \\usepackage{paralist}")
+    }
+}
+
+text = get_selection()
+
+if (text == "") 
+    {
+    insert_string("\\begin{" what "\n" what2 " \n" "\\end{" what_end "\n")
+    find(what2,"backward")
+    deselect_all()
+    forward_character()
+    return
+    }
+what2 = replace_in_string(what2, "\\", "\\\\", "copy")
+
+# put anything between \begin and \end into a single line
+bg_pats = "(?n\\\\begin\\{(.*?)\\}.*?\\\\end\\{\\1\\})"
+text = get_selection()
+found = search_string(text, bg_pats, 0, "regex")
+while (found != -1) {
+    ende = $search_end
+    part = substring(text, found, ende)
+    part = replace_in_string(part, "\n", $sub_sep, "copy")
+    text = replace_substring(text, found, ende, part)
+    found = search_string(text, bg_pats, ende + 1, "regex")
+    }
+restore = ""
+if (substring(text, length(text) - 1, length(text)) == "\n") {
+    text = substring(text, 0, length(text) - 1)
+    restore = "\n"
+    }
+if (choice == "Description")
+    text = replace_in_string(text, "(^\\w*)", "\\[\\1\\]", "regex", "copy")
+    else what2 = what2 " "
+text = replace_in_string(text, "^.*$", what2 "&", "regex", "copy")
+# put the construct back into multiple lines
+text = replace_in_string(text, $sub_sep, "\n", "copy")
+
+replace_selection("\\begin{" what "\n" text "\n\\end{" what_end restore)
+deselect_all()
+}
+
+#===========================================================
+#  FORMAT and Sectioning
+#==========================================================
+
+#choice menu
+
+define ltx_format {
+  dsply = ""
+  # we simply assume currently that the filename is relative to $ltxpath
+  filename = $ltxpath $1
+  datas = read_file(filename)
+  #if failed stop
+  if (datas == "") 
+    {
+    dialog("File " file " not found or empty!")
+    return
+    }
+
+  #get names and list
+  choice = list_dialog("Choose one",get_list(datas,$sep1,$sep2), \
+  "Insert","Cancel")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "regex", "copy")
+  if ($list_dialog_button == 2) 
+     {
+     beep()
+     return
+     }
+
+  #get the variable, input is name in choice
+
+  what = get_item(datas,$sep2,$sep3, \
+  $sep1 choice $sep2)
+  what2 = get_item(datas,$sep3,$sep4, \
+  $sep1 choice $sep2)
+
+  text = get_selection()
+
+  #if nothing selected, insert template, move cursor back
+  if (text == "") 
+      {
+      insert_string(what what2)
+      find(what,"backward")
+      deselect_all()
+      return
+      }
+
+  #if something is selected, replace it
+  replace_selection(what text what2)
+}
+
+
+#===========================================================
+#  THEOREMS + ENVIRONMENTS
+#==========================================================
+
+# new function for changing theorem environments and the by Lemma \ref{} problem
+$ltx_newtheorems = $empty_array
+define ltx_newtheorem_type {
+work = ltx_main_file()
+datei = read_file(work["path"] work["file"])
+pats = "^\\\\newtheorem\\{.*$"
+found = search_string(datei, pats, 0, "regex")
+while (found != -1) {
+     line = substring(datei, found + 12, $search_end)
+     end = search_string(line, "%", 0)
+     if (end != -1) {
+         line = substring(line, 0, end)
+         }
+     end = search_string(line, "[^\\}]\\}+", length(line), "backward", "regex")
+     if (end == -1 || end == length(line)) {
+         dialog("No ending } found?\n" line)
+         return
+         }
+     line = substring(line, 0, end + 1)
+     types = split(line, "\\}(?:\\[.*?\\])?\\{(?:\\\\.*?\\{)?", "regex")
+     if (types[] == 2) {
+         $ltx_newtheorems[types[0]] = types[1]
+         }
+         else {
+         dialog("No split in two:\n" line)
+         }
+     found = search_string(datei, pats, found + 2, "regex")
+     }
+}
+
+# change the references if the environment changes: Lemma \ref{} now Proposition \ref{}
+# requires project files
+# requires environment types
+define ltx_change_ref {
+# get label and environment, assumed on the same line cursor is assumed
+anf = search("\\\\begin\\{[\\l\\d]*\\}.*\\\\label\\{", $cursor, "backward", "regex")
+end = $search_end
+enviro = get_range(anf + 7, end)
+anf = search_string(enviro, "}", 0)
+enviro = substring(enviro, 0, anf)
+ltx_newtheorem_type()
+if (enviro in $ltx_newtheorems) {
+    enviro = $ltx_newtheorems[enviro]
+    }
+    else {
+    dialog("theorem type not in array")
+    return
+    }
+anf = search("}", end)
+label = get_range(end, anf)
+# build search string
+pats = ""
+for (key in $ltx_newtheorems) {
+    pats = pats $ltx_newtheorems[key] "|"
+    }
+pats = "(?n(?:"substring(pats, 0, length(pats) - 1)")(\\s*\\\\ref\\{" label "\\}))"
+for (project_file in $ltx_project_sources) {
+    open(project_file)
+    focus_window(project_file)
+    replace(pats, enviro "\\1", "regex")
+    dialog("Check and replace again, then open next")
+   }
+}
+
+
+define ltx_parse_document {
+if ($main_file != "") {
+    current = focus_window($main_path $main_file)
+    if (current == "") {
+        file = read_file($main_path $main_file)
+        if ($read_status == 0) {
+            dialog("Main File not found? Abort.")
+            return
+        }
+    }
+    else {
+        file = get_range(0, $text_length)
+    }
+}
+
+pos = search_string(file, "^\\s*\\\\(begin\\{document\\}|endinput)", 0, "regex")
+if (pos == -1 || $search_end - pos != 16) {
+    dialog("No \\begin{document} found. Abort.")
+    return
+}
+
+file = substring(file, 0, pos)
+
+}
+
+define ltx_enviro {
+  dsply = ""
+  german = ""
+
+  # we simply assume currently that the filename is relative to $ltxpath
+  filename = $ltxpath $1
+  datas = read_file(filename)
+  #if failed stop
+  if (datas == "") 
+          {
+          dialog("File " file " not found or empty!","Ok")
+          return
+          }
+
+  #get names and list
+  choice = list_dialog("Choose one",get_list(datas,$sep1,$sep2), \
+  "Insert","Cancel")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "regex", "copy")
+  if ($list_dialog_button == 2) 
+      {
+      beep()
+      return
+      }
+
+  #Special case german proof
+  if (choice == "PROOF de") german = "[Beweis]"
+
+  #get the variable, input is name in choice
+  choice = $sep1 choice $sep2
+  what = get_item(datas,$sep2,$sep3,choice)
+
+  text = get_selection()
+
+  #if nothing selected, insert template, move cursor back
+  if (text == "") 
+      {
+      insert_string("\n" "\\begin{" what "}" german "\n\n"  "\\end{" what "}")
+      process_up()
+      return
+      }
+  #if something is selected, replace it
+  replace_selection("\\begin{" what "}" german " " text "\\end{" what "}")
+}
+#==================================================================================
+
+#========================================================
+#
+# MATRICES
+#
+#========================================================
+
+# 
+# Window Background menu entry MATRICES
+# 
+
+define ltx_insert_matrix {
+file = $ltxpath "matrix.dat"
+dsply = ""
+separ = " "
+template = " &  \\" "\\" "\n &  \n"
+templ_small_ltx = "\n{a \\: b \\choose c\\: d}  %without bracket -> \\atop\n"
+beg = "\\begin{"
+end = "\\end{"
+pre = ""
+post= ""
+cc = ""
+small = "smallmatrix"
+ltx = "array"
+datas = read_file(file)
+if (datas == "") 
+        {
+        dialog("File " file " not found or empty!","Ok")
+        return
+        }
+
+choice = list_dialog("Choose one",get_list(datas,$sep1,$sep2), \
+"Ok","small","ltx","small-ltx","Cancel")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "copy")
+
+#Cancel
+if ($list_dialog_button == 5) 
+        {
+        beep()
+        return
+        }
+
+what = get_item(datas,$sep2,$sep3, \
+$sep1 choice $sep2)
+
+# small matrices
+if ($list_dialog_button == 2)
+        {
+        bra1 = substring(choice, 0, 1)
+        bra2 = substring(choice, length(choice)-1, length(choice))
+        if (bra1 == "{") bra1 = "\\" bra1
+        if (bra2 == "}") bra2 = "\\" bra2
+        if (bra2 == "{") bra2 = "."
+        if (what == "Vmatrix")
+                {
+                bra1 = "\\" bra1
+                bra2 = "\\" bra2
+                }
+        pre = "\\bigl" bra1
+        post= "\\bigr" bra2
+        
+        what = small
+        }
+        
+if ($list_dialog_button == 3)
+        {
+        bra1 = substring(choice, 0, 1)
+        bra2 = substring(choice, length(choice)-1, length(choice))
+        if (bra1 == "{") bra1 = "\\" bra1
+        if (bra2 == "}") bra2 = "\\" bra2
+        if (bra2 == "{") bra2 = "."
+        if (what == "Vmatrix")
+                {
+                bra1 = "\\" bra1
+                bra2 = "\\" bra2
+                }
+        pre = "\\left" bra1 "\n"
+        post = "\n" "\\right" bra2
+        
+        what = ltx
+        cc = "{cc}%!! 1 entry pro column! c center-, l left-, r right-aligned!"
+        }
+
+if ($list_dialog_button == 4)
+        {
+        deselect_all()
+        insert_string(templ_small_ltx)
+        return
+        }
+        
+text = get_selection()
+
+if (text == "") 
+        {
+        
+        insert_string(pre beg what "}" cc "\n" template end what "}" post)
+        
+        find("begin{","backward")
+        beginning_of_line()
+        process_down()
+        return
+        }       
+
+# put anything between \begin and \end into a single line in order to
+# allow to apply the equation macro if the equation already contains
+# multiline constructs like matrices or other equations
+bg_pats = "(?n\\\\begin\\{(.*?)\\}.*?\\\\end\\{\\1\\})"
+found = search_string(text, bg_pats, 0, "regex")
+flag = 0
+while (found != -1) {
+    flag = 1
+    ende = $search_end
+    part = substring(text, found, ende)
+    part = replace_in_string(part, "\n", $sub_sep, "copy")
+    text = replace_substring(text, found, ende, part)
+    found = search_string(text, bg_pats, ende + 1, "regex")
+    }
+# if there is a construct we have to use a different separator
+if (flag == 1) separ = " ; "
+
+# in the case of "cases" we also use ; as separator
+if (what == "cases") {
+    separ = ";"
+    }
+text = replace_in_string(text, separ, " & ", "copy")
+text = replace_in_string (text,"^.*$", "&" "\\\\" "\\", "regex", "copy")
+
+# put the construct back into multiple lines
+text = replace_in_string(text, $sub_sep, "\n", "copy")
+
+l = search_string(text,"\\",length(text),"backward")
+text = substring(text,0,l-1)
+
+replace_selection(pre beg what "}" cc "\n" text "\n" end what "}" post)
+}
+
+
+#==========================================================================
+#
+# EQUATIONS
+#
+#==========================================================================
+
+# This function takes an array of strings as argument, 
+# where the strings are the lines of an equation.
+# Moreover it takes as second string binary relation operators to search for in
+# the equation, and as third argument a user defined align mark, which will be 
+# replaced with LaTeX's align mark.
+# The function returns an array with the properley aligned lines,
+# i.e. it fills in LaTeX alignment marks
+
+define ltx_align {
+  x = $1
+  bi_rel = $2
+  align_mark = $3
+
+  if (x[] == 1) return(x)
+
+  for (i = 0;i < x[]; i++)
+      {
+      #search for explicit align_mark or for a binary relation
+      found = search_string(x[i],align_mark,0)
+      if (found!=-1)
+            {
+            #if found, replace with "&"
+            x[i] = replace_substring(x[i],found,$search_end,"&")
+            }
+            else
+                  {
+                  #if not found, search for first binary relation sign
+                  found = search_string(x[i],bi_rel,0,"regex")
+                  if (found!=-1)
+                     {
+                     #if found, get the sign and replace it with &sign
+                     sign = substring(x[i],found,$search_end)
+                     x[i] = replace_substring(x[i],found,$search_end,"&" sign)
+                     }
+                     else
+                           {
+                           #if neither align mark nor binary relation found, set "&" at
+                           #begin of line, if it is not the first line
+                           if (i>0) x[i] = "&" x[i]
+                           }
+                     }
+
+          }
+  return(x)
+}
+
+# 
+# Window Background menu entry EQUATIONS
+# 
+
+define ltx_insert_equation {
+file = $ltxpath "equation.dat"
+dsply = ""
+if ($n_args > 0) {
+    label = $1
+}
+else {
+label = ""
+}
+
+# insert as many binary relations as you know
+bi_rel = "(=|\\\\leq|\\\\geq)"
+
+# change that if you don't like semicolons
+align_mark = ";"
+separator = " ; "
+
+beg = "\\begin{"
+end = "\\end{"
+reset = "false"
+nonum_a = "}" label "\n"
+nonum_b = "}\n"
+newtext = ""
+
+datas = read_file(file)
+#if failed stop
+if (datas == "") 
+    {
+    dialog("File " file " not found or empty!","Ok")
+    return
+    }
+
+#get names and list
+choice = list_dialog("Choose one",get_list(datas,$sep1,$sep2), \
+"OK","No number","Cancel")
+  # get_list replaces \n with $sub_sep, replace it back!
+  choice = replace_in_string(choice, $sub_sep, "\n", "regex", "copy")
+
+#Cancel
+if ($list_dialog_button == 3) 
+    {
+    beep()
+    return
+    }
+
+if ($list_dialog_button == 2) 
+    {
+    nonum_a = "*" nonum_a
+    nonum_b = "*" nonum_b
+    }
+
+text = get_selection()
+
+#get the variable, input is name in choice
+choice = $sep1 choice $sep2
+what = get_item(datas, $sep2, $sep3, choice)
+
+#if nothing selected, insert template, move cursor back
+if (text == "") 
+    {
+    #for setting cursor
+    startpos = $cursor
+    #get the template
+    template = get_item(datas,$sep3,$sep4,choice)
+    template = substring(template,1,length(template))
+    if (what == "aligned" || what == "gathered")
+       {
+          what = "equation"
+          }
+    insert_string(beg what nonum_a template end what nonum_b)
+    endpos = $cursor
+    # set cursor
+    pos = search("~",startpos)
+    if (pos<endpos && pos!=-1)
+       {
+          select(pos,$search_end)
+          delete_selection()
+          }
+    return
+    }
+
+ 
+
+#text != ""
+#case ;;
+startpos = $selection_start
+text = replace_in_string(text, ";;", "; ;", "copy")
+
+# put anything between \begin and \end into a single line in order to
+# allow to apply the equation macro if the equation already contains
+# multiline constructs like matrices or other equations
+bg_pats = "(?n\\\\begin\\{.*?\\}.*?\\\\end\\{.*?\\})"
+found = search_string(text, bg_pats, 0, "regex")
+while (found != -1) {
+    ende = $search_end
+    part = substring(text, found, ende)
+    part = replace_in_string(part, "\n", $sub_sep, "copy")
+    text = replace_substring(text, found, ende, part)
+    found = search_string(text, bg_pats, ende + 1, "regex")
+    }
+
+fst = split(text, "\n")
+
+#exclude the case last line (array entry) empty, which is the case, 
+#if selection ends with "\n"
+#Notice that the arrays start at 0, so the last entry is fst[]-1 where fst[] is the
+#length of the array
+if (fst[fst[]-1] == "") {
+   for(i = 0; i < fst[] - 1; i++) x[i] = fst[i]
+   }
+   else {
+   x = fst
+   }
+
+  
+if (what == "equation")
+    {   
+    # Single Equation
+    #-----------------
+    # input string is text = get_selection()
+    # determine the number of input lines 
+    # if number > 1, then it is a split equation
+
+    #if more then one line -> split, else nothing to do
+    if (x[]>1)
+          {
+          x = ltx_align(x,bi_rel,align_mark)
+
+          #build the output string
+          for (i = 0;i<x[];i++)
+                  {
+                  if (i<x[]-1)
+                        {
+                        x[i] = x[i] "\\" "\\" "\n"
+                        }
+
+                  newtext = newtext x[i] 
+                  }
+
+          newtext = "\\begin{split}\n" newtext "\n\\end{split}\n"
+          }
+          else
+                {
+                newtext = x[0] "\n"
+                }
+     }
+
+if (what == "multline")
+   {
+   for (i = 0;i<x[];i++)
+       {
+          if (i<x[]-1) 
+                {
+                newtext = newtext x[i] "\\\\\n"
+                }
+                else
+                {
+                   newtext = newtext x[i] "\n"
+                   }
+          }
+   }
+
+if (what == "gather" || what == "gathered")
+    {
+    #gathered equations
+    #------------------
+    #if one of the gathered equations doesn't fit in one line, this equation has to
+    # be separated from the others by newlines
+
+    j = 0
+    l = 0
+    #collecting the single equations in separate arrays
+    for (i = 0;i<x[];i++)
+           {
+           if (x[i]!="")
+         {
+                 y[j,l] = x[i]
+                 l++
+                 if (i == x[]-1) length_y[j] = l
+                 }
+                 else
+                 {
+                    #store 
+                    length_y[j] = l
+                    j++
+                    l = 0
+                    }
+           }
+
+    #number of equations
+    num_equations = j+1
+    #processing the single equation
+    for (j = 0; j < num_equations; j++)
+        {
+           #emty array
+           equ = $empty_array
+           if (length_y[j]>1)
+                  {
+                  #if equation is split (more than one line)
+                  for (i = 0;i<length_y[j] ;i++)
+                 {
+                         equ[i] = y[j,i]
+                         }
+                  equ = ltx_align(equ,bi_rel,align_mark)
+                  equ[0] = "\\begin{split}\n" equ[0]
+                  if (j<num_equations-1)
+                        {
+                        #if it is not the last equation
+                        equ[length_y[j]-1] = equ[length_y[j]-1] "\n\\end{split}\\\\"
+                        }
+                        else
+                           {
+                           equ[length_y[j]-1] = equ[length_y[j]-1] "\n\\end{split}"
+                           }
+                            
+                  #build output
+                  for (i = 0;i<length_y[j];i++)
+                                {
+                                if (i!=length_y[j]-1) 
+                                        {
+                                        newtext = newtext equ[i] "\\\\" "\n"
+                                        }
+                                        else
+                                           {
+                                           newtext = newtext equ[i] "\n"
+                                           }
+                                }
+                  }
+                  else
+                        {
+                        #if not split 
+                        if (j<num_equations-1)
+                                {
+                                #if it is not the last equation
+                                newtext = newtext y[j,0] "\\\\" "\n"
+                                }
+                                else
+                                   {
+                                   newtext = newtext y[j,0] "\n"
+                                   }
+                        }
+
+           }
+    if (what == "gathered")
+       {
+          reset = "true"
+          what = "equation"
+          newtext = "\\left.\\begin{gathered}\n" newtext \
+                  "\\end{gathered}\n\\right\\}\n\\qquad\\text{}\n"
+          }
+    
+    }
+
+
+if (what == "align" || what == "flalign" || what == "aligned")
+    {
+    #ALIGN EQUATION
+
+    for (i = 0;i<x[];i++)
+           {
+           col[i] = split(x[i],separator)
+           }
+
+    #check syntax -> the number of align marks must be equal in every line,
+    #i.e.  there must be the same number of columns
+    t = col[0][]
+    s = t
+    for (i = 1;i<x[];i++)
+           {
+           if (col[i][]>t) t = col[i][]
+           if (col[i][]<s) s = col[i][]
+           }
+    if (s!=t)
+          {
+          dialog("Syntax Error","OK")
+          return
+          }
+    
+    #at this point the number of columns is equal
+    #col[i][] == col[j][] for all i,j between 0 and x[]-1
+    
+    #for each column do
+    for (j = 0;j<col[0][];j++)
+           {
+           #reset this variable to delete old values
+           equa_col = $empty_array
+           #for each row/line do
+           for (i = 0;i < col[];i++)
+               {
+                  #get the lines of the j-th equation/column
+                  equa_col[i] = col[i][j]
+                  }
+           #align this equation and store the result(itself an array) in an array 
+           final[j] = ltx_align(equa_col,bi_rel,align_mark)
+           }
+
+    # REBUILDING the whole equations from the now aligned parts
+    #for each row/line do  (note that x[] = col[])
+    for (i = 0;i<x[];i++)
+           {
+           row[i] = ""
+           off = "  "
+           #for each column do
+           for (j = 0;j<col[0][];j++)
+                  {
+                  if (j<col[0][]-1)
+                {
+                        row[i] = row[i] final[j][i] " &\n" off
+                        off = off "  "
+                        }
+                else
+                           {
+                           if (i<x[]-1) 
+                                 {
+                                 row[i] = row[i] final[j][i] "\\" "\\"
+                                 }
+                                 else
+                                    {
+                                    row[i] = row[i] final[j][i]
+                                    }
+                           }
+                  }     
+           }
+
+    #build output   
+    for (i = 0;i<x[];i++)
+           {
+           newtext = newtext row[i] "\n"
+           }
+    if (what == "aligned")
+       {
+          reset = "true"
+          what = "equation"
+          newtext = "\\left.\\begin{aligned}\n" newtext \
+                  "\\end{aligned}\n\\right\\}\n\\qquad\\text{}\n"
+          }
+    }
+
+# replacing the one lined subparts again
+newtext = replace_in_string(newtext, $sub_sep, "\n", "copy")
+
+replace_selection(beg what nonum_a newtext end what nonum_b)
+
+#setting the cursor for special case of -ed equations
+if (reset == "true")
+   {
+   pos = search("\\text{}",$cursor,"backward")
+   if (pos<startpos)
+      {
+         return
+         }
+         else
+            {
+            set_cursor_pos($search_end-1)
+            }
+   }
+
+}
+
+
+#==================================================================================
+define ltx_remove_equation {
+# requires selection -> won't get invoked without one
+
+# save label, only first one
+label = ""
+text = get_selection()
+pos = search_string(text, "\\\\label\\{[^}]*\\}", 0, "regex")
+if (pos != -1) {
+    label = substring(text, pos, $search_end)
+}
+# remove TeX
+text = replace_in_string(text, "^\\\\(?:begin|end)\\{[^}]*\\}|\\\\label\\{[^}]*\\}|\\&|\\\\\\\\", "", "regex", "copy")
+# remove empty lines
+text = replace_in_string(text, "^\\n", "", "regex", "copy")
+
+replace_selection(text)
+undo()
+redo()
+ltx_insert_equation(label)
+}
+
+define ltx_remove_array {
+# requires selection -> won't get invoked without one
+text = get_selection()
+text = replace_in_string(text, "\\\\(?:begin|end)\\{[^}]*\\}(?:\\{[^}]*\\})?|"\
+              "\\\\(?:left|right)\\s*[\\[\\]\\(\\)]?|\\&|\\\\\\\\", "", "regex", "copy")
+dialog(text)
+text = replace_in_string(text, "^\\n\\s*|\\s*$", "", "regex", "copy")
+text = replace_in_string(text, " {2,}", " ", "regex", "copy")
+replace_selection(text)
+undo()
+redo()
+ltx_insert_matrix()
+}
+
+#==========================================================================
+#
+# RUN ..., MAIN FILE, HELP, BOOKMARKS
+#
+#==========================================================================
+
+# Main File
+define ltx_menu_mainfile {
+
+errMsg = jf_require("utilities.nm")
+if (errMsg != "") {
+    dialog(errMsg)
+    return
+}
+
+
+bms = $jf_path_to["/NEDIT_HOME/"] "bookmarks.txt"
+bfiles = read_file(bms)
+if (bfiles != "") {
+   temp = split(bfiles, "\n")
+   listb = ""
+   for (i = 0; i < temp[]- 1; i++) {
+       listb = listb mk_extract_filename(temp[i]) $sub_sep "(" mk_extract_pathname(temp[i]) ")\n"
+   }
+}
+
+current = $file_path $file_name
+filename = focus_window("last")
+list = ""
+i = 0
+while(filename != "")
+  {
+  list = mk_extract_filename(filename) $sub_sep "(" mk_extract_pathname(filename) ")\n" list
+  filename = focus_window("next")
+  }
+list = listb list
+focus_window(current)
+message = $main_path $main_file
+if (message == "")
+    {
+    message = "Not set."
+    }
+    
+choice = list_dialog("Current main file:\n"message"\n", list, "OK",\
+"Current","Other","Clear","Cancel")
+
+if ($list_dialog_button == 5|| $list_dialog_button == 0)
+    {
+    beep()
+    return
+    }
+
+if ($list_dialog_button == 1)
+    {
+    if (choice != "")
+        {
+        part = split(choice, $sub_sep)
+        $main_path = substring(part[1], 1, length(part[1]) - 1)
+        $main_file = part[0]
+        file = read_file($main_path $main_file)
+        if ($read_status != 0) {
+            $ltx_project_sources = $empty_array
+            $ltx_project_sources[$main_path $main_file] = $main_file
+            ltx_project(file, $main_path)
+            }
+            else {
+            dialog("Main file doesn't exist")
+            }
+        }
+        else
+            {
+            dialog("You didn't select a file!","OK")
+            return
+            }
+        
+    }
+if ($list_dialog_button == 2)
+    {
+    $main_file = $file_name
+    $main_path = $file_path
+    file = read_file($main_path $main_file)
+    if ($read_status != 0) {
+        $ltx_project_sources = $empty_array
+        $ltx_project_sources[$main_path $main_file] = $main_file
+        ltx_project(file, $main_path)
+        }
+        else {
+        dialog("Main file doesn't exist")
+        }
+    }
+
+if ($list_dialog_button == 3)
+    {
+    choice = string_dialog("Give in file path and name:","OK","Cancel")
+    if (choice == ""|| $string_dialog_button == 0 || $string_dialog_button == 2)
+        {
+        beep()
+        return
+        }
+        else
+            {
+            f = search_string(choice,"/",length(choice),"backward")
+            $main_path = substring(choice,0,f+1)
+            $main_file = substring(choice,f+1,length(choice))
+            file = read_file($main_path $main_file)
+            if ($read_status != 0) {
+                $ltx_project_sources = $empty_array
+                $ltx_project_sources[$main_path $main_file] = $main_file
+                ltx_project(file, $main_path)
+                }
+                else {
+                dialog("Main file doesn't exist")
+                }
+            }
+    }
+
+if ($list_dialog_button == 4)
+    {
+    $main_file = ""
+    $main_path = ""
+    $ltx_project_sources = $empty_array
+    }
+
+}
+
+
+
+#==================================================================================
+# TeX SHELL 
+# =========
+#
+
+# Helper subroutine for forward search and project files related operations
+# takes a string to search in (ie the file) as first argument and as second argument
+# a relative path name.
+# Creates a global array with keys the full file names of all project files (files
+# included from the root file) and containing the include/input names (known to the
+# TeX compiler)
+$ltx_project_sources = $empty_array
+define ltx_project {
+  datei = $1
+  rel_path = $2
+  such = "\\\\(?:include|input)\\{"
+  
+  pos = 0 
+  while(search_string(datei, such, pos, "regex") != -1)  {
+      pos = $search_end
+      end = search_string(datei,"}",pos)
+      source0 = substring(datei, pos, end)
+      if (search_string(source0, "." ,0) == -1) {
+          source0 = source0 ".tex"
+          }
+      source = source0
+      if ($NE_globals["op_system"] == "mswindows") {
+          source = replace_in_string(source, "^(\\l):", "/cygdrive/\\1", "regex", "copy")
+          }
+      if (substring(source, 0, 1) == "/") {
+          # full(!) file name was given
+          last = search_string(source, "/", length(source), "backward")
+          new_relative_path = substring(source, 0, $search_end)
+          new_source = substring(source, $search_end, length(source))
+          new_datei = read_file(new_relative_path new_source)
+          # check if file could be read
+          if ($read_status == 0) {
+             # failed to read file, inform user
+             dialog("File " new_relative_path new_source " could not be read!","OK")
+             }
+          $ltx_project_sources[new_relative_path new_source] = source0
+          ltx_project(new_datei, new_relative_path)
+          }
+          else {
+          new_datei = read_file(rel_path source)
+          if ($read_status == 0) {
+             # failed to read file, inform user
+             dialog("File " rel_path source " could not be read!","OK")
+             }
+          $ltx_project_sources[rel_path source] = source0
+          ltx_project(new_datei, rel_path)
+          }
+      }
+}
+
+# Run ...>Forward Search@LaTeX   (only with DVI !)
+# ===============
+define ltx_forward_search {
+file = $file_path $file_name
+work = ltx_main_file()
+if ($NE_globals["op_system"] == "mswindows") {
+    work_path = path2win(work["path"])
+    }
+    else {
+     work_path = work["path"]
+     }
+src_com = ""
+if ($previewer == "xdvi ") {
+     src_com = "-sourceposition "
+}
+
+if ($previewer == "yap ") {
+    src_com = "-1 -s "
+}
+dvi_file = substring(work["file"],0,length(work["file"])-3) "dvi"
+
+# determine the source file
+$ltx_project_sources = $empty_array
+$ltx_project_sources[work["path"] work["file"]] = work["file"]
+ltx_project(read_file(work["path"] work["file"]), work["path"])
+if (file in $ltx_project_sources) {
+    shell_command($previewer src_com $line $win_esc $ltx_project_sources[file] $win_esc " "\
+             $win_esc work_path dvi_file $win_esc $daemon,"")
+#    dialog($previewer src_com $line $win_esc $ltx_project_sources[file] $win_esc " "\
+#             $win_esc work_path dvi_file $win_esc $daemon)
+    if ($shell_cmd_status != 0) {
+        dialog("Shell-command failed!")
+    }
+    }
+    else {
+    dialog("something is wrong")
+    }
+    
+}
+
+
+#==================================================================================
+# Run ... > Preview
+#
+# xdvi ~/amsldoc.dvi </dev/null> & /dev/null & (show Helpfile)
+
+define ltx_preview {
+work = ltx_main_file()   
+if ($NE_globals["op_system"] == "mswindows") {
+    work["path"] = path2win(work["path"])
+}
+file = work["path"] work["file"]
+   
+preview_file = substring(file, 0, length(file) - 3) 
+
+if ($ltx_mode == "pdf") {
+    if ($NE_globals["op_system"] == "mswindows") {
+        $previewer = "pdfopen --file "
+    }
+    if ($NE_globals["op_system"] == "unix") {
+        $previewer = "xpdf "
+    }
+    preview_file = preview_file "pdf"
+    there = shell_command($previewer $win_esc preview_file $win_esc $daemon, "")
+}
+if ($ltx_mode == "dvi") {
+    if ($NE_globals["op_system"] == "mswindows") {
+        $previewer = "yap "
+    }
+    if ($NE_globals["op_system"] == "unix") { # + possibly options like papersize etc.
+        $previewer = "xdvi "
+    }
+    preview_file = preview_file "dvi"
+    there = shell_command($previewer $win_esc preview_file $win_esc $daemon, "")
+}
+
+}
+
+
+#==================================================================================
+# WHERE RUN_LAT IS DEFINED AS
+# the function returns nothing
+#
+# arguments are 
+# $1 - command line option
+# $2 - debugmode, either "debug" or not 
+#(if "debug" is not given, only errors are collected. With "debug", warnings and 
+#hboxes are also collected)
+
+$latex_errors = $empty_array
+$ltx_debug_mode = "off"
+$ltx_max_nr_err = 20
+$ltx_cur_err = ""
+# takes two arguments $1 -> cmd line, $2 -> debug_mode  (on or off), $3 -> menu name of Next Error macro
+define run_lat {
+  comp["latex source"] = "latex -interaction=nonstopmode -src-specials=par,display,math,parend "
+  comp["win latex source"] = "latex -interaction=nonstopmode --src "
+  comp["latex"] = "latex -interaction=nonstopmode "
+  comp["win latex"] = "latex -interaction=nonstopmode "
+  comp["pdflatex"] = "pdflatex -interaction=nonstopmode "
+  if ($NE_globals["op_system"] == "unix") {
+      err_file_pat = "\\(\\./.+\\.tex"
+      leading = 3
+      }
+      else { # only miktex !
+        err_file_pat = "\\([^:]+\\.tex"
+        leading = 1
+        }
+      
+  str = tolower($1)
+  debug_mode = $2
+  empty_line = "\n\n"
+  if (str in comp) {
+     compiler = comp[str]
+     }
+     else {
+        dialog("Give compiler name (latex - pdflatex ?)","OK")
+        return
+        }
+
+work = ltx_main_file()
+ltx_save_all()
+
+delete $latex_errors[]
+delete $mks_string[]
+# $win_esc for handling weird Windows path and file names
+
+# if we are in pdf mode and on mswindows, we should close the possible already opened output pdf file
+# locked by acrobat reader 
+open_flag = 0
+if ($NE_globals["op_system"] == "mswindows" && $ltx_mode == "pdf") {
+process_info = shell_command("ps -s -W", "")
+acro = search_string(process_info, "acrord32.exe", 0)
+if (acro != -1) {
+pdf_file = substring(work["file"], 0, length(work["file"]) - 3) "pdf"
+there = shell_command("pdfclose --file " $win_esc path2win(work["path"]) pdf_file $win_esc,"")
+hit = search_string(there, "cannot execute", 0)
+if (hit == -1) open_flag = 1
+}
+}
+
+tex_out = shell_command("cd " $win_esc work["path"] $win_esc ";" \
+        compiler $win_esc work["file"] $win_esc,"")
+# check if command succeded ?
+#dialog($shell_cmd_status)
+
+log_file = read_file(work["path"] substring(work["file"],0,length(work["file"])-3) "log")
+if ($read_status == 0) {
+    dialog("log file not found")
+    }
+
+# to get rid of Windows' <cr>
+if ($NE_globals["op_system"] == "mswindows") {
+    log_file = replace_in_string(log_file, "\r", "", "copy")
+    }
+
+debug_pat = ""
+if (debug_mode == "on") debug_pat = "|(?:Ov|Und)erfull \\\\hbox|LaTeX Warning"
+error_pat = "^!" debug_pat
+# index
+i = 0
+found_error = search_string(log_file,error_pat , 0, "regex")
+# get only the first errors and avoid infinite loop
+while (found_error !=- 1 && i < $ltx_max_nr_err) {
+    i = i + 1
+    next_pos = $search_end + 1
+    #dialog(i "\n" next_pos)
+    $latex_errors[i] = $empty_array
+   # determine type of error
+    t = substring(log_file,found_error, found_error + 1)
+    if (t == "!") $latex_errors[i]["type"] = "error"
+    if (t == "L") $latex_errors[i]["type"] = "warning"
+    if (t == "O"||t == "U") $latex_errors[i]["type"] = "hbox"
+    # determine the error message
+    end_msg = search_string(log_file, empty_line, found_error + 1)
+    # if failed !!!!
+    start_msg = search_string(log_file, empty_line, found_error + 1, "backward")
+    # if failed !!!!
+    $latex_errors[i]["message"] = substring(log_file, $search_end, end_msg)
+    # determine the error file
+    start_fname = search_string(log_file,err_file_pat,found_error,"regex","backward")+leading
+    # if failed !!!
+    $latex_errors[i]["file"] = work["path"] substring(log_file,start_fname,$search_end)
+    # determine the line number
+    if ($latex_errors[i]["type"] == "error") {
+        pos_lnr = search_string(log_file,"^l.",found_error,"regex") + 2
+        $latex_errors[i]["line"] = substring(log_file,pos_lnr,\
+                                    search_string(log_file,"[^0-9]",pos_lnr,"regex"))
+        }
+        else {
+          one_row = substring(log_file,found_error,search_string(log_file,"$",found_error+1,"regex"))
+          pos_lnr = search_string(one_row,"lines? [0-9]+",0,"regexNoCase")
+          # if failed !!!!
+          $latex_errors[i]["line"] = substring(one_row,pos_lnr+5,$search_end)
+          }
+    # next search
+    found_error = search_string(log_file,error_pat,next_pos,"regex")
+# end while loop
+}
+# go to first error ?
+if ($latex_errors[]>0) {
+    $ltx_cur_err = 0
+    ltx_next_error()
+    }
+    else {
+      calltip("No errors - Congratulations!")
+      if (open_flag == 1) shell_command("pdfopen --file " $win_esc path2win(work["path"]) pdf_file $win_esc,"")
+      }
+    
+}
+
+# have $latex_errors, 
+# which are arrays indexed by number of error, 
+# these contain file name, type of error [error, warning, hbox] line number, message, 
+# and an empty key for position
+# this will get a mark or an rangeset index
+# 
+# After compilation go automatically to first error, 
+# 
+# When switching to window, look for all items in this window
+# all items in the window get a position key, with a mark in
+
+#==================================================================================
+#VERSION WITH MARKS
+# menu entry: LTXMode>Run ...>Next Error@LaTeX 
+$mks_string = $empty_array
+define ltx_next_error {
+# set mode = "no-marks" to disable the use of marks
+# or mode = "safe-marks" to use line number if a mark seemed to fail
+# (which is itself unsafe!)
+mode = "marks"
+
+if (!("1" in $latex_errors)) {
+    dialog("No errors! Rerun LaTeX!")
+    return
+    }
+
+# increase to next error
+if (++$ltx_cur_err>$latex_errors[]) {
+    beep()
+    $ltx_cur_err = 1
+    }
+
+# maxial number of errors per window 14
+mark_string = "23456789zyxwvu"
+footnote = "\n-------\nError " $ltx_cur_err " of "$latex_errors[]   
+
+cur_file = $file_path $file_name
+
+#NOW THE NEXT ERROR FUNCTION
+if (cur_file!=$latex_errors[$ltx_cur_err]["file"]) {
+#dialog($ltx_cur_err)
+#dialog($latex_errors[$ltx_cur_err]["file"])
+#dialog("nanu")
+    # check if the file name is correct (to prevent possible endless loop)
+    temp = read_file($latex_errors[$ltx_cur_err]["file"])
+    if ($read_status == 0) {
+        dialog("File " $latex_errors[$ltx_cur_err]["file"] " not found.\n"\
+            "Check the Log file an the run_lat function.")
+        return
+        }
+    # here the file can be opened!
+    temp = ""
+    open($latex_errors[$ltx_cur_err]["file"])
+    focus_window($latex_errors[$ltx_cur_err]["file"])
+    # to avoid to increase by two
+    $ltx_cur_err--
+    ltx_next_error()
+    return
+    }
+
+# here cur_file is $latex_errors[$ltx_cur_err]["file"]
+if (!("position" in $latex_errors[$ltx_cur_err]) && mode!="no-marks") {
+    # seems to be the first error in this file
+    # mark errors in this file
+    # initialize marks
+    if (!(cur_file in $mks_string)) {
+        $mks_string[cur_file] = mark_string
+        }
+        
+    for (j = 1;j<=$latex_errors[];j++)
+        {
+        if (cur_file == $latex_errors[j]["file"]) {
+            if ($latex_errors[j]["line"] != "" && valid_number($latex_errors[j]["line"]) == 1) {
+              goto_line_number($latex_errors[j]["line"])
+              newmark= substring($mks_string[cur_file],0,1)
+              $mks_string[cur_file]= substring($mks_string[cur_file],1,length($mks_string[cur_file]))
+              mark(newmark)
+              $latex_errors[j]["position"] = newmark
+            }
+         }
+      }
+    }
+# at this point a mark was already set
+if (mode == "no-marks" || !("position" in $latex_errors[$ltx_cur_err])) {
+    goto_line_number($latex_errors[$ltx_cur_err]["line"])
+    }
+    else {
+      cpos = $cursor
+      goto_mark($latex_errors[$ltx_cur_err]["position"])
+      # attempt if really problem with a mark ?
+      if (cpos == $cursor && mode == "safe-marks") \
+      goto_line_number($latex_errors[$ltx_cur_err]["line"])
+      }
+process_down("absolute")
+# save message to show it again
+mark(1)
+$ltx_last_err_mes = $latex_errors[$ltx_cur_err]["message"] footnote
+# show message
+calltip($latex_errors[$ltx_cur_err]["message"] footnote)
+#This was the go to next error,
+}
+
+#==================================================================================
+
+#The macro above depends on calltips. Unfortunately there are strange problems
+#with the position of the calltip. However, there is no other sensible way of 
+#displaying error messages inside NEdit. You can open a whole new editing window
+#for it, but this no proper way IMHO. Here is a small macro to re-display the 
+#last shown calltip. This is also good to show the calltip in its original position.
+#You must save the shown message and set a mark at the calltip position  
+#(I reserved 0 for this).
+# Menu entry: Help>Last Calltip
+define ltx_last_calltip {
+if ($ltx_last_err_mes == "") {
+    return
+    }
+goto_mark(1)
+calltip($ltx_last_err_mes)
+}
+#==================================================================================
+
+
+
+
+
+#==================================================================================
+#==================================================================================
+# Simple approach: Read the Log file yourself, go to next error/warning/\hbox, edit sources
+#
+# Run ...>View Log File@LaTeX
+#
+
+define ltx_view_log_file {
+
+if ($main_file!="" && $main_path!="") {
+   file = $main_file
+   path = $main_path
+   }
+   else {
+     file = $file_name
+     path = $file_path
+     }
+log_file = substring(file,0,length(file)-3) "log"
+open(path log_file)
+#focus_window(path log_file)
+}
+
+# MACROS FOR THE LOG FILE
+# 
+# Next Error@TeX-Log
+# find("^!","regex","wrap")
+# 
+# Next hbox@TeX-Log
+# find("(?:Ov|Und)erfull \\hbox","regex","wrap")
+# 
+# Next Warning@TeX-Log
+# find("LaTeX Warning","case","wrap")
+# 
+# Edit Sources@TeX-Log
+# get line number, either selected or under cursor
+# if ($selection_start!=-1) {
+#     number = get_selection()
+#     }
+#     else {
+#       start = search("[^0-9][0-9]+",$cursor,"regex","backward")
+#       if (start == -1) {
+#           dialog("Missing line number to go to!")
+#           return
+#           }
+#       end = search("[0-9]*[^0-9]",$cursor,"regex")
+#       if (end == -1) {
+#           dialog("Missing line number to go to!")
+#           return
+#           }
+#       number = get_range(start+1,$search_end-1)
+#       }
+# dialog(number)
+# 
+# get file
+# start = search("\\(.*\\.tex",$cursor,"regex","backward")
+# if (start == -1) {
+#     dialog("file search failed")
+#     return
+#     }
+# file = get_range(start+1,$search_end)
+# if ($main_path!="") {
+#     path = $main_path
+#     }
+#     else {
+#       path = $file_path
+#       }
+#     
+# number test
+# if (search_string(number,"[^0-9]",0,"regex")!=-1) {
+#     dialog("not a number:\n" number)
+#     return
+#     }
+# open(path file)
+# focus_window(path file)
+# goto_line_number(number)
+
+#==================================================================================
+
+
+
+
+
+#==================================================================================
+# This function takes two strings, namely str and pattern. It searches in str
+# for pattern, and deletes all occurences from the string. The pattern is a
+# regular expression.
+
+define doc_strip {
+if ($n_args!=2)
+    {
+    dialog("Wrong number of arguments, stripping failed!","OK")
+    return(-1)
+    }
+str = $1
+pattern = $2
+new_str = replace_in_string(str,pattern,"","regex")
+if (new_str!="")
+   {
+   return(new_str)
+   }
+   else
+      {
+      return(str)
+      }
+     
+}
+
+
+define inside_comment {
+if ($n_args!=2)
+    {
+    dialog("Wrong number of arguments!","OK")
+    return(-1)
+    }
+co_start_sign = $1
+
+if ($2!="")
+   {
+   co_end_sign = $2
+   type = "literal"
+   }
+   else
+      {
+      co_end_sign = "$"
+      type = "regex"
+      }
+
+
+co_start = search(co_start_sign,$cursor-1,"backward")
+if (co_start == -1)
+   {
+   return(0)
+   }
+# found start of comment
+co_end = search(co_end_sign,$cursor-1,type,"backward")
+if (co_start<co_end)
+   {
+   return(0)
+   }
+return(1)
+}
+
+
+
+
+# could also be handled with inside_comment()! 
+define inmbox {
+lookfor[1] = "text{"
+lookfor[2] = "mbox{"
+for(i = 1;i<=2;i++) 
+   {
+   posf[i] = search(lookfor[i],$1,"backward")
+   }
+beg = posf[1]
+for(i = 1;i<=2;i++) 
+   {   
+   beg = max(beg,posf[i])
+   }
+end = search("}",$1-1,"backward")
+if (beg <= end) return("no")     
+else return("yes")   
+}
+
+
+
+#==================================================================================
+
+# save_project_ltx
+
+define ltx_save_all {
+current=$file_path $file_name
+# to catch the case of a single file
+save()
+filename = focus_window("last")
+
+while(filename != "") {
+    if($modified && filename in $ltx_project_sources) {
+      save()
+      }
+    filename = focus_window("next")
+    }
+focus_window(current)
+}
+
+#==================================================================================
+
+
+
+#==================================================================================
+# DETERMINING OF PROJECT FILES
+
+# Checks wether or not a main file is defined
+# returns array consisting of  
+define ltx_main_file {
+#main_pat = "^%%% main:.+$" 
+if ($main_file != "" && $main_path != "") {
+   a["file"] = $main_file 
+   a["path"] = $main_path 
+   }
+   else {
+#     f = search(main_pat,0,"regex")
+#     if (f != -1) {
+#         x = get_range(f, $search_end)
+# 
+#         a["file"] = $file_name
+#         a["path"] = $file_path
+#         }
+#         else {
+        a["file"] = $file_name
+        a["path"] = $file_path
+#        }
+   
+    }
+return(a)
+}
+
+
+#==================================================================================
+# hopefully this one will become superfluous one day.
+
+load_macro_file($ltxpath "change_brackets.nm")
+load_macro_file($ltxpath "bibtex.nm")

@@ -1,0 +1,185 @@
+.. Document Type: reStructured Text (http://docutils.sf.net)
+
+.. -*- charset=ISO8859-1 -*-
+
+====================================
+ N-spell Installation Instructions 
+====================================
+
+:Author: Dr Jörg Fischer 
+:Contact: jf505@users.sf.net
+:Version: 1.0
+:Date: 2008-01-20
+:Abstract:
+     This file describes how to install N-spell.  For troubleshooting
+     tips and technical information, see the TECHNICAL file.  For using
+     and configuring N-spell, see the MANUAL.
+
+
+-------------------------------
+ NEdit Spell-Checker Handling 
+-------------------------------
+
+
+
+
+System Requirements
+====================
+
+The general requirements are:
+
+  - NEdit v5.5 or later
+  - Aspell v0.60.4 [#]_ 
+  - Operating system, where NEdit's ``shell_command()`` is supported
+    (i.e., Unix-like)
+
+In addition, to use continuous spell-checking, you require:
+
+  - UNIX-like OS supporting named pipes (FIFOs) and ``mknod(1)`` [#]_
+  - Perl 5 or later
+  - ideally tcsh [under Cygwin tcsh is required]
+  - A version of the "ps" command that ideally supports the "-U" 
+    and "-o pid,args" options with BSD semantics (most do)
+
+Notice that the ``aspell`` and ``ps`` commands must be in your path.
+
+
+
+
+Quick Installation
+===================
+For those who can't wait:
+
+  1) Unpack ``n-spell.tar`` to your ``HOME`` directory.
+
+  2) Install NEchoesd:
+
+      - Check that the first line of the "NEchoesd" script reflects
+        where Perl is installed on your system.  Edit it if necessary.
+      - Make sure that NEchoesd is executable and copy it, or create a
+        symlink, to somewhere in your path.
+
+  3) Set ``NEDIT_HOME`` to the ``~/n-spell``, for sh this means ::
+
+              export NEDIT_HOME=~/n-spell
+
+  4) Import Mouse bindings with (assuming you are in your HOME directory)
+
+     ::
+    
+            xrdb -m n-spell/nspell_xdefs.rc
+
+Now you are ready to start NEdit with ``nedit &``.  To test continuous
+spell-checking, switch to the language mode ``Spelling`` (``Preferences
+-> Language Mode``).  If you met the system requirements, you should see
+a calltip (tooltip) that says that continuous spelling is enabled for
+English. (If initialisation didn't succeed, try a second time ``Spelling
+-> Initialise N-spell`` from the Macro menu.)  Type in some nonsense
+words.  These should be backlighted in yellow, then.
+
+
+
+Full Installation
+==================
+
+  1) Unpack ``n-spell.tar`` to a suitable directory. This should be where you
+     intend to keep your NEchoes installation, not just a temporary
+     directory.
+
+  2) Install NEchoesd:
+
+      - Check that the first line of the "NEchoesd" script reflects where
+        Perl is installed on your system. Edit it if necessary.
+      - Copy NEchoesd to somewhere in your path (or change your path to
+        include your N-spell directory).
+
+  3) Install the N-spell menu:
+
+      - Move to the directory where the N-spell files are located
+        (that is, ``/path-to/n-spell``)
+      - Start nedit with ``nedit -import nspell.menu``
+      - Select ``Preferences -> Save Defaults...`` from NEdit's menu
+      - Exit NEdit again
+
+  4) Import Mouse bindings:
+
+      - ``xrdb -m nspell_xdefs.rc``
+      - To have these settings permanently, copy the content of
+        ``nspell_xdefs.rc`` to your X resource file (``.Xdefaults``)
+
+  5)  Loading ``n-spell.nm``, when starting NEdit:
+
+      - Add the entries of the provided autoload.nm file to your
+        autoload.nm, cf. the NEdit help, and make sure that
+        $nspell_file points to n-spell.nm. That is, give in the
+        path names according to where you keep the N-Spell files.
+
+  6) Enabling continuous (on-the-fly) spell-checking for language
+      modes like HTML, LaTeX, C, ...
+
+      - Choose the language mode with Preferences -> Language Mode
+
+      - Invoke the Program Smart Indent Macros dialog with Preferences
+        -> Default Settings -> Auto Indent -> Program Smart Indent
+
+      - As Newline Macro you give in ``nspell_keyPress($1, "\n")``
+        followed (on a new line) by ``return -1`` or another indent
+        request, cf. the Help for the dialog.
+        As Type-in Macro you give in ``nspell_keyPress($1, $2)``.
+        If you want to automatically initialize continuous
+        spell-checking for this language mode, you can give in :: 
+
+            set_auto_indent("smart")
+            nspell_initialise() 
+            
+        as Initialization Macro.
+
+Now, you are ready to use N-spell.       
+
+Notice that ``n-spell.nm`` performs a test whether the required programs
+like Perl and Aspell are in your path, and whether you run under
+Cygwin.  This test is only performed at the very first run of
+``n-spell.nm``.  (By loading ``n-spell.nm`` from the autoload macro file,
+``n-spell.nm`` is run once each time NEdit is started, but the test is
+done only the very first time n-spell.nm is run.)
+
+The global variables $nspell_os, $nspell_spawn, and
+$nspell_use_daemon are set according to the outcome of the test.  If
+things should have went wrong, you can let the test perform again by
+searching for ``if (0)`` in n-spell.nm, and change it to ``if (1)``.
+
+Alternatively, you can set the values of the variables manually. 
+
+$nspell_os contains the operating system you are running on, which
+either is "mswindows" or "unix".  If you are running under Cygwin on
+MS Windows, we need a special treatment.  So, in this case
+$nspell_os must be "mswindows".  For all other Unix-like operating
+systems, set ``$nspell_os`` to "unix".  (On non Unix-like systems,
+N-spell won't work anyway.)
+
+$nspell_spawn contains a redirection statement, which depends on
+NEdit's default shell, cf. the NEdit ``Help -> Customizing -> X
+Resources`` (nedit.shell).  If you are using (t)csh, we have ::
+
+      $nspell_spawn = " >& /dev/null &"
+
+otherwise, for (b(a))sh or zsh it is ::
+
+      $nspell_spawn = " < /dev/null > /dev/null 2>&1 &"
+
+
+``$nspell_use_daemon`` is set to 1 (= $true) or 0 (= $false) according
+to N-spell thinks that continuous spell-checking can be used.  If
+you don't want to use continuous checking (e.g., under Cygwin, or if
+you don't like it), simply change ``$nspell_use_daemon = 1`` to 
+``$nspell_use_daemon = 0``.
+
+
+.. footnotes
+
+.. [#] Possibly also Ispell, but this needs some rewriting of the
+   command line options at least. 
+
+.. [#] N-spell can also do continuous spell-checking under Cygwin
+   v1.5.17 or later, but it is recommended to turn continuous checking
+   off under Cygwin, since FIFOs there don't work reliably.

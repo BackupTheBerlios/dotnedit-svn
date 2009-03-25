@@ -1,0 +1,251 @@
+# returns the number of items between start and end
+define jf_how_many {
+ item = $1
+ start = $2
+ end = $3
+ text = doc_strip(get_range(start, end), "%.*?$")
+ if (search_string(text, item, 0) == -1) return(0)
+ for (i = 1; ; i++) {
+    if (search_string(text, item, $search_end) == -1) return(i)
+ }
+
+}
+
+
+define ltx_how_many_dollar {
+ start = $1
+ end = $2
+ text = doc_strip(get_range(start, end), "%.*?$")
+ if (search_string(text, "(?<!\\\\)\\$", 0, "regex") == -1) return(0)
+ for (i = 1; ; i++) {
+    if (search_string(text, "(?<!\\\\)\\$", $search_end, "regex") == -1) return(i)
+ }
+}
+
+# no input, returns an array containing "start" and "end" 
+# of the matching \begin/\end pair or $empty_array on failure
+define ltx_bg_end {
+ pat = "\\\\(?:begin|end)>"
+ a["\\begin"] = "forward"
+ a["\\end"] = "backward"
+
+ anf = search(pat, $cursor, "regex", "backward")
+ if (anf <= $cursor && $cursor <= $search_end) {
+    bg = $search_end
+    bgend = get_range(anf, $search_end)
+    direction = a[bgend]
+    if (direction == "forward") {
+       forward = 1
+       text = get_range(anf, $text_length)
+       offset = anf
+       pos = $search_end - offset
+    }
+    else {
+       forward = 0
+       text = get_range(0, $search_end)
+       offset = 0
+       pos = anf - 1
+    }
+ 
+ pos = search_string(text, pat, pos, "regex", direction)
+ i = 0
+# dialog(pos)
+ while (pos != -1) {
+    if ($search_end - pos == 6) {
+        # found \begin
+        if (forward) ++i
+        else --i
+    }
+    else {
+       # found \end
+       if (forward) --i
+       else ++i
+    }
+# dialog(i "\n" pos)
+ if (i < 0) {
+    a["start"] = min(bg, $search_end + offset)
+    a["end"] = max(bg, $search_end + offset)
+    return(a)
+ }
+ if (forward) pos = $search_end + 1
+ pos = search_string(text, pat, pos - 1 , "regex", direction)
+ }
+ return ($empty_array)
+ }
+return ($empty_array)
+}
+
+# takes one number, if the number is != 0 the cursor will not be moved
+# returns an array with keys "start" (end position of the opening bra), 
+# "end" (end position of the closing bra) and "single" (1 if single bracket
+# 2 if \[ and 0 if bg/end) ||
+# Returns an emptyarray if no match found.
+define ltx_goto_matching {
+ dont_move = $1
+ pos = $cursor
+ goto_matching("nobell")
+ if (pos != $cursor) { # normal goto for {}[]() including \[\] because of syntax based matching
+    bra["start"] = min(pos, $cursor)
+    bra["end"] = max(pos, $cursor)
+    if (dont_move) set_cursor_pos(pos) # set cursor back
+    if (get_character($cursor - 2) == "\\") {
+        bra["single"] = 2
+    }
+    else {
+        bra["single"] = 1
+    }
+    return(bra)
+ }
+ # No {}[]()
+ brakets = "[]{}()"
+ item = get_character($cursor - 1)
+ if (search_string(brakets, item, 0) != -1) {
+    calltip("No match found for "item)
+    return($empty_array)
+ }
+ # check whether $ of bg/end
+ if (item == "$") {
+    if ((ltx_how_many_dollar(0,$cursor) % 2) == 1) {
+       direction = "forward"
+       pos = $cursor
+    }
+    else {
+      direction = "backward"
+      pos = $cursor - 2
+    }  
+    pos = search("(?<!\\\\)\\$", pos, direction, "regex") + 1
+    if (pos == -1) {
+       calltip("No match found for "item)
+       return($empty_array)
+    }
+    bra["start"] = min(pos, $cursor)
+    bra["end"] = max(pos, $cursor)
+    bra["single"] = 1
+    if (!(dont_move)) set_cursor_pos(pos)
+    return(bra)
+ }
+ # bg/end ?
+ bra = ltx_bg_end()
+ if (bra[] == 0) {
+    return($empty_array)
+ }
+ # we have matching bg/end
+ if ($cursor <= bra["start"]) {
+    pos = bra["end"]
+ }
+ else {
+    pos = bra["start"]
+ }
+ bra["single"] = 0
+ if (!(dont_move)) set_cursor_pos(pos)
+ return(bra)
+}
+
+define ltx_biglr {
+ where = ltx_goto_matching(1)
+ if (where[] == 0) return
+ 
+ big[1] = "\\big"
+ big[2] = "\\Big"
+ big[3] = "\\bigg"
+ big[4] = "\\Bigg"
+ choice = ""
+ for (i = 1; i<5; i++) {
+    choice = choice i": "big[i]"l/r\n"
+ }
+ c = list_dialog("", choice, "Ok", "Cancel")
+ c = substring(c, 0, 1)
+ if (c in big) {
+    replace_range(where["end"] - 1, where["end"] - 1 , big[c]"r")
+    replace_range(where["start"]- 1, where["start"] - 1, big[c]"l")
+ }
+ 
+
+}
+
+
+define ltx_change_env {
+ env_list = "align\nequation\ngather\npmatrix\nthm\nlem\nbmatrix"
+ cpos = $cursor
+ env_pos = ltx_goto_matching(1)
+ kba = env_pos["start"]
+ kea = env_pos["end"]
+ if (env_pos["single"] == 0) {
+    # bg/end
+    if (get_range(kba, kba + 1) == "{" && get_range(kea, kea + 1) == "{") {
+        set_cursor_pos(kba + 1)
+        goto_matching()
+        kbe = $cursor - 1
+        set_cursor_pos(cpos)
+        type = get_range(kba + 1, kbe)
+        set_cursor_pos(kea + 1)
+        goto_matching()
+        kee = $cursor - 1
+        set_cursor_pos(cpos)
+        new_env = list_dialog("Change "type" to :", env_list, "Ok", "NoNumber", "Cancel")
+        if (new_env != "") {
+            if ($list_dialog_button == 2) {
+                new_env = new_env"*"
+            }
+            replace_range(kea + 1, kee, new_env)
+            replace_range(kba + 1, kbe, new_env)
+        }
+        else {
+            if (get_character(kee + 1) == "\n") {
+                kee = kee + 2 
+            }
+            else {
+                kee = kee + 1
+            }
+            replace_range(env_pos["end"] - 4, kee, "")
+            if (get_character(kbe + 1) == "\n") {
+                kbe = kbe + 2 
+            }
+            else {
+                kbe = kbe + 1
+            }
+            replace_range(env_pos["start"] - 6, kbe, "")
+        }
+        
+    }
+ }
+ if (env_pos["single"] == 1 && get_character($cursor - 1) != "$") {
+    # single bracket
+    bra_list = "(\n[\n{\n\\bracket{"
+    close_bra["("] = ")"
+    close_bra["["] = "]"
+    close_bra["{"] = "}"
+    close_bra["\\bracket{"] = "}"
+    new_bra = list_dialog("Change brackets: ", bra_list, "Ok", "Del", "Cancel")
+    if ($list_dialog_button == 1) {
+        if (new_bra in close_bra) {
+            new_bra_c = close_bra[new_bra]
+        }
+        else {
+            new_bra_c = ""
+            new_bra = ""
+        }
+        replace_range(kea, kea - 1, new_bra_c)
+        replace_range(kba, kba - 1, new_bra)
+    }
+    
+ }
+ if (env_pos["single"] == 2 || get_character($cursor - 1) == "$") {
+    # \[,\(,\{, or $
+    bra_list = "\\(\n\\[\n\\{\n$\n\\set{"
+    close_bra["\\("] = "\\)"
+    close_bra["\\["] = "\\]"
+    close_bra["\\{"] = "\\}"
+    close_bra["\\set{"] = "}"
+    close_bra["$"] = "$"
+    new_bra = list_dialog("Change brackets: ", bra_list, "Ok", "Del", "Cancel")
+    if ($list_dialog_button == 1 && new_bra in close_bra) {
+        replace_range(kea, kea - env_pos["single"], close_bra[new_bra])
+        replace_range(kba, kba - env_pos["single"], new_bra)
+    }
+    
+ }
+
+
+
+}

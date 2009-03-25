@@ -1,0 +1,229 @@
+$data=getenv("NEDIT_HOME") "/nedata/"
+#$nedit_client=getenv("HOME") "/bin/nc"
+load_macro_file($data "latex_mode.nm")
+load_macro_file($data "keyboard.nm")
+# Again notice that the LaTeXMode changes the key-bindings. It is assumed that
+# you are using a standard US keyboard layout. If not you have to adapt these
+# changes to your keyboard layout in order to avoid funny (or not so funny) results.
+# Confirm the .Xdefaults file of this release.
+load_macro_file($data "expansions.nm")
+load_macro_file($data "code_word_comp.nm")
+load_macro_file($data "spellcheck.nm")
+load_macro_file($data "utilities.nm")
+# end-of-LaTeXMode-bundle
+
+
+load_macro_file($data "nxmenu.nm")
+load_macro_file($data "calltips-mein.nm")
+load_macro_file($data "marks.nm")
+load_macro_file($data "jf_format.nm")
+load_macro_file($data "better_fill_par2.nm")
+
+#==================================================================================
+# tolower, toupper
+$THE_LOWERCASE_CHARS ="abcdefghijklmnopqrstuvwxyzàáâãäåæçèéêëìíîïğñòóôõöøùúûüış"
+$THE_UPPERCASE_CHARS ="ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞ"
+
+# ==============================================================================
+# tolowercase(string): converts to lower case, returning the converted string.
+# ==============================================================================
+
+define tolowercase
+  {
+  str = $1
+  res = ""
+  len = length(str)
+  ch = ""
+
+  for (i = 0; i < len; i++)
+    {
+    ch = substring(str, i, i+1)
+    pos = search_string($THE_UPPERCASE_CHARS, ch, 0, "case")
+    if (pos == -1)
+      res = res ch
+    else
+      res = res substring($THE_LOWERCASE_CHARS, pos, pos + 1)
+    }
+  return res
+  }
+
+# ==============================================================================
+# touppercase(string): converts to upper case, returning the converted string.
+# ==============================================================================
+
+define touppercase
+  {
+  str = $1
+  res = ""
+  len = length(str)
+  ch = ""
+
+  for (i = 0; i < len; i++)
+    {
+    ch = substring(str, i, i+1)
+    pos = search_string($THE_LOWERCASE_CHARS, ch, 0, "case")
+    if (pos == -1)
+      res = res ch
+    else
+      res = res substring($THE_UPPERCASE_CHARS, pos, pos + 1)
+    }
+  return res
+  }
+
+
+define capitalize {
+class="a-zA-ZàáâãäåæçèéêëìíîïğñòóôõöøùúûüışÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞ"
+
+if ($selection_start==-1) {
+    pos=$cursor-1
+    end=$cursor
+    }
+    else {
+      pos=$selection_start
+      end=$selection_end
+      }
+
+start=search("[^" class "]",pos,"regex","backward")
+# exception for begin of file
+if (start==-1) {
+    start=0
+    }
+while (start <= end) {
+    bg=search("[" class "]+",start,"regex")
+    start=$search_end +1
+    if (bg == -1) {
+        break
+        }
+    if ($1=="upper") {
+        replace_range(bg,bg+1,touppercase(get_range(bg,bg+1)))
+        return
+        }
+    if ($1=="lower") {
+        replace_range(bg,bg+1,tolowercase(get_range(bg,bg+1)))
+        return
+        }
+    if ($1=="toggle") {
+        c = get_range(bg,bg+1)
+        if (c == touppercase(c)) {
+            replace_range(bg,bg+1,tolowercase(c))
+        }
+        else {
+            replace_range(bg, bg + 1, touppercase(c))
+        }
+        
+        }
+        
+    }
+}
+
+
+
+$ASC256_CHARS = " \a" \
+		"\b\t\n\v\f\r" \
+		"" \
+		"" \
+		" !\"#$%&'()*+,-./0123456789:;<=>?" \
+		"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_" \
+		"`abcdefghijklmnopqrstuvwxyz{|}~" \
+		"€‚ƒ„…†‡ˆ‰Š‹Œ‘’“”•–—˜™š›œŸ" \
+		" ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿" \
+		"ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞß" \
+		"àáâãäåæçèéêëìíîïğñòóôõö÷øùúûüışÿ"
+
+# ==============================================================================
+# tochar(int): returns the ascii char corresponding to the integer int, if in
+#	range, as a single character string. Fails with the empty string (as for
+#	int = 0).
+# ==============================================================================
+
+define tochar
+  {
+  i = $1
+  if (i < -128 || i == 0 || i >= 256)
+    return ""
+  else if (i < 0)
+    i += 256
+  return substring($ASC256_CHARS, i, i + 1)
+  }
+
+# ==============================================================================
+# toascii(char): returns the ascii code corresponding to the first character in
+#	char, if present, as an integer. Fails with -1.
+# ==============================================================================
+
+define toascii
+  {
+  if ($1 == "")
+    return 0
+  # skip initial character in $ASC256_CHARS: it's a dummy
+  return search_string($ASC256_CHARS, substring($1, 0, 1), 1, "case")
+  }
+
+
+#==================================================================================
+
+$lesstif = "false"
+define lesstif_bug {
+if ($wrap_text == "continuous") {
+    # in 5.4 rename to split_window() !!!
+    split_pane()
+    close_pane()  
+    }
+}
+
+#==================================================================================
+define how_many {
+if ($n_args<2 || $n_args>3)
+    {
+    dialog("Wrong number of arguments, search failed!","OK")
+    return(-1)
+    }
+str=$1
+search_for=$2
+if ($n_args==3)
+   {
+   type=$3
+   }
+   else
+      {
+      type="literal"
+      }
+    
+i=0
+found= search_string(str,search_for,0,type)
+while (found!=-1)
+      {
+      i++
+      found= search_string(str,search_for,$search_end,type)
+      }
+
+return(i)
+
+} 
+#==================================================================================
+
+define open_newWindow_dialog {
+ new("window")
+ focus_window("last")
+ open_dialog()
+}
+
+define jf_open_previous {
+ history = jf_get_pref_file("nedit.history")
+ h_file = read_file(history)
+ line = split(h_file, "\n")
+ list = ""
+ for (i = 1; i < line[] - 1; i++) {
+    list = list mk_extract_filename(line[i]) $sub_sep "(" mk_extract_pathname(line[i]) ")\n"
+ }
+ list = substring(list, 0, length(list) - 1)
+ selected = list_dialog("Choose: ", qsort_list(list), "Ok", "Cancel")
+ if (selected != "" && $list_dialog_button == 1) {
+     part = split(selected, $sub_sep)
+     file = substring(part[1], 1, length(part[1]) - 1) part[0]
+     new("window")
+     focus_window("last")
+     open(file)
+ }
+
+}

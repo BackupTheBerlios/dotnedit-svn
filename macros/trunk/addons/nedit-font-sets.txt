@@ -1,0 +1,117 @@
+; format of the file is as follows:
+; all lines starting with ; are comments 
+; name of font set \n normal \n italic \n bold \n bold-italic \n
+; then eof or \n (there must be at least one blank line between sets) 
+; and another set
+Courier Normal (Default)
+-adobe-courier-medium-r-normal--12-*-*-*-*-*-*
+-*-courier-medium-o-normal--*-120-*-*-*-iso8859-*
+-adobe-courier-bold-r-normal--12-*-*
+-*-courier-bold-o-normal--*-120-*-*-*-iso8859-*
+
+Semicondensed
+-misc-fixed-medium-r-semicondensed--13-120-75-75-c-60-iso8859-15
+-misc-fixed-medium-o-semicondensed--13-120-75-75-c-60-iso8859-15
+-misc-fixed-bold-r-semicondensed--13-120-75-75-c-60-iso8859-15
+-misc-fixed-bold-r-semicondensed--13-120-75-75-c-60-iso8859-15
+
+; readable fixed with sans serif font
+Screen
+-sgi-screen-medium-r-normal--12-120-72-72-m-70-iso8859-1
+-misc-fixed-medium-o-normal--12-120-75-75-c-0-iso8859-1
+-sgi-screen-bold-r-normal--10-100-72-72-m-70-iso8859-1
+-sgi-screen-medium-r-normal--12-120-72-72-m-70-iso8859-1
+
+; sans serifs
+Lucida Typewriter
+-b&h-lucidatypewriter-medium-r-normal-sans-12-120-75-75-m-70-iso8859-1
+-misc-fixed-medium-o-normal--13-120-75-75-c-70-iso8859-1
+-b&h-lucidatypewriter-bold-r-normal-sans-12-120-75-75-m-70-iso8859-1
+-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1
+
+Terminus
+-xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-1
+-efont-fixed-medium-i-normal--12-120-75-75-c-60-iso10646-1
+-efont-fixed-bold-r-normal--12-120-75-75-c-60-iso10646-1
+-efont-fixed-bold-i-normal--12-120-75-75-c-60-iso10646-1
+
+; best proportional with highlighting
+Lucida (Proportional)
+-b&h-lucida-medium-r-normal-sans-12-120-75-75-p-71-iso8859-1
+-b&h-lucida-medium-i-normal-sans-12-120-75-75-p-71-iso8859-1
+-b&h-lucida-bold-r-normal-sans-12-120-75-75-p-79-iso8859-1
+-b&h-lucida-bold-i-normal-sans-12-120-75-75-p-79-iso8859-1
+
+Fixed
+-misc-fixed-medium-r-normal--13-100-100-100-c-70-iso8859-1
+-misc-fixed-medium-o-normal--13-120-75-75-c-70-iso8859-1
+-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1
+-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1
+
+Efonts fixed (big)
+-efont-fixed-medium-r-normal--14-140-75-75-c-70-iso10646-1
+-efont-fixed-medium-i-normal--14-140-75-75-c-70-iso10646-1
+-efont-fixed-bold-r-normal--14-140-75-75-c-70-iso10646-1
+-efont-fixed-bold-i-normal--14-140-75-75-c-70-iso10646-1
+
+Efonts fixed small
+-efont-fixed-medium-r-normal--12-120-75-75-c-60-iso10646-1
+-efont-fixed-medium-i-normal--12-120-75-75-c-60-iso10646-1
+-efont-fixed-bold-r-normal--12-120-75-75-c-60-iso10646-1
+-efont-fixed-bold-i-normal--12-120-75-75-c-60-iso10646-1
+
+; same as screen but bigger interline spacing
+Screen wide
+-sgi-screen-medium-r-normal--12-120-72-72-m-70-iso8859-1
+-efont-fixed-medium-i-normal--14-140-75-75-c-70-iso10646-1
+-sgi-screen-bold-r-normal--10-100-72-72-m-70-iso8859-1
+-efont-fixed-bold-i-normal--14-140-75-75-c-70-iso10646-1
+
+Terminus plain (small)
+-xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-1
+-xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-1
+-xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-1
+-xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-1
+
+Terminus plain (big)
+-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-1
+-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-1
+-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-1
+-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-1
+
+Courier Small
+-adobe-courier-medium-r-normal--10-100-75-75-m-60-iso8859-1
+-adobe-courier-medium-o-normal--10-100-75-75-m-60-iso8859-1
+-adobe-courier-bold-r-normal--10-100-75-75-m-60-iso8859-1
+-adobe-courier-bold-o-normal--10-100-75-75-m-60-iso8859-1
+
+Courier Big
+-adobe-courier-medium-r-normal--14-140-75-75-m-90-iso8859-1
+-adobe-courier-medium-o-normal--14-140-75-75-m-90-iso8859-1
+-adobe-courier-bold-r-normal--14-140-75-75-m-90-iso8859-1
+-adobe-courier-bold-o-normal--14-140-75-75-m-90-iso8859-1
+
+; suitable for syntax highlighting (spacing matches, unlike with helvetica)
+Efont biwidth Small
+-efont-biwidth-medium-r-normal--12-120-75-75-p-60-iso10646-1
+-efont-biwidth-medium-i-normal--12-120-75-75-p-60-iso10646-1
+-efont-biwidth-bold-r-normal--12-120-75-75-p-60-iso10646-1
+-efont-biwidth-bold-i-normal--12-120-75-75-p-60-iso10646-1
+
+Efont biwidth Normal
+-efont-biwidth-medium-r-normal--14-140-75-75-p-70-iso10646-1
+-efont-biwidth-medium-i-normal--14-140-75-75-p-70-iso10646-1
+-efont-biwidth-bold-r-normal--14-140-75-75-p-70-iso10646-1
+-efont-biwidth-bold-i-normal--14-140-75-75-p-70-iso10646-1
+
+Efont biwidth Big
+-efont-biwidth-medium-r-normal--16-160-75-75-p-80-iso10646-1
+-efont-biwidth-medium-i-normal--16-160-75-75-p-80-iso10646-1
+-efont-biwidth-bold-r-normal--16-160-75-75-p-80-iso10646-1
+-efont-biwidth-bold-i-normal--16-160-75-75-p-80-iso10646-1
+
+Helvetica
+-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1
+-adobe-helvetica-medium-o-normal--12-120-75-75-p-67-iso8859-1
+-adobe-helvetica-bold-r-normal--12-120-75-75-p-70-iso8859-1
+-adobe-helvetica-bold-o-normal--12-120-75-75-p-69-iso8859-1

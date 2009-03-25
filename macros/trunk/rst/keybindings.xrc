@@ -1,0 +1,7 @@
+! Binding for Tab and Backspace key.
+!
+! Load it with ``xrdb -m`` from your login shell.
+
+nedit*text.Translations: #override \n\
+ ~Shift~Alt~Meta~Ctrl<KeyPress>Tab : macro_menu_command("ResText>Tab Key@ResText")\n\
+ Shift~Alt~Meta~Ctrl<KeyPress>osfBackSpace : macro_menu_command("ResText>Backspace@ResText")\n

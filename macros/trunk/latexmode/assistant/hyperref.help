@@ -1,0 +1,144 @@
+;==================================================================================
+;  This is the Hyperref help file
+;==================================================================================
+
+;==================================================================================
+.topic h_cmds
+.title HyperRef
+
+<p>For more Infos read in the HyperRef help.</p>
+
+<p>
+<ul>
+  <li> <a href="texorpdf"><$ tex>\texorpdfstring</$ tex></a>
+  <li> <a href="href"><$ tex>\href</$ tex></a>
+  <li> <a href="hyperbaseurl"><$ tex>\hyperbaseurl</$ tex></a>
+  <li> <a href="hyperimage"><$ tex>\hyperimage</$ tex></a>
+  <li> <a href="hyperref"><$ tex>\hyperref</$ tex></a>
+  <li> <a href="hyperlink"><$ tex>\hyperlink</$ tex> and <$ tex>\hypertarget</$ tex></a>
+  <li> <a href="autoref"><$ tex>\autoref</$ tex></a>
+  <li> <a href="nolinkurl"><$ tex>\nolinkurl</$ tex></a>
+</ul>
+</p>
+;==================================================================================
+.topic texorpdf
+.title \texorpdfstring
+<p><$ tex>\texorpdfstring{TeX-string}{pdf-string}</$ tex>
+allows different texts for pdf or TeX creation.
+</p>
+<p>
+<$ head>Example</$ head>:
+<$ texex>
+\section{The role of \texorpdfstring{H$_2$O}{water}}
+</$ texex>
+</p>
+
+
+;==================================================================================
+.topic href
+.title \href
+
+<p><$ tex>\href{URL}{Text}</$ tex>
+The text will be resolved into a URL. The URL must be
+complete, according to a base-url which might be defined in a
+|\hyperbaseurl|. 
+</p>
+<$ head>Example</$ head>:
+<$ texex>
+\href{http://www.karpfenteich.net/pit/}{Peter's input tips}
+</$ texex>
+
+;==================================================================================
+.topic hyperbaseurl
+.title \hyperbaseurl
+<p>
+<$ tex>\hyperbaseurl{URL}</$ tex>
+Defines a base URL, which is preset to a given URL. This helps
+to make portable documents.
+
+</p>
+;==================================================================================
+.topic hyperimage
+.title \hyperimage
+<p><$ tex>\hyperimage{image-URL}</$ tex>
+Includes the picture of the URL reference.
+</p>
+;==================================================================================
+.topic hyperref
+.title \hyperref
+<p><$ tex>\hyperref{URL}{category}{name}{text}</$ tex><br>
+<$ tex>\hyperref[mark]{text}</$ tex>
+`text' is activated as a hyperlink to the point which is defined
+with a |\label| command with the symbolic name `mark'.
+</p>
+;==================================================================================
+.topic hyperlink
+.title \hyperlink and \hypertarget
+<p>
+<$ tex>\hyperlink{name}{text}</$ tex><br>
+<$ tex>\hypertarget{name}{text}</$ tex><br>
+
+<$ tex>\hyperlink</$ tex> creates an internal link to an object which is
+somewhere defined with a <$ tex>\hypertarget</$ tex> command. 
+
+For HTML the command <$ tex>\hyperlink</$ tex> inserts a # character in
+front of each link. Thus it'll refer to the topical document,
+while |\href| will expect a complete URL.
+</p>
+;==================================================================================
+.topic autoref
+.title \autoref
+<p>
+<$ tex>\autoref{marker}</$ tex><br>
+<$ tex>\autoref</$ tex> is a substitution for the standard |\ref| command.
+It inserts a context sensitive phrase. 
+<$ head>Example</$ head>:
+<$ texex>
+see \autoref{foo}
+</$ texex>
+for a |\label| in a section will output `see section 3' for
+example.
+
+There are macros to change the default output with the help of
+the |\renewcommand|:
+<$ texex>
+\figurename
+\tablename
+\partname
+\appendixname
+\equationname
+\Itemname
+\chaptername
+\sectionname
+\subesctionname
+\subsubsectionname
+\paragraphname
+\Hfootnotename
+\AMSname
+\theoremname
+</$ texex>
+</p>
+;==================================================================================
+.topic nolinkurl
+.title \nolinkurl
+<$ tex>\nolinkurl</$ tex>
+<p> 
+Allows line breaks in a verbatim like environment like
+|\url|, but without the hyperlink function. This is
+useful to define own commands like this example: 
+
+<$ texex>
+\newcommand*{\urlw}[1]{\href{http://www.#1}%
+                           {\nolinkurl{www.#1}}}
+</$ texex>
+This new defined command <$ tex>\urlw</$ tex> allows the user to
+typeset a linkable (this function is offered by 
+|\href|) a www.example.org address in the latex source
+like this: 
+<$ texex>
+\urlw{example.org}
+</$ texex>
+This will produce the string `www.example.org' which
+is hyperlinked and breakable (when the driver like
+pdftex allows line breaks in links).
+</p>

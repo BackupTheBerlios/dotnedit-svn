@@ -1,0 +1,48 @@
+# open_newWindow_dialog
+# jf_open_previous
+# jf_switch_document
+
+#==================================================================================
+
+define open_newWindow_dialog {
+ new("window")
+ focus_window("last")
+ open_dialog()
+}
+
+define jf_open_previous {
+ jf_require("utilities.nm")
+ 
+ history = jf_get_pref_file("nedit.history")
+ h_file = read_file(history)
+ disp = jf_list_to_display(h_file, 1)
+ selected = list_multisel_dialog("Choose: ", qsort_list(disp), "Ok", "Cancel",\
+         "                         ")
+ if (selected != "" && $list_dialog_button == 1) {
+     new("window")
+     focus_window("last")
+     files = split(jf_display_to_list(selected), "\n")
+     for (i = 0; i < files[]; i++) {
+     open(files[i])
+     }
+ }
+}
+
+define jf_switch_document {
+ jf_require("utilities.nm")
+current = $file_path $file_name
+list = ""
+for (file = focus_window("last"); file != ""; file = focus_window("next")) {
+    list = list file "\n"
+}
+focus_window(current)
+list = jf_list_to_display(list)
+selected = list_dialog("Choose: ", qsort_list(list), "Ok", "Cancel")
+if (selected != "" && $list_dialog_button == 1) {
+    file = jf_display_to_list(selected)
+    open(file)
+    #focus_window(file)
+    #raise_window()
+ }
+
+}

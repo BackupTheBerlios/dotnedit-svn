@@ -1,0 +1,234 @@
+#==================================================================================
+# These macros require NEdit 5.*4*, that means a recent snapshot with calltips in
+#==================================================================================
+
+#==================================================================================
+
+# -----------------------------------
+# Show Calltips (with close matches)
+# -----------------------------------
+
+# It is only for showing language help
+# The search key, usually a function name, can contain only
+# [a-zA-Z_]
+
+# Set the following global variables in your autoload.nm
+
+# They are also in latexmode!!!
+$tips = $empty_array
+$tips_call = -1
+$tips_pos = ""
+$tips_key_reg = ""
+$tips_key = ""
+# $data = getenv("HOME") "/path-to-tips-files/" # give the folder where you store the tips file
+
+# Make a new menu entry and set the name of the entry to the variable
+# menu_name !!! You can define Ctrl+' as accelerator key. 
+define jf_show_calltip {
+
+empty_line = "\\n\\n"
+variable_length = "[a-zA-Z_]*$"
+language = replace_in_string($language_mode," ","_")
+if (language == "") language = $language_mode
+language = tolower(language)
+file = $jf_path_to["calltips-mein.nm"] language ".tips"
+
+if (!($language_mode in $tips)) {
+    $tips[$language_mode] = read_file(file)
+    if ($read_status == 0) {
+        dialog("File: " file "not found.")
+        }
+    }
+t_print("show_calltip:\n"$calltip_ID"\n"$tips_call"\n")
+if ($calltip_ID != $tips_call) {
+    # New search
+    s = 1
+    if (get_range($cursor - 1, $cursor) == "(") s = 2
+    # we simply search for word delimiters, which is language dependent
+    start_of_key = search("<",$cursor-s,"backward","regex")
+    end_of_key = search("\\y",$cursor,"regex")
+    if (end_of_key == -1) {
+        c = $cursor
+        end_of_line()
+        end_of_key = $cursor
+        test = search("<",$cursor - 1,"backward","regex")
+        set_cursor_pos(c)
+        if (test == start_of_key) {
+            key = get_range(start_of_key,end_of_key)
+            }
+            else {
+              key = ""
+              }
+            
+        }
+        else {
+          key = get_range(start_of_key,end_of_key)
+          }
+
+    if (key == "") {
+        calltip("No tip found!")
+        return
+        }
+    # find only keys that have a empty newline in front of them
+    key_reg= empty_line key "$"
+    found = search_string($tips[$language_mode],key_reg,0,"regex")
+    if (found != -1) {
+        # exact match - show tip
+        tip_start = $search_end + 1
+        tip_end = search_string($tips[$language_mode],empty_line,tip_start,"regex")
+        tip = substring($tips[$language_mode], tip_start, tip_end)
+        calltip(tip)
+        }
+        else {
+          #dialog("a")
+          # try close matches
+          while(found == -1) {
+            key = substring(key,0,length(key)-1)
+            if (key == "") {
+                calltip("No tip found!")
+                return
+                }
+            key_reg = empty_line key variable_length
+            found = search_string($tips[$language_mode],key_reg,0,"regex")
+            }
+          # We have found something
+          tip_start = $search_end + 1
+          tip_end = search_string($tips[$language_mode],empty_line,tip_start,"regex")
+          tip = substring($tips[$language_mode], tip_start, tip_end)
+          $tips_call = calltip(tip)
+          $tips_pos = tip_start
+          $tips_key_reg = key_reg
+          }
+    }
+    else {
+      # Cycle through close matches
+      #dialog("b")
+      found = search_string($tips[$language_mode],$tips_key_reg,$tips_pos,"regex")
+      if (found == -1) {
+          kill_calltip()
+          jf_show_calltip()
+          }
+          else {
+            tip_start = $search_end + 1
+            tip_end = search_string($tips[$language_mode],empty_line,tip_start,"regex")
+            tip = substring($tips[$language_mode], tip_start, tip_end)
+            $tips_call = calltip(tip)
+            $tips_pos = tip_start
+            }
+      
+      }
+}
+#==================================================================================
+
+# -------------------------
+# Show Calltips (built-in)
+# -------------------------
+
+define jfShowTip {
+
+  language = replace_in_string($language_mode, " ", "_", "copy")
+  language = tolower(language)
+  tipFile = $jf_path_to["calltips-mein.nm"] language ".tips"
+
+  
+  # load tipFile unless it is loaded
+  found = 0
+  for (i = 0; i < $loaded_tips_files[]; i++) {
+      if (tipFile == $loaded_tips_files[i]) {
+          found = 1
+          break
+      }
+  }
+  if (!found) {
+      test = read_file(tipFile)
+      if (test == "") {
+          dialog("Tips File not found or empty")
+          return
+      }
+      load_tips_file(tipFile)
+  }
+
+if ($calltip_ID != $tips_call) {
+    # New search
+    s = 1
+    if (get_range($cursor - 1, $cursor) == "(") s = 2
+    # we simply search for word delimiters, which is language dependent
+    start_of_key = search("<",$cursor-s,"backward","regex")
+    end_of_key = search("\\y",$cursor-1,"regex")
+    if (end_of_key == -1) {
+        c = $cursor
+        end_of_line()
+        end_of_key = $cursor
+        test = search("<",$cursor-1,"backward","regex")
+        set_cursor_pos(c)
+        if (test == start_of_key) {
+            key = get_range(start_of_key,end_of_key)
+            }
+            else {
+              key = ""
+              }
+            
+        }
+        else {
+          key = get_range(start_of_key,end_of_key)
+          }
+
+    if (key == "") {
+        calltip("No tip found!")
+        return
+        }
+    # find only keys that have a empty newline in front of them
+    id = calltip(key, -1, "tipKey")
+    if (id == 0) {
+        # no match - try close matches
+        allcomp = ""
+        while(allcomp == "") {
+              key = substring(key,0,length(key)-1)
+              if (key == "") {
+                  calltip("No Tip Found.")
+                  return
+                  }
+              allcomp = find_completions("tips", tipFile, key)
+          }
+          # If we reach here, we have found something
+          list = split(allcomp, "\n")
+          $tips_call = calltip(list[0], -1, "tipKey")
+          $tips_key = key
+          $tips_index = 1
+          }
+    }
+    else {
+      # Cycle through close matches
+      #dialog("b")
+      allcomp = find_completions("tips", tipFile, $tips_key)
+      if (allcomp == "") {
+          kill_calltip()
+          $tips_index = 0
+          jfShowTip()
+      }
+      else {
+        list = split(allcomp, "\n")
+        if ($tips_index >= list[]) {
+            $tips_index = 0
+        }
+        $tips_call = calltip(list[$tips_index], -1, "tipKey")
+        $tips_index++
+      }
+      
+   }
+  
+
+}
+
+# Another approach is to use the built-in calltip feature
+# Notice that the tip file must be loaded before running this macro!
+# It only avoids that you have to select the function. It takes the
+# word under the cursor (containing [a-zA-Z_]).
+# However, cycling through (all) close matches isn't possible
+# There is also no feedback inside the macro whether a tip has been found.
+
+# start_of_key = search("(?n[^a-zA-Z_])",$cursor-1,"backward","regex") + 1
+# end_of_key = search("(?n[^a-zA-Z_])",$cursor-1,"regex")
+# key = get_range(start_of_key,end_of_key)
+# calltip(key,-1,"tipKey")
+

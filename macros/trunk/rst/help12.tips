@@ -1,0 +1,11 @@
+IMAGES
+(with options) are placed like:
+
+.. image:: picture.jpeg
+   :height: 100
+   :width: 200
+   :scale: 50
+   :alt: alternate text
+   :align: right
+   :target: a URI
+   :class:

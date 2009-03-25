@@ -1,0 +1,2 @@
+! This is to override the cygwin setting.
+nedit.bgMenuButton: <KeyPress>F2

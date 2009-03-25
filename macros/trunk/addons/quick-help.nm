@@ -1,0 +1,47 @@
+# QUICK AND SHORT HELP
+
+# needs global variables to store the calltip_ID and current file index
+$jf_quickHelp["index"] = -1
+$jf_quickHelp["currentCalltipID"] = -1
+#==================================================================================
+# void jf_quickHelp(fileList, fullPath)
+# fileList is a newline separated list of help files, which are all in
+# the same directory, where fullPath points to
+#==================================================================================
+define jf_quickHelp {
+  helpFiles = split($1, "\n")
+  if (helpFiles[] == 0) {
+      calltip("No help files.")
+      return
+  }
+  fullPath = $2
+
+  # remove last if empty
+  last = helpFiles[] - 1
+  if (helpFiles[last] == "") {
+      delete helpFiles[last]
+      if (helpFiles[] == 0) {
+          calltip("No help files.")
+          return
+      }
+  }
+
+  # is a help calltip shown (or if it is the last help page, show the
+  # first one anyway)
+  if ($calltip_ID == $jf_quickHelp["currentCalltipID"] && \
+                     $jf_quickHelp["index"] < helpFiles[] - 1) {
+      # show next help page 
+      $jf_quickHelp["index"] += 1
+  }
+  else {
+      $jf_quickHelp["index"] = 0
+  }
+
+  helpFile = fullPath helpFiles[$jf_quickHelp["index"]]
+  helpText = read_file(helpFile)
+  nbr = $jf_quickHelp["index"] + 1
+  total = helpFiles[]
+  infoText = "QuickHelp Page "nbr"/"total".  [Next Page: Shift+F1]\n"\
+             "````````````````````````````````````````````\n"
+  $jf_quickHelp["currentCalltipID"] = calltip(infoText helpText)
+}

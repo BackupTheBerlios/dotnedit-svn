@@ -1,0 +1,47 @@
+.font Helvetica
+.fontsize 14
+.forecolor black
+.backcolor #ffffd2
+.linkcolor #006800
+
+.include "images.help"
+
+.$ example {<font color=#A06040><pre>} {</pre></font>}
+
+.topic contents
+.title Execution the tcl code from help
+<p>
+Example of code:
+<$ example>
+&lt;a href="tcl: tk_dialog .test_dialog {Test Dialog} {Test message} {} 0 Ok"
+   title="MessageBox"&gt;Press HERE to invoke the MessageBox&lt;/a&gt;
+</$ example>
+You can test this code below.
+</p>
+<p>
+<a href="tcl: pipe \\alpha" title="Insert \alpha"><img src=testing></a>
+<a href="tcl: pipe \\beta" title="Insert \beta"><img src=beta></a>
+<a href="tcl: pipe \\chi" title="Insert \chi"><img src=chi></a>
+<a href="tcl: pipe \\delta" title="Insert \delt"><img src=delta></a>
+<br>
+<a href="tcl: pipe \\epsilon" title="Insert \epsilon"><img src=epsilon></a>
+<a href="tcl: pipe \\zeta" title="Insert \zeta"><img src=zeta></a>
+<a href="tcl: pipe \\xi" title="Insert \xi"><img src=xi></a>
+<a href="tcl: pipe \\old" title="Insert \old"><img src=old></a>
+</p>
+
+<p>
+And more - Funny behaviour: <b>Moving window :-)</b>
+</p><p align=center>
+<tt>&nbsp;<font bgcolor=#e0e0d0>&nbsp;<a href="tcl: move_w -10 -10">UpLeft</a>&nbsp;
+&nbsp;&nbsp;<a href="tcl: move_w   0 -10">Up</a>&nbsp;&nbsp;
+&nbsp;<a href="tcl: move_w  10 -10">UpRight</a>&nbsp;</font>
+<br>
+&nbsp;<font bgcolor=#e0e0d0>&nbsp;<a href="tcl: move_w -10 0">Left</a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="tcl: move_w 10 0">Right</a>&nbsp;</font>
+<br>
+&nbsp;<font bgcolor=#e0e0d0>&nbsp;<a href="tcl: move_w -10 10">DownLeft</a>
+<a href="tcl: move_w   0 10">Down</a>
+<a href="tcl: move_w  10 10">DownRight</a>&nbsp;</font></tt>
+</p>

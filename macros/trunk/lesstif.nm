@@ -1,0 +1,9 @@
+# Call this from the smart-indent initialization, or 
+# directly after opening a file which uses continuous wrapping
+define lesstif_bug {
+if ($wrap_text == "continuous") {
+    # in 5.5 renamed to split_pane() !!!
+    split_pane()
+    close_pane()  
+    }
+}

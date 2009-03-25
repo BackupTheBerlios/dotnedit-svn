@@ -1,0 +1,59 @@
+# CASECHANGE()
+
+# Cycles the selection through All Upper Case -- All Lower Case -- Words with first
+# letter upper case and the remainder lower case. When the case of the selection is
+# all upper case, sets the first letter of each word to upper case, and the other
+# letters to lower case. When all lowercase sets the selection to all upper case.
+# Otherwise sets the case to lower case. Thus the macro can cycle round the
+# different options by repeated use.
+
+define CASECHANGE {
+ txt = get_selection()
+ 
+ pos = search_string(txt, "\\l", 0, "regex")
+ 
+ # Return if no letters.
+ if (pos == -1) {
+     beep()
+     return
+ }
+
+ # If the case of the letters is not all the same, change to lower case.
+ if (tolower(txt) != txt && toupper(txt) != txt) {
+    txt = tolower(txt)
+ }
+ else {
+    # If all lower case, change to all upper case
+    first_letter = substring(txt, pos, pos + 1)
+    if (tolower(first_letter) == first_letter) {
+        txt = toupper(txt)
+    }
+    else {
+        # If all upper case, change to first letter upper case, rest lower case
+        #
+        # Unfortunately, there is a rare special case, where there are only 
+        # single letters.  They keep all upper case then.  I think this is
+        # not what was the idea, so
+        tmp = replace_in_string(txt, "<\\l", "1", "regex")
+        test = search_string(tmp, "\\l", 0, "regex")
+        if (test == -1) {
+            # There are only single letters in txt.  Don't keep them all
+            # upper-case, but change them to all lower case
+            txt = tolower(txt)
+        
+        }
+        else {
+            txt = replace_in_string(txt, "<(\\l)(\\l*)", "\\1\\L\\2", "regex", "copy")
+        }
+    }
+ 
+ }
+
+ s = $selection_start
+ e = $selection_end
+ l = $selection_left
+ r = $selection_right
+ replace_selection(txt)
+ if (l == -1) select(s, e)
+ else select_rectangle(s, e, l, r)
+}

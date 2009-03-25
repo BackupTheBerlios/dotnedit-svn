@@ -1,0 +1,143 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,amsthm} 
+
+\newcommand{\norm}[1]{\lVert#1\rVert}
+\newcommand{\nedit}{N\kern-0.8pt{Edit}}
+
+\begin{document} 
+
+\section{Mathematics}
+\noindent If things should go wrong notice that there is a unlimited undo command. So \textsc{strg+z} will help then.\\
+
+Let us begin with checking the expander. Hit \textsc{Alt+u}, give in a dollar sign. (Then two dollars are put at a newline with the cursor in between. If you want to give in only a single dollar sign, hit  \textsc{Alt+4}. If you don't like this behavior, change the key bindings, see the X resource file.) Now give in \verb|'e| between the dollar signs and hit the \textsc{space} key. If it works, you get this:
+
+$\epsilon$ 
+
+Give in a comma directly behind the 
+$\epsilon$ and hit two times \textsc{space}. Notice that the cursor walks throught the last dollar sign and  the comma moves behind the dollar sign. If this doesn't work, turn `Smart Indent' on. another test. As you see here `another' is not capitalized. Move the cursor directly behind the `r' and hit \textsc{space}, then `another' will be capitalized. If for abbreviations you don't want this to happen, you hit \textsc{shift+space}. Try it.\\
+
+Now we come to somewhat bigger mathematical formulas.
+Let us start with a small matrix.
+This is a small matrix
+$a b c
+d e f$. Select from ``a'' to ``f'' and click the right mouse button. Now choose ``Matrices'', select the type of brackets and choose ``small''.\\
+
+
+% These is an example from the amsldoc.tex, i.e. the AmS-LaTeX manual
+Now a first equation 
+
+% 1a
+% A single split (i.e. spanning over several lines) equation. Notice that \begin-\end blocks like the matrix are seen as one line!
+a=\begin{pmatrix}
+x & y\\
+y & x
+\end{pmatrix}
+=b+c-d
+\quad +e-f
+=g+h
+=i
+
+Select from ``a'' to the end, right mouse button, choose ``Equations'' and then ``single equation''.\\
+
+% 1b
+% Override the usual alignment with a ; 
+a=b;=c-d
+\quad +e-f
+=g+h
+=i
+
+
+% 2a
+% two gathered equations, separate with extra newline!
+a_1=b_1+c_1
+
+a_2=b_2+c_2-d_2+e_2
+
+Select everything from \verb>a_1> to \verb<e_2<, and choose ``gathered equations''.
+% And looking at the \verb stuff you are perhaps starting to wonder about the syntax highlighting of this little editor here. Just try any legal characters other than > or <.
+
+% 2b
+% three gathered equations, one of them over several lines
+a_1=b_1+c_1
+
+a=b+c-d
+\quad +e-f
+=g+h
+=i
+
+a_2=b_2+c_2-d_2+e_2
+
+Another example of gathered equations one of which spans over several lines. Select the whole stuff.\\
+
+Now to aligned equations:
+
+% 3a
+% two aligned equations
+a_1=b_1+c_1
+a_2=b_2+c_2-d_2+e_2
+
+
+% 3b
+% aligned columns of equations 
+a_{11}=b_{11} ; a_{12}\leq b_{12}
+a_{21}=b_{21} ; a_{22}=b_{22}+c_{22}
+
+You separate the columns with \verb*} ; }, i.e. space, semicolon and another space.
+
+% 3c
+% columns with text
+x= y_1-y_2+y_3-y_5+y_8-\dots ;; \text{by equation x}
+= y'\circ y^* ;; \text{by euation y}
+= y(0) y' ;; \text{by Axiom 1.}
+
+
+% 4
+% the aligned environment -> equations} describing text
+As last example Maxwell's equations
+
+B'=-\partial\times E,
+E'=\partial\times B - 4\pi j,
+
+
+Select them as usual and from the ``Equations'' menu choose ``align \}''. Then insert ``Maxwell's equations''.\\
+
+\section{Completions}\label{comp}
+After this short intro% 
+to editing mathematics, here come a few other things. First completions. Put the cursor after `intro' before the procent and hit \textsc{f4} two times. Then you'll get `introduction'. To see a list of all possible completions, hit \textsc{f5}. You can select a completion by hitting a number. Now to code completions:
+$\var$
+
+Now we come to editing multi-file documents. Invoke `Sectioning' from the macro menu or hit \textsc{ctrl+alt+s}. Since you haven't set a main file so far, it is assumed that the current file is the main file. You can see the sectioning in a dialog box, select an entry (with mouse or keyboard) and jump to it.
+
+To set a main file, invoke `Main File' from the macro menu (you can define a short-cut for it, too). You see a list of currently opened file and of files that you have bookmarked. To bookmark the current file, hit \textsc{ctrl+b} or got to `Bookmarks' in the macro menu. Hit \textsc{shift+ctrl+b} to see a list of your bookmarked files.
+
+Don't forget to test also the `Labels' and `Command' macros.\\
+
+When you test inverse search, notice that you \emph{must} run \nedit\ through the \verb|nc| command or the \verb|-server| option. Otherwise a new window will be opened, even if the file in question is already open!
+
+\input{example1}
+
+This above is to illustrate editing multifile documents.\label{example}
+
+
+\section{Lists, Enumerations}
+
+% Nesting list environments 
+You can mix the list environments to your taste: But it might start to look silly.
+With a dash.
+Therefore remember: Stupid things will not become smart because they are
+in a list.
+Smart things, though, can be presented beautifully in a list.
+% Select from `But it ...' to `With a dash.'. Right click, select Lists and then 
+% `o o o' for itemize. Then select from `Stupid things...' to the end `..in a list.'. Again right click, Lists, and now `Descriptions'. Notice that `Stupid' and `Smart' are now in brackets. Finally select from start `You can mix...' to the end, ie \end{description}. Again Lists, now `1.2.3.' for enumeration.
+
+
+% Another example
+A small matrix $a b
+c d$ 
+inside a list.
+
+% Select from a to d to insert a small matrix. Then select from start to end, right click, choose List and `(i) (ii) (iii)'. Notice this needs extra packages.
+
+
+\end{document}

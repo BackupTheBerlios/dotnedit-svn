@@ -1,0 +1,20 @@
+File list for N-spell:
+======================
+
+README              -   release notes and license information
+INSTALL             -   installation instructions, requirements
+TECHNICAL           -   how it works and what limitations there are
+MANUAL              -   usage and configuration
+changelog           -   changes since last release
+
+NEchoesd            -   Perl script to moderate between NEdit and Aspell
+n-spell.nm          -   N-spell macro functions
+nspell.menu         -   Menu definitions
+nspell_xdefs.rc     -   Mouse bindings
+nspell-autol.nm     -   Example for autoload.nm setting up N-spell
+uninstall.txt       -   file to uninstall the menu definitions (requires nxmenu.nm)
+
+top10000en.txt      -   list of most common English words
+top10000de.txt      -   list of ... German words
+top10000fr.txt      -   list of ... French words
+demo_es.txt         -   list of some Spanish words

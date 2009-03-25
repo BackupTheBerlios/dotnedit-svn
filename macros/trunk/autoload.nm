@@ -1,0 +1,138 @@
+# Absolute base path for this autoload file and the nedit.rc file.
+# Its variable by setting the environment variable NEDIT_HOME.
+$jf_path_to["/NEDIT_HOME/"] = getenv("NEDIT_HOME") "/"
+if ($jf_path_to["/NEDIT_HOME/"] == "/")
+    $jf_path_to["/NEDIT_HOME/"] = getenv("HOME") "/.nedit/"
+
+
+
+# Absolute paths to the respective macro files.
+# -----------------------------------------------------------------
+# All macro files to be loaded need to be listed here. 
+# -----------------------------------------------------------------
+basePath = $jf_path_to["/NEDIT_HOME/"]
+$jf_path_to["latex_mode.nm"] = basePath "latexmode/"
+$jf_path_to["tcl_interface.nm"] = basePath "latexmode/assistant/"
+$jf_path_to["n-spell.nm"] = basePath "n-spell/"
+$jf_path_to["keyPress.nm"] = basePath "n-spell/"
+$jf_path_to["expansions.nm"] = basePath "expansions/"
+$jf_path_to["code_word_comp.nm"] = basePath "wordcompletion/"
+# Again notice that the LaTeXMode changes the key-bindings. It is assumed that
+# you are using a standard US keyboard layout. If not you have to adapt these
+# changes to your keyboard layout in order to avoid funny (or not so funny) results.
+# Confirm the .Xdefaults file of this release.
+$jf_path_to["keyboard.nm"] = basePath 
+$jf_path_to["utilities.nm"] = basePath 
+$jf_path_to["cygspecial.nm"] = basePath 
+$jf_path_to["snippets.nm"] = basePath "snippets/"
+$jf_path_to["lesstif.nm"] = basePath 
+$jf_path_to["bookmarks.nm"] = basePath "addons/"
+$jf_path_to["quick-help.nm"] = basePath "addons/"
+# end-of-LaTeXMode-bundle
+
+$jf_path_to["rst.nm"] = basePath "rst/"
+$jf_path_to["nxmenu.nm"] = basePath "nm-develop/"
+$jf_path_to["nm_ide.nm"] = basePath "nm-develop/"
+$jf_path_to["calltips-mein.nm"] = basePath "nm-develop/"
+$jf_path_to["marks.nm"] = basePath "rangesets/"
+$jf_path_to["RSInterface.nm"] = basePath "rangesets/"
+$jf_path_to["jf_format_reg.nm"] = basePath "formatting/"
+$jf_path_to["project.nm"] = basePath "addons/"
+$jf_path_to["jf_session.nm"] = basePath "addons/"
+$jf_path_to["jf_fonts.nm"] = basePath "addons/"
+$jf_path_to["file-open-addons.nm"] = basePath "addons/"
+$jf_path_to["manViewer.nm"] = basePath "addons/"
+$jf_path_to["case-noloc-wrapper.nm"] = basePath 
+$jf_path_to["pyshell.nm"] = basePath "python/"
+
+# array for general available settings, like operating system, or Motif
+# toolkit in use.
+
+# We also need a $NE_global["command_shell"] to know the syntax of shell
+# commands.  Ideally, NEdit should have a $command_shell variable!
+$NE_globals[""] = 0
+# For LessTif bug: continuous wrapping -> lower window margin not redrawn
+# If you run LessTif, set the variable to "true"
+$NE_globals["lesstif"] = "false"
+
+
+#==================================================================================
+# On Demand Macro File Loading  (much simplified version)
+# jf_require(macro-file-name)
+# returns an error message on failure, or "" on success
+# 
+# depends on the paths in $jf_path_to to the files
+#==================================================================================
+define jf_require {
+ nmfile = $1
+ $jf_loaded_nmfiles[""] = 0
+ 
+ if (nmfile in $jf_loaded_nmfiles) {
+    # already loaded, return
+    return ""
+ }
+
+ if (!(nmfile in $jf_path_to)) {
+    # we have no path for the file, try to find it, but recommended is
+    # to give the path explicitly
+    fileList = shell_command("cd "$jf_path_to["/NEDIT_HOME/"]";ls -F *", "")
+    # fileList is newline separated list, looking like
+    # file1
+    # file2
+    #
+    # directory1:
+    # file1
+    # file2
+    #
+    # directory2:
+    # file1 
+    if ($shell_cmd_status == 0) {
+        start = search_string(fileList, nmfile, 0, "caseWord")
+        if (start != -1) {
+            directory = ""
+            # We have a match, search for the directory
+            endDir = search_string(fileList, ":", start, "backward")
+            if (endDir != -1) {
+                startDir = search_string(fileList, "^", endDir, "regex", "backward")
+                directory = substring(fileList, startDir, endDir) "/"
+            }
+        $jf_path_to[nmfile] = $jf_path_to["/NEDIT_HOME/"] directory
+        }
+    }
+ }
+
+ # Not loaded, yet.  Check if the file exists.
+ if (nmfile in $jf_path_to) {
+    file = $jf_path_to[nmfile] nmfile
+    test = read_file(file)
+    if ($read_status == 0 || test == "") {
+        # file doesn't exist or is empty
+        return(file "\ndoesn't seem to exists!")
+    }
+    else {
+        # everything fine, so load it
+        load_macro_file(file)
+        
+        # simply remember the file as loaded
+        $jf_loaded_nmfiles[nmfile] = 0
+        # what if the file can't be compiled, but we add it to the loaded ones??
+        return ""
+    }
+ 
+ }
+ return(nmfile " is not in $jf_path_to.\nSee "$jf_path_to["/NEDIT_HOME/"]"autoload.nm!")
+}
+
+define jf_displayLoaded {
+  fileList = ""
+  for (file in $jf_loaded_nmfiles ) {
+      fileList = fileList file "\n"
+  }
+  if (fileList != "") {
+      file = list_dialog("Loaded Macro Files:", fileList, "Ok", "Cancel")
+  }
+  if (file != "" && $list_dialog_button == 1) {
+      open($jf_path_to[file] file)
+  }
+
+}

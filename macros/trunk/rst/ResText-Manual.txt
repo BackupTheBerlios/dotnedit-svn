@@ -1,0 +1,707 @@
+.. Document Type: reStructured Text
+.. Encoding: ISO-8859-1
+
+========================================
+   NEdit Support for reStructuredText
+========================================
+
+:Author: Dr.Jörg Fischer 
+:Contact: nedit@public-files.de
+:Date: 2007-12-20
+:Abstract:
+
+    Description of the NEdit support for editing reStructuredText
+    text documents.  
+
+.. contents::
+.. 
+   1  Preface
+   2  Introduction
+   3  Installation
+   4  Section Decorations
+    4.1  Adjusting a Section Title
+    4.2  Promoting and Demoting Many Sections
+    4.3  Redoing All the Decorations to Your Taste
+    4.4  Customizations for Decorations
+    4.5  Viewing the Hierarchy of Section Decorations
+   5  Section Movement and Selection
+   6  Operating on Blocks of Text
+    6.1  Shifting Text Horizontally Intelligently
+    6.2  Bulleting and Enumerating Lists
+     6.2.1  Straightening Existing Bullet List Hierarchies
+    6.3  Creating and Removing Line Blocks
+    6.4  Commenting a Selection of Text
+   7  Converting Documents from Emacs
+   8  Table-of-Contents Features
+    8.1  Inserting a Table of Contents
+    8.2  Maintaining the Table of Contents Up-to-date
+   9  Syntax Highlighting
+    9.1  Background Coloring Beyond Newlines 
+    9.2  Highlighting Customization
+     9.2.1  Changing Default Fonts
+   10  Other Useful Macros
+    10.1  ``text-mode`` Settings
+    10.2  Editing Tables
+    10.3  Character Processing
+   11  TODO
+    11.1  Smart Indentation
+   12  Credits
+
+Preface
+=======
+I became interested in reStructuredText as a way to write and store
+simple notes or articles.  Wikipedia lists reStructuredText as so called
+*lightweight markup language*.  Seeing the Emacs support for
+reStructuredText I felt a lightweight markup language also deserves
+the support of a lightweight editor like NEdit.
+
+
+Introduction
+============
+
+reStructuredText_ is a series of conventions that allows a
+toolset--docutils--to extract generic document structure from simple
+text files.  For people who use NEdit_, there is a package that adds a
+language mode that supports editing in the conventions of
+reStructuredText_.  The package is contained in the files ``rst.lm``
+and ``rst.nm``.  This document describes the features it provides, and
+how to setup NEdit to use them and how to invoke them.
+
+
+Installation
+============
+
+The NEdit support is implemented as an NEdit language mode named ResText
+and provided by ``rst.lm``.  This file is an X resources file and
+contains the definition of the language mode together with the syntax
+highlighting patterns and menu settings (including key-bindings).
+Additional user-defined macro routines the language mode depends on
+can't be included in the X resources file but are in the separate file
+``rst.nm`` and must be loaded from there.
+
+In order to use the ResText mode, you need to import the X recources
+into your NEdit preferences file ``nedit.rc`` with the command::
+
+   nedit -import rst.lm
+
+Then you have to save the preferences file manually from the menu
+``Preferences -> Save Defaults...`` to include the new settings. Notice
+this isn't done automatically in the case of an import -- if you just
+exit NEdit, the new settings won't be included in the preferences file
+``nedit.rc``.
+
+Moreover, you need to make the user-defined macro functions available to
+NEdit by loading the file ``rst.nm`` *as a macro file*.  This can be
+done from the file menu ``File -> Load Macro File...``.  To
+automatically load ``rst.nm`` when starting NEdit, include the line ::
+ 
+    load_macro_file("rst.nm")
+
+into your ``autoload.nm`` file.  If this file shouldn't exist, yet,
+simply create it in the hidden folder ``.nedit`` in your ``HOME``
+directory.
+
+To enable ResText mode, simply choose it from the menu ``Preferences ->
+Language Mode``.  The ordering of the modes can be changed under
+``Preferences -> Default Settings -> Language Modes``.  Here you can
+also choose a file extension to automatically turn it on whenever you
+visit reStructuredText_ documents.  Moreover, there is a recognition
+regular expression independently from file extensions to determine the
+document type.  By default, if the start of your file contains something
+like ::
+
+    .. foobar reStructured Text
+
+it is recognized as a reStructuredText_ document.
+
+
+
+``rst-mode`` automatically binds several keys for invoking special
+handy functions for editing ReStructuredText. As is the custom for
+Emacs major modes, most keys are bound to ``C-c C-LETTER``.
+
+If you insert an inline table-of-contents at the top of the document,
+you may want to add a hook to automatically update it everytime you
+adjust a section title::
+
+  (add-hook 'rst-adjust-hook 'rst-toc-update)
+
+Additional configuration variables can be customized and can be found
+by browsing the source code for ``rst.el``.
+
+
+Section Decorations
+===================
+
+The rst package does not completely parse all the reStructuredText_
+constructs, but it contains the ability to recognize the section
+decorations and to build the hierarchy of the document. What we call
+section decorations or adornments are the underlines or under- and
+overlines used to mark a section title.
+
+Adjusting a Section Title
+-------------------------
+
+There is a function that helps a great deal to maintain these
+decorations: ``rst-adjust`` (bound to ``C-c C-a``, or ``C-=`` by
+default). This function is a Swiss army knife that can be invoked
+repeatedly and whose behaviour depends on context:
+
+#. If there is an incomplete underline, e.g.::
+
+      My Section Title
+      ^^
+
+   Invocation will complete the section title.  You can simply enter a
+   few characters of the title and invoke the function to complete it.
+   It can also be used to adjust the length of the existing decoration
+   when you need to edit the title.
+
+#. If there is no section decoration, a decoration one level under the
+   last encountered section level is added;
+
+#. If there is already a section decoration, it is promoted to the
+   next level.  You can invoke it like this repeatedly to cycle the
+   title through the hierarchy of existing decorations.
+
+Invoking the function with a negative prefix argument, e.g. ``C--
+C-=``, will effectively reverse the direction of decoration cycling.
+To alternate between underline-only and over-and-under styles, you can
+use a regular prefix argument, e.g. ``C-u C-=``.  See the
+documentation of ``rst-adjust`` for more description of the prefix
+arguments to alter the behaviour of the function.
+
+Promoting and Demoting Many Sections
+------------------------------------
+
+When you are re-organizing the structure of a document, it can be
+useful to change the level of a number of section titles.  The same
+key binding can be used to do that: if the region is active when the
+binding is invoked, all the section titles that are within the region
+are promoted accordingly (or demoted, with negative prefix arg).
+
+Redoing All the Decorations to Your Taste
+-----------------------------------------
+
+If you open someone else's file and the decorations it contains are
+unfamiliar, you may want to readjust them to fit your own preferred
+hierarchy of decorations. This can be difficult to perform by hand.
+However, you can do this easily by invoking
+``rst-straighten-decorations`` (``C-c C-s``), which operates on the
+entire buffer.
+
+Customizations for Decorations
+------------------------------
+
+You can set the variable ``rst-preferred-decorations`` to a list of
+the decorations that you like to use for documents.  Everyone has
+their preference.  ``rst-default-indent`` can be set to the number of
+indent spaces preferred for the over-and-under decoration style.
+
+Viewing the Hierarchy of Section Decorations
+--------------------------------------------
+
+You can visualize the hierarchy of the section decorations in the
+current buffer by invoking ``rst-display-decorations-hierarchy``,
+bound on ``C-c C-h``.  A temporary buffer will appear with fake
+section titles rendered in the style of the current document.  This
+can be useful when editing other people's documents to find out which
+section decorations correspond to which levels.
+
+
+Section Movement and Selection
+==============================
+
+You can move the cursor between the different section titles by using
+the ``rst-backward-section`` and ``rst-forward-section`` functions, by
+default bound to the ``C-c C-p`` and ``C-c C-n`` keys.
+
+To mark the section that cursor lies in, use ``rst-mark-section``
+(``C-c C-m``).
+
+
+
+Operating on Blocks of Text
+===========================
+
+Shifting Text Horizontally Intelligently
+----------------------------------------
+
+Due to the nature of reStructuredText_, lists are indented by two or
+three characters, e.g. bulleted lists use two chars::
+
+   - Fruits
+
+     - Bananas
+     - Apples 
+     - Oranges
+
+   - Veggies
+
+     - Zucchini
+     - Chick Peas
+
+while enumerated lists are indented by 3 or more characters ::
+
+   9. Apples
+ 
+      Oranges are tasty.
+
+   10. Oranges
+
+       Oranges are zesty.
+
+To this effect, when shifting text, it can be useful to have functions
+which understand which indent to use by using the context around the
+region. Those functions are ``rst-shift-region-right`` and
+``rst-shift-region-left``.
+
+You can use ``C-c C-r`` and ``C-c C-l`` to shift the active region.
+These bindings are similar to the ones provided by python-mode for
+editing python code and behave similarly.  They automatically inspect
+the lines of text before the currently selected region to determine
+what the appropriate column positions are.
+
+
+Bulleting and Enumerating Lists
+-------------------------------
+
+Notice that NEdit just handles 8-bit encodings (e.g. ISO-8859). 
+Therefore, bullet lists are limited to the ASCII characters "-", "*",
+and "+".
+
+Sometimes it can be useful to insert bullet list markers enumeration
+number before a number of lines or paragraphs.  You can do this easily
+by invoking ``rst-enumerate-region`` (``C-c C-e``), for example, the
+following::
+
+  Apples
+
+  Oranges
+
+  Bananas
+
+becomes::
+
+  1. Apples
+
+  2. Oranges
+
+  3. Bananas
+
+``rst-listify-region`` (``C-c C-b``) does the same, but only adds
+bullet list markers, e.g.::
+
+  Apples
+
+  Oranges
+
+  Bananas
+
+becomes::
+
+  - Apples
+
+  - Oranges
+
+  - Bananas
+
+
+By default, each paragraph starting on the leftmost line in the
+highlighted region will be taken to be a single list or enumeration
+item, for example, enumerating the following::
+
+   An apple a day
+   keeps the doctor away.
+
+   But oranges
+   are tastier than apples.
+
+   If you preferred bananas
+   you may be
+   a monkey.
+
+Will result in::
+
+   1. An apple a day 
+      keeps the doctor away.
+
+   2. But oranges 
+      are tastier than apples.
+
+   3. If you preferred bananas
+      you may be
+      a monkey.
+
+If you would like to enumerate each of the lines, use a prefix
+argument on the preceding commands, e.g.::
+
+  Apples
+  Oranges
+  Bananas
+
+becomes::
+
+  - Apples
+  - Oranges
+  - Bananas
+ 
+
+Straightening Existing Bullet List Hierarchies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you invoke ``ResText -> Straighten Bullets``, the existing bullets in
+either the selection or the whole document will be replaced to reflect
+their respective level.  This does not make a difference in the document
+structure that reStructuredText_ defines, but looks better in the input
+file, for example, if all of the top-level bullet items use the
+character ``-``, and all of the 2nd level items use ``*``, etc.
+
+
+Creating and Removing Line Blocks
+---------------------------------
+
+To create line blocks, first select the region to convert and invoke
+``rst-toggle-line-block`` with ``C-c C-d``, for example, the
+following::
+
+  Apples
+  Oranges
+  Bananas
+
+becomes::
+
+  | Apples
+  | Oranges
+  | Bananas
+
+This works even if the region is indented.  To remove line blocks,
+select a region and invoke with a prefix argument.
+
+
+Commenting a Selection of Text
+------------------------------
+
+If you use the Emacs ``comment-region`` function (bound to ``C-c
+C-c``), the appropriate comment syntax will be added to the active
+block of text::
+
+  Apples
+  Oranges
+  Bananas
+
+becomes::
+
+  .. Apples
+  .. Oranges
+  .. Bananas
+
+
+
+Converting Documents from Emacs
+===============================
+
+The major mode provides a number of functions for running documents
+being edited through the docutils tools.
+
+The main generic function is ``rst-compile`` (``C-c 1``). This
+function basically creates a compilation command with the correct
+output name for the current buffer and then invokes Emacs' compile
+function.  It also looks for the presence of a ``docutils.conf``
+configuration file in the parent directories and adds it to the
+cmdline options. There is also an alternative function in case you
+often need run your document in a second toolset (``C-c 2``).
+
+You can customize the commands being used by setting
+``rst-compile-primary-toolset`` and ``rst-compile-secondary-toolset``.
+
+Other commands are available for other formats:
+
+- ``rst-compile-pseudo-region`` (``C-c 3``): When crafting documents,
+  it is often convenient to view which data structures docutils will
+  parse them into. You can use to run the active region through
+  ``rst2pseudoxml.py`` and have the output automatically be displayed
+  in a new buffer.
+  
+- ``rst-compile-pdf-preview`` (``C-c 4``): Convert the current
+  document to PDF and launch a viewer on the results.
+  
+- ``rst-compile-slides-preview`` (``C-c 5``): Convert the current
+  document to S5 slides and view in a web browser.
+
+
+Table-of-Contents Features
+==========================
+
+When you are editing long documents, it can be a bit difficult to orient
+yourself in the structure of your text.  To that effect, a function is
+provided that quickly parses the document and presents a hierarchically
+indented table of contents of the document in a list dialog box.  There
+you can navigate and select a section title to go to.  The dialog box is
+self-explaining and provides all the TOC features the ResText mode
+currently supports.  Notice that the document title and the subtitle are
+not part of the TOC.
+
+Inserting a Table of Contents
+-----------------------------
+Oftentimes in long text documents that are meant to be read directly, a
+Table of Contents is inserted at the beginning of the text.  This is the
+case for most internet FAQs, for example.  However, in reStructuredText_
+documents, since the table of contents is automatically generated by the
+parser with the ``.. contents::`` directive, people generally have not
+been adding a text table of contents to their source documents, and
+partly because it is too much trouble to edit and maintain.  Therefore,
+calling the list dialog box displaying the TOC allows also to insert the
+TOC into the document.
+
+Since an inserted TOC is not meant to be part of the document text, it
+is placed within a comment, so that it is ignored by the parser.
+This is the favoured usage::
+
+  .. contents::
+  ..
+      1  Introduction
+      2  Debugging Solution Patterns
+        2.1  Recognize That a Bug Exists
+        2.2  Subdivide and Isolate
+        2.3  Identify and Verify Assumptions
+        2.4  Use a Tool for Introspection
+        2.5  Change one thing at a time
+        2.6  Learn about the System
+      3  Understanding a bug
+      4  The Basic Steps in Debugging
+      5  Attitude
+        5.1  Bad Feelings
+        5.2  Good Feelings
+      6  References
+
+Just place the cursor at the top-left corner where you want to insert
+the TOC and invoke the list dialog box to display the TOC.  Then
+clicking ``Insert (Update) TOC`` displays a dialog saying there is no
+TOC detected.  Clicking on ``Proceed`` inserts the TOC at cursor
+position within a comment and remembers its position.  
+
+Notice, if there should be no dialog after clicking ``Insert (Update)
+TOC``, a previously inserted TOC was detected and updated, cf. the next
+section.
+
+
+Maintaining the Table of Contents Up-to-date
+--------------------------------------------
+One issue is that you will probably want to maintain the inserted table
+of contents up-to-date.  If you have previously inserted a TOC, cf. the
+preceding section, you can update it by invoking the list dialog box
+displaying the TOC.  Clicking ``Insert (Update) Toc`` updates the TOC.
+
+Notice, the TOC isn't remembered between editing sessions by the current
+implementation.  So, if you insert a TOC, then close and re-open the
+document, the previously inserted TOC will not be detected.  To update
+it, you have to select it and then to insert the updated TOC (which then
+replaces the selection).
+
+Syntax Highlighting
+===================
+
+ResText also provides some coloring for reStructuredText_ constructs.
+Since NEdit's syntax highlighting is based on a regex engine, it can't
+act like a language parser.  This means, it can't analyse something like
+the indentation of the preceding paragraph versus the indentation of the
+current paragraph. Since many reStructuredText constructs rely on
+indentation, the syntax coloring NEdit provides may get wrong.  This is
+the case for ``Literal Blocks`` and ``Comment Blocks``, if indentation
+changes.  In most cases, the coloring of such blocks should end before
+the block ends.  In case the coloring falls short, you could add a
+trailing space to the line two lines before the coloring ends.  This
+shouldn't be a problem for comments and might be possible for literal
+blocks, too.
+
+   Here is an example::
+   
+     1. Line
+     2. Line
+         3. Line
+         
+     5. Line is not a list
+     6. Line is not a list
+ 
+   Here the literal block ends, but line 5 and 6 are colored as list. 
+   To get the coloring right, add a trailing space to line 2.  If line 6
+   would be missing, the current block would wrongly be colored as
+   literal block.  In such a case you can insert an empty commnet after
+   line 5.
+
+In all cases, the literal block coloring stops here.
+
+Background Coloring Beyond Newlines 
+-----------------------------------
+Literal blocks and Doctest blocks are shown by a different background
+color.  Unfortunately, NEdit doesn't color the background beyond
+newlines, such that you would see a distinguished area.  Here is a small
+patch for ``textDisp.c`` correcting this behaviour.  Change the part
+(around line 2184) from ::
+
+    if (lineIndex >= lineLen)
+        style = FILL_MASK;
+    else if (styleBuf != NULL) { 
+        ...
+to ::
+
+    if (lineIndex >= lineLen)
+        style = FILL_MASK;
+    if (styleBuf != NULL && textD->highlightCBArg != NULL) { /* **NOTE**: NO ELSE */
+        /* pick up styleBuf's style value separately */
+        int styleChar = (unsigned char)BufGetCharacter(styleBuf, pos);
+        if (styleChar == textD->unfinishedStyle) {
+            /* encountered "unfinished" style, trigger parsing */
+            (textD->unfinishedHighlightCB)(textD, pos, textD->highlightCBArg);
+            styleChar = (unsigned char)BufGetCharacter(styleBuf, pos);
+        }
+        style |= styleChar; /* add styleBuf value found to style bitmap */
+    }
+
+
+
+Highlighting Customization
+--------------------------
+
+The color and face information NEdit uses is contained in the ``Text
+Drawing Styles``.  Please, read the NEdit help for the details.  Notice
+that the ResText patterns use mostly the built-in styles, which are
+shared by the built-in patterns.  Therefore, if you change such a style,
+you also change the coloring for all the other language mode
+highlightings using it.
+
+.. note::
+
+    NEdit's built-in color styles assume a bright background. If you
+    are using a dark background, you need a complete set of different
+    text drawing styles, cf. Niki_.
+
+
+Changing Default Fonts
+~~~~~~~~~~~~~~~~~~~~~~
+By default NEdit uses the Courier fonts, because they are monospaced and
+provide all the faces (ie, italic, bold, and bold italic) used for
+highlighting.  On the other hand, Courier has serifs that make them less
+readable on the screen.  Since bold italic fonts are rarely used, I
+recommend to change the fonts to ::
+
+    Primary Font    -misc-fixed-medium-r-semicondensed--13-120-75-75-c-60-iso8859-1
+    Italic Font     -misc-fixed-medium-o-semicondensed--13-120-75-75-c-60-iso8859-1
+    Bold Font       -misc-fixed-bold-r-semicondensed--13-120-75-75-c-60-iso8859-1
+    Bold Italic     -misc-fixed-bold-r-semicondensed--13-120-75-75-c-60-iso8859-1
+ 
+(Adjust to your encoding.)
+
+Since NEdit doesn't support language mode specific fonts directly, I set
+them from the smartindent macro hook using `my font macros`_.
+
+
+Other Useful Macros
+=====================
+
+This section covers macros  that are useful
+in the context of reStructuredText_ conventions.  These are not
+provided by ``rst.nm`` but you may find them useful specifically for
+reStructuredText_ documents.
+
+``text-mode`` Settings
+----------------------
+
+Consult the Emacs manual for more text-mode customizations.  In
+particular, you may be interested in setting the following variables,
+functions and modes that pertain somewhat to text-mode:
+
+- indent-tabs-mode
+- colon-double-space
+- auto-fill-mode
+- auto-mode-alist
+- fill-region
+
+Editing Tables
+--------------
+
+There is no special support to create and edit tables provided by
+ResText.  I don't know of any NEdit macros doing it, either.
+
+
+Character Processing
+--------------------
+
+Notice that NEdit is limited to the legacy 8-bit encodings like
+ISO-8859, for instance.
+
+
+TODO
+====
+
+Further to do:
+
+doctest syntax highlighting checken
+
+  - compiling the document (rst2html|pdf|xml)
+
+  - next/previous title jump including selecting the whole thing, this
+    is what emacs does by setting a mark -> partly done
+
+  - coments and "|" (line blocks)
+  
+  - where to put the cursor after a title adjustment -> done!
+  
+  - handling of lists including smart indentation -> done!
+  
+    * straightening of bullet list hierarchies  -> done!
+    * automatic numbering or bulleting -> partly done
+    * rst-convert-bullets-to-enumeration -> this is the same as
+      the automatic numbering.
+
+    * how to bind the tab key?  For nested lists we need a smart tab. 
+      -> done!  see rst_tabbing(), but set via X translations
+    
+    * along those lines, bind the Shift+osfBackspace key -> done!
+      see rst_shift_backspace(), but set via X translations
+  
+  - smart indentation after "::" and comments  -> done!
+
+  - notify reader of paragraph filling
+      
+    * adapt the wrapper ``jf_fill_paragraph`` to reStructuredText
+      because it may not recognise title decorations.
+        
+  - quick help of syntax constructs (lists, footnotes, directives),
+    ->done!, see ``addons/quick-help.nm`` or ``Add-Ons>Quick Info``
+  
+  
+  - the TOC insertion covers only the sections below the insertion
+    point.  This isn't implemented by you!
+    
+  - there is no exclusion of deeply nested entries! there is no
+    customization of the formatting of the TOC.
+      
+
+Smart Indentation
+-----------------
+For lists like Mail but with the right list starting patterns!  
+
+When we run over the wrap margin by typing, I like to get
+
+After
+"::" empty line plus tab setting, after ".. " and after ".." blank line
+
+Check the reStructuredText syntax whether a blank *after* the double
+colon is required for literal blocks.
+
+
+Credits
+=======
+
+The ResText language mode was strongly inspired by the Emacs' major mode
+``rst-mode``.  Therefore my thanks go to the authors of ``rst-mode``.
+
+
+
+
+.. _NEdit: http://www.nedit.org
+.. _Niki: http://nedit.hackvalue.net/niki
+.. _reStructuredText: http://docutils.sf.net/rst.html
+.. _my font macros: http://nedit.hackvalue.net/niki

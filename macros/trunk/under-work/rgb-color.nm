@@ -1,0 +1,53 @@
+# show colors of rgb values in the buffer
+
+start=search("\"",$cursor,"backward")
+end=search("\"",$cursor)
+if (start!=-1 && end!=-1) {
+    start++
+    }
+    else {
+    dialog("Error1")
+    return
+    }
+    
+color=get_range(start,end)
+test=search_string(color,"#[\\da-fA-F]{6}",0,"regex")
+if (test==-1) {
+    dialog("No color")
+    return
+    }
+
+
+
+# All rangesets get a name and are addressed via this global array
+rsl_name_update()
+if (!(color in $rsl_name)) {
+    $rsl_name[color]=rangeset_create()
+    # To later turn off the rangeset used to color the rgb values
+    $rgb_defined_colors[color]=color
+    }
+rangeset_add($rsl_name[color],start,end)
+
+
+rangeset_set_color($rsl_name[color],color)
+
+
+#==================================================================================
+
+# quick form to destroy all existing range sets
+rangeset_destroy($rangeset_list)
+
+#==================================================================================
+# routine to destroy only the rgb rangesets, but all of them
+# bring the names array in sync
+rsl_name_update()
+for (key in $rgb_defined_colors) {
+    if (key in $rsl_name) {
+        rangeset_destroy($rsl_name[key])
+        delete $rsl_name[key]
+        }
+    }
+delete $rgb_defined_colors[]
+#==================================================================================
+
+

@@ -1,0 +1,575 @@
+# project.nm: v1.1 - 06/11/2005
+
+
+# REQUIREMENTS: 
+# =============
+#
+#  - NEdit v5.5 (tabbed interface)
+#
+#  - Patch [ 988172 ] Provide a new list_multisel_dialog() function
+#    http://sourceforge.net/tracker/index.php?func=detail&aid=988172&group_id=11005&atid=311005
+#
+#  - utilities.nm provided on the same page
+#
+# If you can't patch, replace all "multisel_" with "" in this file, so that
+# "list_multisel_dialog" will be transformed into "list_dialog"
+# But then you can choose only one file in the dialogs - makes less fun.
+
+#===========================================================
+# Macros for handling larger sets of open files (projects)
+#==========================================================
+#
+# Motivation:
+# Often your work consists of many files belonging together, here called
+# project. These macros try to provide quick access to projects:
+#   
+#   - you can open all files (or a subset of them) of a project at once
+#   - you can open several projects at the same time grouped under tabs
+#     in different winows
+#   - you can close or save all files in a project at once
+#   - you can add a list of files to a project, for instance all open
+#     files, or all files your currently edited HTML file links to, or
+#     all files your TeX file inputs, and so on
+#   - you can remove a list of files from the project
+#   - you can store a project under a different name
+#   - you can create new projects from a list of files
+#
+#
+# A project is stored as newline separated list of files beginning with an
+# identifier line. The file is terminated by a newline, symbolised as \n in
+# the following example.
+#
+#   # NEdit Project File, (do not edit)\n
+#   /path1/file1\n
+#   /path2/file2\n
+#    ...\n
+#
+#==================
+#   INSTALLATION:
+#=================
+#
+# - import the file project.menu (read that file for instruction)
+# - Add the following two lines to your autoload.nm
+#
+#     load_macro_file("/path-to/jf_project.nm")  
+#     load_macro_file("/path-to/utilities.nm")
+#
+# - In jf_project.nm you may change the line to set your default directory,
+#   where project data files shall be stored
+#   
+#     $jf_projects_def_dir =  getenv("HOME")"/projects/"
+# 
+
+
+#==================================================================================
+#
+# Provided macro routines are:
+#
+#   - jf_open_project(["window"])
+#       List all projects in a default project directory. Choose a project
+#       or browse folders if it isn't in the list, or create a new project.
+#       If existing project is chosen, list project files in dialog box.
+#       Choose which files to open or open all. If optional parameter "window"
+#       is given, project files are opened under tabs in new window.
+#
+#   - jf_create_new_project([list_of_files])
+#       Creates a new project from a newline separated list of full file names.
+#       If list_of_files isn't given, list of all currently open files will be
+#       created. 
+#
+#   - jf_add_files_to_project(list_of_files,[project])
+#       Adds list_of_files to project. If project isn't given, a list of
+#       currently opened projects is shown. If there is only one project open,
+#       this one is chosen. If list_of_files == "", the list of all currently
+#       open files is used.
+#
+#   - jf_remove_files_from_project([project])
+#       Lists all files in a project, so that you can choose which files to remove
+#       from the project.
+#
+#   - jf_close_project()
+#       Closes all files in a project (and the project). If there is more than one
+#       project open, the user is prompted to choose one.
+#       
+#   - jf_save_all_project_files()
+#
+#   - jf_save_project_as()
+# 
+# Moreover, there are some backend routines used by the routines above:
+# 
+#   - jf_choose_open_project()
+#   - jf_new_project_dialog()
+#   - jf_file_in_project(project,file) 
+#       checks if file is part of project,
+#   - jf_list_files_in_dir()
+
+#==================================================================================
+# 
+# Start of the macro routines
+# 
+#==================================================================================
+#
+# INITIALIZE GLOBAL VARIABLES
+# allowing for multiple projects -> other project under tabs in separate window
+$jf_projects = $empty_array
+
+# default project file directory
+#$jf_projects_def_dir = getenv("HOME")"/projects/
+$jf_projects_def_dir = $jf_path_to["/NEDIT_HOME/"] "projects/" 
+
+# default project file extension
+$jf_projects_def_ext = ".npr"
+
+# project file identifier
+$jf_projects_id_string = "# NEdit Project File, (do not edit)"
+
+
+errmsg = jf_require("utilities.nm")
+if (errmsg != "") {
+    dialog(errmsg)
+    return
+}
+
+#==================================================================================
+# Opens a project
+#
+# On success displays the files in a project.
+# The user can choose, which files in the project to open.
+# The project will be stored as key in $jf_projects
+# All project files (and the first line identifier $jf_projects_id_string)
+# will be stored in $jf_projects[project]["files"]
+define jf_open_project {
+new_window = 0
+if ($n_args > 0) {
+    if ($1 == "window") new_window = 1
+}
+listing = shell_command("ls "$jf_projects_def_dir"*"$jf_projects_def_ext,"")
+listing = jf_list_to_display(listing)
+if (listing == "") listing = " "
+
+project = list_dialog("Choose project: ", listing, "Ok", "Not in list, look for", "Create new")
+if (project == "") {
+    return
+}
+project = jf_display_to_list(project)
+if ($list_dialog_button == 3) {
+    jf_create_new_project()
+    return
+}
+
+if (project != "" && $list_dialog_button == 1) {
+    project = project
+    $jf_projects[project] = $empty_array
+    $jf_projects[project]["files"] = read_file(project)
+}
+if ($list_dialog_button == 2) {
+    cur = $file_path $file_name
+    new("tab")
+    focus_window("last")
+    open_dialog()
+    project = $file_path $file_name
+    $jf_projects[project] = $empty_array
+    $jf_projects[project]["files"] = get_range(0, $text_length)
+    close()
+    test = focus_window(cur)
+    # test empty ? shouldn't happen, always have cur = test now
+    if (test != cur) {
+        dialog("We are not in the window the macro started from,\n"\
+                "BUT we really should be!")
+        delete $jf_projects[project]
+        calltip("Aborted")
+        return
+    }
+}
+# we need to check if file is a project -> first line !
+f = search_string($jf_projects[project]["files"], "\n", 0)
+test = substring($jf_projects[project]["files"], 0, f)
+if (test != $jf_projects_id_string) {
+    dialog("Doesn't seem to be a project file. First line should be:\n"\
+        $jf_projects_id_string"\n\nBut it is:\n"test)
+    calltip("Aborted")
+    delete $jf_projects[project] 
+    return
+}
+jf_show_project_files(new_window, project)
+}
+
+#==================================================================================
+# void jf_show_project_files(newWindow,[project])
+#   lists all files in a project in a list dialog. If project isn't given, user
+#   is prompted to choose an open one. Now you can choose the files to open.
+#   if newWindow = 0, open under tabs in current window, else create new window
+#
+define jf_show_project_files {
+new_window = $1
+if ($n_args > 1) {
+    project = $2
+}
+else {
+    project = jf_choose_open_project()
+}
+if (!(project in $jf_projects)) {
+    calltip("Error in jf_show_project_files:\n project "project" not open.")
+    return
+}
+# have project file, display project file list
+disp = jf_list_to_display($jf_projects[project]["files"], 1)
+selected = list_multisel_dialog("Files in project "mk_extract_basename(project)":",\
+          disp, "Open Selected Files", "Open All Files")
+if ($list_dialog_button == 0) { # Cancelation
+    beep()
+    return
+}
+if ($list_dialog_button == 2) { # Open all, which is whole list
+    list = jf_display_to_list(disp)
+}
+if ($list_dialog_button == 1 && selected != "") {
+    list = jf_display_to_list(selected)
+}
+files = split(list, "\n")
+if (new_window) {
+    new("window")
+    focus_window("last")
+}
+for (i = 0; i < files[]; i++) {
+    open(files[i])
+}
+
+}
+
+#==================================================================================
+# void jf_create_new_project([list_of_files])
+# Creates a new project 
+# Displays a list of files to choose files that will make up a project and
+# prompts for a project name.
+# Argument: optionally newline separated list of full filenames the project
+#   will consist of. If no argument is given, a file list will be
+#   created containing all currently open files.
+# On success writes a project file and creates $jf_project[project]["files"]
+# containing the files of the project.
+define jf_create_new_project {
+if ($n_args < 1) {
+    list = ""
+}
+else {
+    list = jf_list_to_display($1)
+    }
+
+if (list == "") { # files not given -> use list of currently open files w/o Untitled windows!
+    list = jf_list_all_open_files()
+    list = jf_list_to_display(list)
+    if (list == "") {
+        dialog("No files to create project. Save untitled windows first.")
+        return
+    }
+}
+# list != ""
+selected = list_multisel_dialog("Which files to include in project?", list,\
+            "Include selected", "Include all")
+if ($list_dialog_button == 0) { # Cancelation
+    return
+}
+if ($list_dialog_button == 2) {
+    files = list
+}
+if ($list_dialog_button == 1 && selected != "") {
+    files = selected
+}
+
+project = jf_new_project_dialog()
+if (project == "") {
+    return
+}
+
+# transform file list back from display form, add terminationg newline
+files = $jf_projects_id_string"\n"jf_display_to_list(files) "\n"
+if (write_file(files, project) == 0) {
+   dialog("Write error to "project)
+   calltip("Failed")
+   return
+}
+# here files are successfully written as project
+$jf_projects[project] = $empty_array
+$jf_projects[project]["files"] = files
+calltip("Project "project"\ncreated successfully.")
+}
+
+
+
+
+#==================================================================================
+#
+# Argument: a list of files to add (idea is to have language dependent
+#   routine to create a file list from the current file. Example: HTML file links
+#   to other files. Add links to project). If the list is the empty string, a list
+#   from all currently open files will be created
+#       A second optional argument is a full project name. If not given, a dialog
+#       of all currently open projects to choose one will pop up. If there is
+#       only one project open, this will be chosen automatically.
+# Only the files not already in the project will be added
+define jf_add_files_to_project {
+if ($n_args < 1) {
+    dialog("jf_add_files_to_project:\nMissing argument, at least one required, can be\n"\
+            "the empty string")
+    return
+}
+if ($1 != "") {
+    file_list = $1
+}
+else {
+    file_list = jf_list_all_open_files()
+}
+
+if ($n_args < 2) {
+    project = jf_choose_open_project()
+    if (project == "") {
+        return
+    }
+}
+else {
+    project = $2
+}
+
+# check for project
+if (!(project in $jf_projects)) {
+    b = dialog("jf_add_files_to_project:\nProject "project"\nnot opened. Try to open?","Yes","No")
+    if (b != 1) {
+        calltip("Aborted")
+        return
+    }
+    # b = 1
+    $jf_projects[project] = $empty_array
+    $jf_projects[project]["files"] = read_file(project)
+    # we need to check if file is a project -> first line !
+    f = search_string($jf_projects[project]["files"], "\n", 0)
+    test = substring($jf_projects[project]["files"], 0, f)
+    if (test != $jf_projects_id_string) {
+        dialog("Doesn't seem to be a project file. First line should be:\n"\
+            $jf_projects_id_string"\n\nBut it is:\n"test)
+        calltip("Aborted")
+        delete $jf_projects[project] 
+        return
+    }
+}
+# have project in $jf_projects
+
+# Ask user for confirmation about what files to add
+file_list = jf_list_to_display(file_list)
+if (file_list == "") {
+    dialog("jf_add_files_to_project:\nHave no files to add. Abort.")
+    return
+}
+selected = list_multisel_dialog("Choose files to add:", file_list, "Add selected", "Add all")
+if ($list_dialog_button == 0) { # Cancelation
+    return
+}
+if ($list_dialog_button == 2) {
+    files = file_list
+}
+if ($list_dialog_button == 1 && selected != "") {
+    files = selected
+}
+# transform display form back into \n separated list
+files = jf_display_to_list(files)
+# append only those files, that are not already in project. 
+# $jf_project[project]["files"] ends with a newline, so that we can do a literal
+# unique search now
+files = split(files, "\n")
+for (i = 0; i < files[]; i++) {
+    if (!(jf_file_in_project(project, files[i]))) {
+        $jf_projects[project]["files"] = $jf_projects[project]["files"] files[i]"\n"
+    }
+}
+# Save changes to project file
+test = write_file($jf_projects[project]["files"], project)
+if (test == 1) {
+    calltip("Files successfully added")
+}
+else {
+    calltip("Write error. Files could not be added to project file.")
+}
+
+}
+
+#==================================================================================
+# Remove files from an existing project
+#
+# Argument: optionally full project name. If not given lists all currently open
+#   projects, unless there is only one (then the one is it).
+define jf_remove_files_from_project {
+if ($n_args < 1) {
+    project = jf_choose_open_project()
+    if (project == "") {
+        return
+    }
+}
+else {
+    project = $1
+}
+if (project in $jf_projects) {
+    disp = jf_list_to_display($jf_projects[project]["files"], 1)
+    sel = list_multisel_dialog("Choose the files to remove from "\
+         mk_extract_filename(project), disp, "OK")
+    files = jf_display_to_list(sel)
+    if (files == "") {
+        dialog("No files chosen, nothing removed.")
+        return
+    }
+    files = split(files, "\n")
+    for (i = 0; i < files[]; i++) {
+        if (files[i] != "") {
+            start = search_string($jf_projects[project]["files"], "\n"files[i]"\n", 0)
+            if (start != -1) { # this should be the case naturally
+                $jf_projects[project]["files"] = \
+                    replace_substring($jf_projects[project]["files"], start, $search_end -1, "")
+            }
+        }
+    }
+# Save changes to project file
+test = write_file($jf_projects[project]["files"], project)
+if (test == 1) {
+    calltip("Files successfully removed")
+}
+else {
+    calltip("Write error. Files could not be removed from project file.")
+}
+
+}
+else {
+    dialog("Given project "poject" not open.")
+} 
+
+}
+
+
+
+#==================================================================================
+# Closes an open project
+define jf_close_project {
+project = jf_choose_open_project()
+if (project == "") return
+file = ""
+pro_files = split($jf_projects[project]["files"], "\n")
+for (i = 1; i < pro_files[]; i++) {
+    file = focus_window(pro_files[i])
+    if (file != "") {
+        close()
+    }
+}
+# reset vars
+delete $jf_projects[project]
+}
+
+#==================================================================================
+# saves all project files, if only one project don't ask
+define jf_save_all_project_files {
+project = jf_choose_open_project()
+if (project == "") return
+for (file = focus_window("last"); file != ""; file = focus_window("next"))
+    if (jf_file_in_project(project,file))
+        save()
+}
+
+
+
+
+
+#==================================================================================
+# saves a project under a new name
+define jf_save_project_as {
+project = jf_choose_open_project()
+if (project != "") {
+    new_pro = jf_new_project_dialog()
+    if (new_pro == "") return
+    t = write_file($jf_projects[project]["files"], new_pro)
+    # rename
+    $jf_projects[new_pro] = $jf_projects[project]
+    delete $jf_projects[project]
+}
+else {
+    calltip("Aborted")
+}
+
+}
+
+#==================================================================================
+# List all currently open projects, returns chosen one
+# if only one project open, returns the one w/o showing list
+# if no project, returns ""
+define jf_choose_open_project {
+list = ""
+for (project in $jf_projects) {
+    list = list project "\n"
+}
+#dialog("|"list"|")
+list = jf_list_to_display(list)
+if (list == "") {
+    dialog("No projects open.")
+    return ""
+}
+more = search_string(list, "\n", 0)
+if (more != -1) { #there are several projects, so show them
+    project = list_dialog("Choose project", list, "Ok")
+}
+else {
+    project = list
+}
+return jf_display_to_list(project)
+
+}
+
+
+#==================================================================================
+# Prompts for project name
+# 
+# On success returns full project name, otherwise returns ""
+define jf_new_project_dialog {
+project = string_dialog("Name of new project?\n(Valid file "\
+                "name without extension, because *.npr is used.\n"\
+                "You can also give the full path, whereby ~ is interpreted as your $HOME)", "Ok")
+if ($string_dialog_button == 0 || project == "") { # Cancelation
+    beep()
+    return ""
+}
+# is project valid file name?
+if (substring(project, 0, 2) == "~/") { # relative path
+    project = replace_substring(project, 0, 1, getenv("HOME"))
+}
+if (substring(project, 0, 1) != "/") { # no path given -> use default
+    project = $jf_projects_def_dir project
+}
+
+# have valid name, save files to it
+project = project $jf_projects_def_ext
+# check whether file exists already | What about project in $jf_projects ?
+test = read_file(project)
+if (test != "") {
+    b = dialog("File "project" already exists. Overwrite it?\n\nContents:\n"test, "Cancel", "Ok")
+    if ( b != 2) {
+    calltip("Aborted")
+    return ""
+    }
+}
+return(project)
+}
+
+
+#==================================================================================
+# Checks if file is part of project, returns 0 if it doesn't
+# >0 otherwize
+define jf_file_in_project {
+project = $1
+file = $2
+return search_string($jf_projects[project]["files"], "\n" file "\n", 0, "case") + 1
+}
+
+
+#==================================================================================
+define jf_list_files_in_dir {
+res = string_dialog("Give a file pattern relative to "$file_path, "OK", "Cancel")
+if (res == "" || $string_dialog_button == 0 || $string_dialog_button == 2) {
+    return
+}
+list = shell_command("ls "$file_path res, "")
+return(list)
+}

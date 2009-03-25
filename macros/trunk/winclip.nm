@@ -1,0 +1,10 @@
+# Create to macro menu entries (Preferences -> Default Settings -> Customize Menus -> Macro Menu)
+# with shortcuts
+
+#1: put selection in clipboard
+shell_command("setclip", get_selection())
+
+#2: get from windows clipboard
+clip = replace_in_string(shell_command("getclip", ""), "\r", "", "copy")
+insert_string(substring(clip, 0, length(clip) - 1))
+

@@ -1,0 +1,79 @@
+# Rangeset Helper Functions for the New API
+
+# We store all active rangesets in a global array different from
+# $rangeset_list in order to get them with a name
+$rsl_name=$empty_array
+
+
+# update the $rsl_name array to synchrone it with $rangeset_list
+define rsl_name_update {
+for (name in $rsl_name) {
+    if (rs_check_l($rsl_name[name])==-1) {
+        delete $rsl_name[name]
+        }
+    }
+}
+
+# check whether a rangeset is still active
+# takes a ID of a rangeset as argument
+# returns 0 for yes and -1 for no
+define rs_check_l {
+r=$1
+t=-1
+
+for (i=0;i<$rangeset_list[];i++) {
+    if (r==$rangeset_list[i]) t++
+    }
+
+return t
+}
+
+# remove a range from a rangeset, if pos(ition) is in some active rangeset
+# takes a position as argument, returns nothing
+define rs_subtract {
+pos=$1
+for (i=0;i<$rangeset_list[];i++) {
+    ind=rangeset_includes($rangeset_list[i],pos)
+    if (ind!=0) {
+        range=rangeset_range($rangeset_list[i],ind)
+        rangeset_subtract($rangeset_list[i],range["start"],range["end"])
+        }
+    }
+}
+
+
+# routine to destroy only the rgb rangesets, but all of them
+# bring the names array in sync
+define local_rangeset_destroy {
+rsl_name_update()
+for (key in $1) {
+    if (key in $rsl_name) {
+        rangeset_destroy($rsl_name[key])
+        delete $rsl_name[key]
+        }
+    }
+}
+
+#==================================================================================
+# find unset color
+define get_available_color {
+p=search_string($rgb_colors," ",0)
+color=substring($rgb_colors,0,p)
+$rgb_colors=substring($rgb_colors,p+1,length($rgb_colors))
+return(color)
+}
+
+
+#==================================================================================
+a=rangeset_info(456)
+dialog(a[])
+dialog(a["defined"])
+b=rangeset_includes(58,$cursor)
+
+
+#==================================================================================
+# list of colors
+$rgb_colors =\
+" yellow Orange Coral1  Orchid1 SkyBlue1 SpringGreen2 #f0f050 Gold1 LightPink1 \
+Plum1 CadetBlue2 PaleGreen1 khaki1 LightSalmon1 PaleVioletRed1 #D8A9FF \
+aquamarine2 DarkOliveGreen1"

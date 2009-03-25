@@ -1,0 +1,134 @@
+% This document is a template for a screen-designed book. It uses the package pdfscreen.
+
+\documentclass[10pt]{article}
+
+% pdfscreen setup
+\usepackage{xspace,colortbl}
+\usepackage[screen,nopanel,nocfg,blue]{pdfscreen}
+
+
+\begin{screen}
+\margins{.25in}{.25in}{.17in}{.15in}
+\screensize{3.72in}{4.67in}
+\end{screen}
+
+
+\setlength{\parindent}{9pt}
+\pdfadjustspacing 2
+
+\pdfinfo
+{
+/Title () 
+/Creator () 
+/Author () 
+/Subject () 
+/Keywords () 
+}
+
+% end of pdf things
+
+
+\newcommand{\latexpack}{\LaTeX-\textsc{pack}}
+\newcommand{\auctex}{\textsc{auc}-\TeX}
+\newcommand{\nedit}{N\kern-0.8pt{Edit}}
+
+\newcommand{\neditorg}{\href{http://nedit.org}{\nedit.org}}
+\newcommand{\myhome}{\href{http://nedit.1command.com}{home page}}
+
+
+
+
+
+
+
+% D O C U M E N T
+% ===============
+
+\begin{document}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FRONT MATTER
+%%%%%%%%%%%%%%%%%
+
+%
+% TITLE PAGE
+%
+
+
+%
+% END TITLE PAGE
+%%%%%%%%%%%%%%%%%
+
+\pagebreak
+
+\tableofcontents
+\newpage
+
+\section*{Description}
+\addcontentsline{toc}{section}{Description}
+
+
+\newpage
+\section*{Notational Conventions}
+\addcontentsline{toc}{section}{Notational Conventions}
+
+
+\newpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MAIN-MATTER
+%%%%%%%%%%%%%%%
+
+
+% INTRODUCTION
+%==============
+
+\section{Introduction}
+
+\newpage
+\section{another-chapter}
+% or
+\include{another-chapter}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  BACK-MATTER
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\appendix            %  Arrange that \chapter will actually give units
+                     %  entitled "Appendix ...".
+\include{an-appendix}
+\include{another-appendix}
+
+
+
+\chapter*{Glossary}
+\addcontentsline{toc}{chapter}{Glossary}
+
+
+% Literatur               
+%%%%%%%%%%%%              
+\begin{thebibliography}{width of label}
+\addcontentsline{toc}{chapter}{Bibliography}
+
+\bibitem[Item label]{a-book} Author author author.
+     {\em Title title title title title.\/}
+     Publisher, etc.
+
+\bibitem[Another label]{another-book}
+     Another author another author.
+     {\em Another title another title another title.\/}
+     Another publisher, etc.
+\end{thebibliography}
+
+% Perhaps an index thereafter
+
+\end{document}
+
+
+----------------------------------------
+Document created with NEdit version 5.3
+----------------------------------------

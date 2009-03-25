@@ -1,0 +1,79 @@
+$pyshell_in = $jf_path_to["/NEDIT_HOME/"] ".py_cmds"
+$pyshell_out = $jf_path_to["/NEDIT_HOME/"] ".py_answers"
+$pyshell_pid = 0
+
+define pyShell {
+  shellOutput = ""
+  # lines starting with >>> mean command
+  # lines starting with ... mean continue
+  start = search("^(?:\\>\\>\\>|\\.\\.\\.) ", $cursor, "regex", "backward")
+  if ($search_end - start != 4) {
+      return ""
+  }
+  # we are on a command line, get it
+  start = $search_end
+  end = search("$", start, "regex")
+  commandLine = get_range(start, end)
+  if (pyshellEnsureDaemon()) {
+      write_file(commandLine, $pyshell_in)
+      # Here we will hang if python shell doesn't answer.
+      shellOutput = read_file($pyshell_out)
+  }
+  else if (pyshellEnsureDaemon()) {
+      # Try it again
+      write_file(commandLine, $pyshell_in)
+      shellOutput = read_file($pyshell_out)
+  }
+  else {
+      # We give it up.
+      calltip("Python Shell isn't running. Aborting.")
+  }
+  
+  return shellOutput
+}
+
+# boolean pyshellEnsureDaemon() {
+#   Makes sure user has an instance of NEchoesd for the specified language,
+#   starting one if necessary.
+#   'language' is the aspell-tag for the dictionary to use. 
+#   Returns: $TRUE on success (daemon is running on return),
+#   otherwise $FALSE.
+#
+define pyshellEnsureDaemon {
+    running = pyshellCheckDaemon()
+    if (!running) pyshellStartDaemon()
+    return pyshellCheckDaemon()
+}
+
+
+define pyshellStartDaemon {
+    # We require tcsh as the shell started by shell_command!
+    # Note, if this shell is bash or ash, something like 
+    # shell_command("csh -c pyshell.py >& /dev/null &","") will not work!
+    #
+    # For (t)csh we get the PID of the daemon process, although we redirect to /dev/null
+    # When a job is started asynchronysly with `&', the shell prints a line which 
+    # looks like "[1] 1234", where 1 is the job number and 1234 is the PID.
+    t = shell_command("pysh.py  >& /dev/null &", "")
+    # wait a bit, so that aspel will also be up for pyshellCheckDaemon
+    for (i = 0; i < 75000; i++) {}
+    found = search_string(t, "]", 0)
+    start = search_string(t, "\\d+", $search_end, "regex")
+    $pyshell_pid = substring(t, start, $search_end)
+#     dialog("startd\n"$nspell_daemon_pid[language])
+}
+
+define pyshellCheckDaemon {
+    user = getenv("USER")
+    reply = shell_command("ps -U "user" -o pid", "")
+    # t_print(reply)
+    hit = search_string(reply, "<"$pyshell_pid">", 0, "regex")
+#calltip(reply"\n"hit)
+# t_print(reply)
+    if (hit == -1) {
+        return 0
+    }
+    else {
+        return 1
+    }
+}

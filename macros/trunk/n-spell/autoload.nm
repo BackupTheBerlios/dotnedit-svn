@@ -1,0 +1,5 @@
+$data = getenv("HOME") "/n-spell/"
+
+# Observe that the global variable $n_spell_file must be defined for n-spell.nm
+$n_spell_file = $data "n-spell.nm"
+load_macro_file($n_spell_file)

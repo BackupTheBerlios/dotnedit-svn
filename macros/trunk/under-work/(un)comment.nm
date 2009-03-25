@@ -1,0 +1,39 @@
+com_str["NEdit Macro"] = "#"
+com_str["LaTeX"] = "%"
+com_str["Plain"] = "\\>"
+com_str["Setext"] = "\\.\\."
+com_str["X Resources"]="!"
+com_str["Tcl"] = "#"
+
+if ($language_mode in com_str) {
+    if ($selection_start == -1) { # act on current line
+    	cpos = $cursor
+        beginning_of_line("absolute")
+        start_of_line = $cursor
+        set_cursor_pos(cpos)
+        if (start_of_line == search("^\\s*"com_str[$language_mode]"\\s?", start_of_line, "regex")) {# uncomment
+            replace_range(start_of_line, $search_end, "")
+        }
+        else { # comment
+            replace_range(start_of_line, start_of_line, replace_in_string(com_str[$language_mode], "\\", "", "copy")" ")
+        }
+    }
+    else { # act on selection
+        text = get_selection()
+        flag = 0
+        if (substring(text, length(text) - 1, length(text)) == "\n") {
+            flag = 1
+            text = substring(text, 0, length(text) - 1)
+        }
+        if (search_string(text, "^\\s*"com_str[$language_mode], 0, "regex") != -1) { # uncomment
+            text = replace_in_string(text, "^\\s*"com_str[$language_mode]"\\s?", "", "regex")
+        }
+        else { # comment
+            text = replace_in_string(text, "^", com_str[$language_mode]" ", "regex")
+        }
+        if (flag == 1)
+            text = text "\n"
+        replace_selection(text)
+   }
+
+}

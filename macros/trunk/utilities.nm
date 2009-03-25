@@ -1,0 +1,323 @@
+# jf_quote_literal_as_regex
+# centerline
+# jf_get_pref_file
+# mk_extract_filename
+# mk_extract_pathname
+# mk_extract_extension
+# mk_extract_basename
+# jf_list_to_display
+# jf_display_to_list
+# jf_list_all_open_files
+# qsort_list
+# tochar
+# toascii
+
+
+
+# ==============================================================================
+# quote_literal_as_regex(string): returns a string representing a valid regex
+#       search string for the parameter passed.
+# ==============================================================================
+
+define jf_quote_literal_as_regex  {
+  string = $1
+  to_escape_str = "\\ | ( ) [ ] { } < > . * + ? ^ $ & -"
+  toEscape = split(to_escape_str, " ")
+
+  for (i = 0; i < toEscape[]; i++) {
+    if (search_string(string, toEscape[i], 0, "case") != -1)
+        string = replace_in_string(string, toEscape[i], "\\"toEscape[i], "case")
+  }
+
+  return string
+}
+
+
+#centerline() centers the cursor position in the current window.
+define centerline {
+ topLine = $top_line
+ currentLine = $line
+
+ # In continuous wrapping we have a difference between real lines and
+ # displayed lines (ie, a long real line wrapped into several visible
+ # lines).  The value of $top_line is in this case the number of
+ # displayed lines up to the top line in the window, which IMO is the
+ # wrong idea! (At least, this number is useless, because the
+ # goto_line_number() action uses the real line numbers and $line is
+ # also the real line number.  If it would be the displayed line number,
+ # similarly to $top_line everything would be fine for this macro.)
+ # Anyway, we have to struggle for our right to center the line.
+ if ($wrap_text == "continuous") {
+    set_wrap_text("none")
+    # Now $top_line is the real top line nbr.
+    topLine = $top_line
+    set_wrap_text("continuous")
+
+    # Getting the position of the start of topLine w/o moving
+    # the cursor.
+    t = search("(?:^.*\n){"topLine - 1"}", 0, "regex")
+    top_left = $search_end
+
+    # Unfortunately, the real line nbr in $line doesn't help.
+    # We need the nbr of *displayed* lines relative to topLine.
+    countLines = 0
+    start = search("^.*$", top_left, "regex")
+    while(start != -1 && start < $cursor) {
+        end = $search_end
+        if ($cursor < end) {
+            end = $cursor
+        }
+        # We matched a whole line between start and end.
+        # We divide by the $wrap_margin to get the nbr of displayed,
+        # ie, wrapped lines.
+        countLines += 1 + (end - start)/$wrap_margin
+        start = search("^.*$", $search_end + 1, "regex")
+    }
+    currentLine = topLine + countLines
+ }
+ middleLine = topLine + ($n_display_lines / 2)
+ scroll_up(middleLine - currentLine)
+}
+
+
+#==================================================================================
+#
+# GETTING THE PREFERENCE FILE
+#
+
+define jf_get_pref_file {
+pref_file = $1
+old_pref_file["nedit.rc"] = ".nedit"
+old_pref_file["autoload.nm"] = ".neditmacro"
+old_pref_file["nedit.history"] = ".neditdb"
+home = getenv("HOME")
+if (home == "") {
+    dialog("No HOME directory?")
+    beep()
+    return(-1)
+    }
+
+nhome = getenv("NEDIT_HOME")
+if (nhome != "") {
+    nhome = nhome "/" pref_file
+    }
+    else {
+    test = read_file(home "/" old_pref_file[pref_file])
+    if ($read_status == 0) {
+        nhome = home "/.nedit/" pref_file
+        }
+        else {
+        nhome = home "/" old_pref_file["pref_file"]
+        }
+        
+    }
+test = read_file(nhome)
+if ($read_status == 0) {
+    return(-1)
+    }
+    else {
+    return(nhome)
+    }
+}
+
+#==================================================================================
+
+# basename function -> supress the directory part
+define mk_extract_filename
+{
+	n=search_string($1,"/",length($1)-1,"literal","backward")
+	if(n==-1)
+	{
+		return $1
+	}
+	else
+	{
+		return substring($1,n+1,length($1))
+	}
+}
+
+# basename function -> supress the directory part
+define mk_extract_pathname
+{
+	n=search_string($1,"/",length($1)-1,"literal","backward")
+	if(n==-1)
+	{
+		return "./"
+	}
+	else
+	{
+		return substring($1,0,n+1)
+	}
+}
+
+
+# ex: mk_extract_extension(toto.txt) -> txt ("" if there is no extension)
+# ex: mk_extract_extension(toto.txt,gz) -> gz ("" if there is no extension)
+define mk_extract_extension
+{
+	filename = $1
+	position_point = search_string(filename , "\\." , length(filename) , "regex" , "backward")
+	if (position_point==-1) return ""
+	return substring(filename,position_point+1,length(filename))
+}
+
+# ex: mk_extract_basename(toto.txt) -> toto (the whole name if there is no extension)
+define mk_extract_basename
+{
+	filename = $1
+	position_point = search_string(filename , "." , length(filename) , "case", "backward")
+	position_slash = search_string(filename , "/" , length(filename) , "case", "backward")
+	if ((position_point!=-1) && (position_point>position_slash))
+		filename=substring(filename,0,position_point)
+		
+	position_slash = search_string(filename , "/" , length(filename) , "case", "backward")
+	if (position_slash!=-1)
+		filename=substring(filename,position_slash+1,length(filename))
+	
+	return filename
+}
+
+# input is list of full file names separated by \n, and an integer m (default m=0)
+# returns list looking like: filename$sub_sep(filepath)\nfilename$sub_sep ...
+# omitting the first m lines (or empty string) intended to be displayed by list_dailog
+define jf_list_to_display {
+src = $1
+if (src == "") return ""
+if ($n_args > 1) {
+    j = $2
+}
+else {
+    j = 0
+}
+temp = split(src, "\n")
+last = 0
+if (temp[temp[] - 1] == "") {
+    last = 1
+}
+disp = ""
+# omitting first j lines
+for (i = j; i < temp[]- last; i++) {
+    disp = disp mk_extract_filename(temp[i]) $sub_sep "(" mk_extract_pathname(temp[i]) ")\n"
+}
+return substring(disp, 0, length(disp) - 1)
+}
+
+# converse to jf_list_to_display()
+#
+# Argument must be string of the form "a"$sub_sep"(b)\nc"$sub_sep"(d)\ne"$sub_sep and so on
+# Returns : ba\ndc\n...
+# empty string returns empty string, on failure an empty string will be returned
+define jf_display_to_list {
+disp = $1
+if (disp == "") return ""
+temp = split(disp, "\n")
+list = ""
+for (i = 0; i < temp[]; i++) {
+    part = split(temp[i], $sub_sep)
+    if (part[] != 2) { # check for correct input string type
+        dialog("jf_display_to_list:\nMissing $sub_sep in input string\n"$1)
+        return ""
+    }
+    list = list substring(part[1], 1, length(part[1]) - 1) part[0] "\n"
+}
+return substring(list, 0, length(list) - 1)
+}
+
+# No argument. Returns list of all currently open files 
+# without untitled windows
+define jf_list_all_open_files {
+current = $file_path $file_name
+list = ""
+for (file = focus_window("last"); file != ""; file = focus_window("next")) {
+     test = search_string($file_name, "Untitled", 0, "case")
+     if (test != -1) { # test if really Untitled window not yet saved
+        test = read_file($file_path $file_name)
+        if ($read_status == 0) continue
+     }
+    list = list file "\n"
+}
+focus_window(current)
+return list
+}
+
+
+#==========================================================================
+#
+# QUICK SORT 
+#
+# Of course the shell_command could be easily used for sorting, but this
+# is platform dependent. So in order to work right from the start regardless
+# of platform an internal solution is preferable.
+#
+#==========================================================================
+define qsort_list {
+  string = $1
+  smaller = ""
+  bigger = ""
+  equal = ""
+  if (string == "") return("")
+  liste = split(string,"\n","regex")
+  if (liste[] == 1) return(liste[0])
+  if (liste[] == 2) {
+     if (string_compare(liste[0], liste[1]) == -1) {
+        return(liste[0] "\n" liste[1])
+        }
+        else {
+        return(liste[1] "\n" liste[0])
+        }
+     }
+  x = liste[liste[]/2]
+  for (aKey in liste) {
+      if (string_compare(liste[aKey],x) == -1) smaller = smaller liste[aKey] "\n"
+      if (string_compare(liste[aKey],x) == 1) bigger = bigger liste[aKey] "\n"
+      if (string_compare(liste[aKey],x) == 0) equal = equal liste[aKey] "\n"
+      }
+  sorted = qsort_list(smaller) "\n" equal "\n" qsort_list(bigger)
+  sortednew = replace_in_string(sorted, "\n+", "\n", "regex")
+  return(sortednew)
+}
+
+#==================================================================================
+
+
+$ASC256_CHARS = " \a" \
+		"\b\t\n\v\f\r" \
+		"" \
+		"" \
+		" !\"#$%&'()*+,-./0123456789:;<=>?" \
+		"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_" \
+		"`abcdefghijklmnopqrstuvwxyz{|}~" \
+		"€‚ƒ„…†‡ˆ‰Š‹Œ‘’“”•–—˜™š›œŸ" \
+		" ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿" \
+		"ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞß" \
+		"àáâãäåæçèéêëìíîïğñòóôõö÷øùúûüışÿ"
+
+# ==============================================================================
+# tochar(int): returns the ascii char corresponding to the integer int, if in
+#	range, as a single character string. Fails with the empty string (as for
+#	int = 0).
+# ==============================================================================
+
+define tochar
+  {
+  i = $1
+  if (i < -128 || i == 0 || i >= 256)
+    return ""
+  else if (i < 0)
+    i += 256
+  return substring($ASC256_CHARS, i, i + 1)
+  }
+
+# ==============================================================================
+# toascii(char): returns the ascii code corresponding to the first character in
+#	char, if present, as an integer. Fails with -1.
+# ==============================================================================
+
+define toascii
+  {
+  if ($1 == "")
+    return 0
+  # skip initial character in $ASC256_CHARS: it's a dummy
+  return search_string($ASC256_CHARS, substring($1, 0, 1), 1, "case")
+  }
+

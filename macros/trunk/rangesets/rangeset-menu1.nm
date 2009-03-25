@@ -1,0 +1,292 @@
+#Rangesets>Run Through
+NEDIT_require_macro_file("RSselect.nm")
+
+L = rangeset_ask("Range set to run through")
+if (L == "")
+    return
+
+old_p = $cursor
+
+if (rangeset_defined(L))
+{
+s = "rangeset \""L"\"\n"\
+    "Rangeset "$rangeset_label " has " $rangeset_ranges " ranges\n"
+c = $rangeset_color
+if (c != "")
+    s = s "Color "c
+s = s "\nModify behaviour \"" $rangeset_modify_response "\""
+s = s "\n(Defined rangesets: " $rangeset_list ")"
+if (dialog(s, "OK", "Dismiss") != 1)
+    return
+
+carry_on = 1
+for (i = 0; carry_on == 1 && i < rangeset_get_count(L); i++) {
+    # deselect_all()
+    if (rangeset_select(L, i))
+      ok = "good"
+    else
+      ok = "bad"
+    t = "  "i+1" of "$rangeset_ranges": [" $selection_start ", " $selection_end \
+    "] ("ok")\n"
+    set_cursor_pos($selection_start)
+    set_cursor_pos($selection_end)
+    set_cursor_pos($selection_start)
+    carry_on = dialog("Rangeset " $rangeset_label " range " t, "OK", "Dismiss")
+}
+
+if (carry_on == 1)
+  set_cursor_pos(old_p)
+}
+
+#==================================================================================
+#
+# Rangesets>Add
+
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	L = rangeset_ask("Range set to add to")
+	if (L == "")
+	    return
+	
+	r = rangeset_add(L)
+
+#Rangesets>Find All
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	type = "case"
+	n_type = 1
+	
+	# if we haven't got a selection, ask for the find string
+	if ($selection_start == -1) {
+	    find_s = string_dialog("Find string", "Case", "Literal", "Regex", "Dismiss")
+	    n_type = $string_dialog_button
+	}
+	else {
+	    find_s = get_selection()
+	    n_type = dialog("Find string: " find_s, "Case", "Literal", "Regex", "Dismiss")
+	}
+	
+	if (find_s == "")
+	    return
+	
+	if (n_type == 1)
+	    type = "case"
+	else if (n_type == 2)
+	    type = "literal"
+	else if (n_type == 3)
+	    type = "regex"
+	else
+	    return
+	
+	L = rangeset_ask("Range set to add finds to")
+	if (L == "")
+	    return
+	
+	pos = 0
+	for (pos = search(find_s, 0, type); pos != -1; pos = search(find_s, pos, type)) {
+	    r = rangeset_add(L, pos, $search_end)
+	    pos = $search_end
+	}
+
+#Rangesets>Find All in F (green)
+	type = "case"
+	n_type = 1
+	
+	# if we haven't got a selection, ask for the find string
+	if ($selection_start == -1) {
+	    find_s = string_dialog("Find string", "Case", "Literal", "Regex", "Dismiss")
+	    n_type = $string_dialog_button
+	}
+	else {
+	    find_s = get_selection()
+	    n_type = dialog("Find string: " find_s, "Case", "Literal", "Regex", "Dismiss")
+	}
+	
+	if (find_s == "")
+	    return
+	
+	if (n_type == 1)
+	    type = "case"
+	else if (n_type == 2)
+	    type = "literal"
+	else if (n_type == 3)
+	    type = "regex"
+	else
+	    return
+	
+	L = "F"
+	if (rangeset_defined(L))
+	  {
+	  if (dialog("Add to current range set F?", "Add", "Replace") != 1)
+	    {
+	    # dialog("forgetting...")
+	    rangeset_forget(L)
+	    }
+	  }
+	rangeset_set_color(L, "#80ff00")
+	
+	pos = 0
+	for (pos = search(find_s, 0, type); pos != -1; pos = search(find_s, pos, type)) {
+	    r = rangeset_add(L, pos, $search_end)
+	    pos = $search_end
+	}
+
+#Rangesets>Remove
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	L = rangeset_ask("Range set to remove from")
+	if (L == "")
+	    return
+	
+	r = rangeset_remove(L)
+
+#Rangesets>Remove from all
+	for (s = $rangeset_list; s != ""; s = substring(s, 1, length(s)))
+	  r = rangeset_remove(substring(s, 0, 1))
+
+#Rangesets>Forget
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	L = rangeset_ask("Range set to forget")
+	if (L == "")
+	    return
+	
+	r = rangeset_forget(L)
+
+#Rangesets>Forget all
+	for (s = $rangeset_list; s != ""; s = substring(s, 1, length(s)))
+	  r = rangeset_forget(substring(s, 0, 1))
+
+#Rangesets>Delete text of set
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	L = rangeset_ask("Range set whose text to delete")
+	if (!rangeset_defined(L))
+	  {
+	  dialog("Rangeset "L" not defined")
+	  return
+	  }
+	
+	prompt = "Do you really want to delete the contents of rangeset "L"?\\n"
+	prompt = prompt "("L" contains "rangeset_get_count(L)" ranges)\\n"
+	prompt = prompt "Choose \\"Yes (prompt)\\" for confirmation for each range\\n"
+	prompt = prompt "Choose \\"Yes (silent)\\" to remove all text unconditionally"
+	para = dialog("Do you really want to delete the contents of rangeset "L"?", \\
+		      "No", "Yes (prompt)", "Yes (silent)")
+	silent = 0
+	if (para == 2 || para == 3)
+	  {
+	  silent = (para == 3)
+	  }
+	else
+	  return
+	
+	prompt = ""
+	prompt = prompt "Choose \\"OK\\" to delete this range\\n"
+	prompt = prompt "Choose \\"Stop\\" to stop deleting ranges\\n"
+	prompt = prompt "Choose \\"Skip\\" to keep this range and carry on"
+	skip = 0
+	while (rangeset_get_count(L) > skip)
+	  {
+	  rangeset_select(L, skip)
+	  set_cursor_pos($selection_end)
+	  set_cursor_pos($selection_start)
+	
+	  if (silent)
+	    ok = silent
+	  else
+	    {
+	    prompt1 = "Rangeset "L" contains "rangeset_get_count(L) " ranges\\n"
+	    if (skip > 0)
+	      prompt1 = prompt1 "of which the first "skip" have been skipped\\n"
+	    ok = dialog(prompt1 prompt, "OK", "Stop", "Skip")
+	    }
+	
+	  if (ok == 1)		# OK
+	    {
+	    rangeset_select(L, skip)
+	    replace_selection("")
+	    }
+	  else if (ok == 3)
+	    {
+	    skip++
+	    deselect_all()
+	    }
+	  else
+	    break
+	  }
+	
+	if (silent)
+	  rangeset_forget(L)
+	else if (skip == 0)
+	  {
+	  dialog("Rangeset "L" contains "rangeset_get_count(L) " ranges: forgetting")
+	  rangeset_forget(L)
+	  }
+	else
+	  {
+	  prompt = "Rangeset "L" contains "rangeset_get_count(L) " ranges\\n"
+	  prompt = prompt "Do you want to forget "L"?"
+	  if (dialog(prompt, "Yes", "No") == 1)		# yes clicked?
+	    rangeset_forget(L)
+	  }
+
+#Rangesets>Color
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	L = rangeset_ask("Range set to color")
+	if (L == "")
+	    return
+	
+	C = string_dialog("Color for Range set \\""L"\\"")
+	
+	if (C == "")
+	    r = rangeset_set_color(L)
+	else
+	    r = rangeset_set_color(L, C)
+
+#Rangesets>Modify Fn
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	L = rangeset_ask("Range set whose behaviour to change")
+	if (L == "")
+	    return
+	
+	info = "Range set " L
+	if (rangeset_defined(L))
+	    info = info " uses \\""$rangeset_modify_response"\\""
+	
+	modify_fn = "maintain\\nins_del\\ninclude\\ndel_ins\\nexclude\\nbreak\\n"
+	C = list_dialog(info "\\nWhich modify behaviour?", modify_fn, "OK")
+	
+	if (C == "")
+	    r = rangeset_set_modify_response(L)
+	else
+	    r = rangeset_set_modify_response(L, C)
+
+#Rangesets>RS1 - RS2
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	RS1 = rangeset_ask("First range set")
+	if (RS1 == "")
+	    return
+	
+	RS2 = rangeset_ask("Second range set")
+	if (RS2 == "")
+	    return
+	
+	r = rangeset_remove(RS1, RS2)
+
+#Rangesets>RS1 + RS2
+	NEDIT_require_macro_file("RSselect.nm")
+	
+	RS1 = rangeset_ask("First range set")
+	if (RS1 == "")
+	    return
+	
+	RS2 = rangeset_ask("Second range set")
+	if (RS2 == "")
+	    return
+	
+	r = rangeset_add(RS1, RS2)
+

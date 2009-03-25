@@ -1,0 +1,1011 @@
+# jf_extract_menu
+# jf_get_menus
+# jf_extract_pattern
+# jf_extract_part
+# jf_show_accel
+# jf_menu_uninstall
+# nx_list_languagemodes
+# nx_smartindent
+# jf_transform_compatible
+
+#==================================================================================
+# Collection of macros extracting data out of an NEdit 5.5 preference file.
+
+# Contains searching of preference file, showing all accelerator keys defined
+# in the preference file and the menu entries they trigger, *and* extracting
+# macro and pattern sets! Moreover, allows to uninstall a list of menu items
+# (and can create such a list while extracting the menu items, such that
+# someone who imports the macros that you share can uninstall them later on)
+
+# This is Public Domain software - do whatever you like with it.
+#==================================================================================
+
+
+# Create a menu entry with jf_show_accel() in to show accelerator keys and one
+# with jf_extract_menu() to extract macros and pattern sets.
+#==================================================================================
+
+
+#==================================================================================
+# Author:       Dr Jörg Fischer
+# Version:      1.0
+# Date:         01/12/2008
+#==================================================================================
+
+
+#==================================================================================
+#  
+# Macro and Pattern Set Extraction
+#
+
+# for getting the preferences file
+jf_require("utilities.nm")
+
+define jf_extract_menu {
+really_pref_file = "! Preferences file for NEdit"
+version_pat = "^nedit\\.fileVersion: "
+
+pat_message = \
+  "! INSTALLATION\n" \
+  "!\n" \
+  "! Load this pattern by starting nedit with:\n" \
+  "!\n" \
+  "!       nedit -import <name of this file>\n" \
+  "!\n" \
+  "! Then, check that the patterns were loaded correctly, and choose Save Defaults\n" \
+  "! from the Preferences menu.  The new patterns will now be incorporated into\n" \
+  "! your own nedit.rc file, so the next time you start NEdit, you will no longer\n" \
+  "! need to use -import.\n" \
+  "!\n" \
+  "! These comments will not appear in your nedit.rc file\n" \
+  "!\n\n"
+
+mac_message = \
+  "! INSTALLATION\n" \
+  "!\n" \
+  "! Load these macros and/or background menu commands by starting nedit with:\n" \
+  "!\n" \
+  "!       nedit -import <name of this file>\n" \
+  "!\n" \
+  "! Then, check that the macros and/or background menu commands were loaded\n" \
+  "! correctly, and choose Save Defaults from the Preferences menu.  The new\n" \
+  "! macros and/or background menu commands will now be incorporated into your\n" \
+  "! own nedit.rc file, so the next time you start NEdit, you will no longer need\n" \
+  "! to use -import.\n" \
+  "!\n" \
+  "! These comments will not appear in your nedit.rc file\n" \
+  "!\n\n" 
+
+pref_file = jf_get_pref_file("nedit.rc")
+if (pref_file == -1) {
+    pref_file = string_dialog("Can't find preference file. Give it in relative to HOME: ",\
+        "Ok", "Cancel")
+    if (pref_file == "" || $string_dialog_button == 2) {
+        beep()
+        return
+    }
+}
+
+pref_file_new = string_dialog("Selected preference file is:\n" pref_file "\n" \
+                "If this is ok, hit Ok, else give in new one relative to HOME: ", "Ok", "Cancel")
+if ($string_dialog_button == 0 || $string_dialog_button == 2) {
+    beep()
+    return
+}
+if ($string_dialog_button == 1 && pref_file_new != "") {
+    pref_file = pref_file_new
+}
+
+nedit_rc = read_file(pref_file)
+if ($read_status == 0) {
+    dialog("Can't read preference file: " pref_file)
+    return
+}
+# Check whether  really preference file of NEdit version 5.5
+test = substring(nedit_rc, 0, 28)
+if (string_compare(test, really_pref_file) != 0) {
+    dialog("Doesn't seem to be an NEdit preference file! Abort.")
+    return
+}
+pos = search_string(nedit_rc, version_pat, 0, "regex")
+if (pos == -1) {
+    dialog("No version information? Abort.")
+    return
+}
+else {
+    version = substring(nedit_rc, $search_end, $search_end + 3)
+    if (version != "5.5") {
+        dialog("Not a 5.5 version file. Abort.")
+    }
+}
+
+# if we reach here we hopefulley have a preference file of NEdit version 5.5
+
+# Dialogs
+btnNr = dialog("Extract macros, a pattern set, or a complete language mode?",\
+            "Macros", "Pattern Set", "Language Mode", "Cancel")
+    # btnNr:  1     ,   2          ,    3           ,   4
+
+if (btnNr == 0 || btnNr == 4) {
+    beep()
+    return
+}
+
+# Macro Extraction
+if (btnNr == 1) {
+    getTheseItemsPat = string_dialog("Give in the name of the menu entries in regex","Ok",\
+                        "+ ShellMenu", "Cancel")
+    if (getTheseItemsPat == "" || $string_dialog_button == 3) {
+        beep()
+        return
+    }
+    if ($string_dialog_button == 2) {
+        withShell = 1
+    }
+    else {
+        withShell = 0
+    }
+    output = jf_get_menus(nedit_rc, getTheseItemsPat, withShell)
+    flag = "m"
+}
+
+
+# Language Mode Extraction
+if (btnNr == 3) {
+    # show list of available language modes
+    list = nx_list_languagemodes(nedit_rc)
+    languageMode = list_dialog("Choose Language Mode:", list, "Ok", "Cancel")
+    getTheseItemsPat = "@" languageMode
+    output = jf_get_menus(nedit_rc, getTheseItemsPat)
+    output = output jf_extract_pattern(nedit_rc, languageMode) \
+                    nx_smartindent(nedit_rc, languageMode)
+    flag = "m"
+}
+
+
+# Pattern Set Extraction
+if (btnNr == 2) {
+    output = jf_extract_pattern(nedit_rc)
+    flag = "p"
+}
+
+
+if (output != "") {
+    new()
+    focus_window("last")
+    set_language_mode("X Resources")
+    # avoid wrapping !
+    set_wrap_text("none")
+    if (flag == "m") {
+        b = mac_message
+    }
+    else {
+        b = pat_message
+    }
+        
+    output = b output
+    insert_string(output)
+    save_as("testing.pats")
+}
+    else {
+    dialog("failed")
+}
+
+}
+
+
+#==================================================================================
+# jf_get_menus(nedit_rc, getTheseItemsPat [,withShell])
+# extracts the menu definitions of the File, Edit, Search, Shell (option withShell), 
+# Macro, and BG menus.
+#==================================================================================
+
+define jf_get_menus {
+nedit_rc = $1
+getTheseItemsPat = $2
+withShell = 0
+if ($n_args > 2) {
+    withShell = $3
+}
+makeUninstList = "no"
+uninstList = ""
+
+
+# Menu entry, starting with the menu name after the whitespaces
+# The prefix part (#4) is optional -> my customizable menu patch
+#                              Name accel mne sel  [prefix]
+menuItemDeclarationPat = "^\\s*[^:]+:(?:[^:]*:){3,4}\\s*\\{\\s*\\\\n\\\\\n"
+# We also match the termination \n, so that $search_end is the start 
+# of the next line.
+
+# special treatment for Shell Menu
+shellStartPat = "^nedit\\.shellCommands: \\\\\n"
+
+startPats[0] = "^nedit\\.macroCommands: \\\\\n"
+startPats[1] = "^nedit\\.bgMenuCommands: \\\\\n"
+startPats[2] = "^nedit\\.fileCommands: \\\\\n"
+startPats[3] = "^nedit\\.editCommands: \\\\\n"
+startPats[4] = "^nedit\\.searchCommands: \\\\\n"
+
+endPat = "^nedit\\.[a-zA-Z]+: "
+
+extrMenu = ""
+shellMenuList = ""
+requestedShellItems = ""
+# Syntax of Shell menu is special.  Therefore, treat it separately.
+if (withShell) {
+    shellMenuList = jf_extract_part(nedit_rc, shellStartPat) 
+}
+if (shellMenuList != "") {
+    # The Shell menu fulfills the subsequent format: 
+    # Name:accel:mne:flags:\nOne-Line-Shell_command\nNextName::::\nOne-Line_command\n
+    #
+    # Thus we simply split, so even numbers -> Name part, odd nbrs -> Command part
+    a = split(shellMenuList, "\n")
+    # nbr of array keys must be even, check it
+    if (a[] % 2) {
+        dialog("Nbr of Shell menu entries odd")
+        return ""
+    }
+    for (i = 0; i < a[] - 2; i += 2) {
+        # get the name into b[0], notice i is even
+        b = split(a[i], ":")
+        # check if name matches the request
+        if (search_string(b[0], getTheseItemsPat, 0, "regex") != -1) {
+            requestedShellItems = requestedShellItems a[i] "\n" a[i+1] "\n"
+
+            #unistall list, need only the name!
+            if (makeUninstList == "yes") {
+                uninstList = uninstList b[0] "\n"
+            }
+        }
+    }
+
+}
+
+if (requestedShellItems != "") {
+    len = length(requestedShellItems)
+    # Cut off last backslash (if it is there)
+    if (len > 2) {
+        t = search_string(requestedShellItems, "\\\n", len, "case", "backward")
+        if ($search_end == len)
+            requestedShellItems = replace_substring(requestedShellItems, len - 2, len - 1, "")
+    }
+
+    # Add the respective nedit.xyzCmds to the extracted menu entries
+    if (requestedShellItems != "") {
+        #"^nedit\\.macroCommands: \\\\\n"
+        requestedShellItems = "nedit.shellCommands: \\\n"requestedShellItems 
+        
+    }
+    
+    extrMenu = extrMenu requestedShellItems
+}
+
+
+# File, Edit, Search, Macro and BG menus
+for (i = 0; i < startPats[]; i++) {
+    menuList = jf_extract_part(nedit_rc, startPats[i])
+    
+    # File, Edit, Search menu needn't exist 
+    # (we also want to read old nedit_rc)
+    if (menuList == "")
+        continue
+    
+    # get the searched for entries out of the respective menu list
+    requestedItems = ""
+    declarationStart = search_string(menuList, menuItemDeclarationPat, 0, "regex")
+    while (declarationStart != -1) {
+        declarationEnd = $search_end
+        # Search the name of the menu entry (start of the declaration up to :)
+        # to see whether it matches the request.
+        test = search_string(menuList, getTheseItemsPat"|:", declarationStart, "regex")
+        # The search doesn't fail.  If the name doesn't match the request, we end
+        # at the first colon.  Moreover, the name can't contain a colon.
+        if (substring(menuList, test, test + 1) != ":") {
+            # Name of menu entry meets the request, so extract it.
+            # The end of the macro is the start of the next declaration
+            end = search_string(menuList, menuItemDeclarationPat, declarationEnd, "regex")
+            if (end == -1) {
+                # last item, so get all the rest
+                end = length(menuList)
+            }
+            requestedItems = requestedItems substring(menuList, declarationStart, end)
+            
+            #unistall list, need only the name! Strip off whitespaces
+            if (makeUninstList == "yes") {
+                start = search_string(menuList, "\\S", declarationStart, "regex")
+                end = search_string(menuList, ":", declarationStart)
+                uninstList = uninstList substring(menuList, start, end) "\n"
+            }
+        }
+        
+        # next entry
+        declarationStart =  search_string(menuList, menuItemDeclarationPat, declarationEnd, "regex")
+    }
+
+    # Cut off last backslash (if it is there)
+    len = length(requestedItems)
+    if (len > 2) {
+        t = search_string(requestedItems, "\\\n", len, "case", "backward")
+        if ($search_end == len)
+            requestedItems = replace_substring(requestedItems, len - 2, len - 1, "")
+
+    }
+
+    # Add the respective nedit.xyzCmds to the extracted menu entries
+    if (requestedItems != "") {
+        #"^nedit\\.macroCommands: \\\\\n"
+        requestedItems = "nedit"substring(startPats[i], 7, length(startPats[i]) - 3)"\\\n"\
+                          requestedItems "\n"
+        
+    }
+    
+    extrMenu = extrMenu requestedItems
+
+# end of for loop    
+}
+
+#dialog(request)
+if (makeUninstList == "yes") {
+    append_file(uninstList, "uninstall.txt")
+}
+
+return(extrMenu)
+}
+
+
+#==================================================================================
+# takes as input an nedit.rc file and extracts a (non-default) pattern set
+# in there chosen by dialog
+define jf_extract_pattern {
+nedit_rc = $1 
+patternName = ""
+if ($n_args > 1) {
+    patternName = $2
+}
+patternsStartPat   =  "^nedit\\.highlightPatterns: "
+endPat = "^nedit\\.[a-zA-Z]+: "
+
+#dialog(data)
+
+# DEFAULT language modes and styles of NEdit 5.5
+defaultLanguage = \
+      "Ada\nAwk\nC++\nC\nCSS\nCsh\nFortran\nJava\nJavaScript\nLaTeX\nLex\nMakefile\n" \
+      "Matlab\nNEdit Macro\nPascal\nPerl\nPostScript\nPython\nRegex\nSGML HTML\nSQL\n" \
+      "Sh Ksh Bash\nTcl\nVHDL\nVerilog\nXML\nX Resources\nYacc"
+
+defaultStyles = \
+  "Plain: \n" \
+  "Comment:gray20:Italic\nKeyword:black:Bold\nStorage Type:brown:Bold\n" \
+  "Storage Type1:saddle brown:Bold\nString:darkGreen:Plain\nString1:SeaGreen:Plain\n" \
+  "String2:darkGreen:Bold\nPreprocessor:RoyalBlue4:Plain\nPreprocessor1:blue:Plain\n" \
+  "Character Const:darkGreen:Plain\nNumeric Const:darkGreen:Plain\nIdentifier:brown:Plain\n" \
+  "Identifier1:RoyalBlue4:Plain\nIdentifier2:SteelBlue:Plain\nSubroutine:brown:Plain\n" \
+  "Subroutine1:chocolate:Plain\nAda Attributes:plum:Bold\nLabel:red:Italic\n" \
+  "Flag:red:Bold\nText Comment:SteelBlue4:Italic\nText Key:VioletRed4:Bold\n" \
+  "Text Key1:VioletRed4:Plain\nText Arg:RoyalBlue4:Bold\nText Arg1:SteelBlue4:Bold\n"\
+  "Text Arg2:RoyalBlue4:Plain\nText Escape:gray30:Bold" #\nLaTeX Math:darkGreen:Plain"
+ 
+ defaultLanguageModes = \
+   "Ada:.ada .ad .ads .adb .a:::::::\\n\\\n" \
+   "Awk:.awk:::::::\\n\\\n" \
+   "C++:.cc .hh .C .H .i .cxx .hxx .cpp::::::\".,/\\\\`'!|@#%^&*()-=+{}[]\"\":;<>?~\":\\n\\\n" \
+   "C:.c .h::::::\".,/\\\\`'!|@#%^&*()-=+{}[]\"\":;<>?~\":\\n\\\n" \
+   "CSS:css::Auto:None:::\".,/\\\\`'!|@#%^&*()=+{}[]\"\":;<>?~\":\\n\\\n" \
+   "Csh:.csh .cshrc .login .logout:\"^[ \\\\t]*#[ \\\\t]*![ \\\\t]*/bin/csh\"::::::\\n\\\n" \
+   "Fortran:.f .f77 .for:::::::\\n\\\n" \
+   "Java:.java:::::::\\n\\\n" \
+   "JavaScript:.js:::::::\\n\\\n" \
+   "LaTeX:.tex .sty .cls .ins:::::::\\n\\\n" \
+   "Lex:.lex:::::::\\n\\\n" \
+   "Makefile:Makefile makefile .gmk:::None:8:8::\\n\\\n" \
+   "Matlab:.m .oct .sci:::::::\\n\\\n" \
+   "NEdit Macro:.nm .neditmacro:::::::\\n\\\n" \
+   "Pascal:.pas .p .int:::::::\\n\\\n" \
+   "Perl:.pl .pm .p5 .PL:\"^[ \\\\t]*#[ \\\\t]*!.*perl\":Auto:None:::\".,/\\\\\\\\`'!$@#%^&*()-=+{}[]\"\":;<>?~|\":\\n\\\n" \
+   "PostScript:.ps .eps .epsf .epsi:\"^%!\":::::\"/%(){}[]<>\":\\n\\\n" \
+   "Python:.py:\"^#!.*python\":Auto:None:::\"!\"\"#$%&'()*+,-./:;<=>?@[\\\\\\\\]^`{|}~\":\\n\\\n" \
+   "Regex:.reg .regex:\"\\\\(\\\\?[:#=!iInN].+\\\\)\":None:Continuous::::\\n\\\n" \
+   "SGML HTML:.sgml .sgm .html .htm:\"\\\\<[Hh][Tt][Mm][Ll]\\\\>\"::::::\\n\\\n" \
+   "SQL:.sql:::::::\\n\\\n" \
+   "Sh Ksh Bash:.sh .bash .ksh .profile .bashrc .bash_logout .bash_login .bash_profile:\"^[ \\\\t]*#[ \\\\t]*![ \\\\t]*/.*bin/(sh|ksh|bash)\"::::::\\n\\\n" \
+   "Tcl:.tcl .tk .itcl .itk::Smart:None::::\\n\\\n" \
+   "VHDL:.vhd .vhdl .vdl:::::::\\n\\\n" \
+   "Verilog:.v:::::::\\n\\\n" \
+   "XML:.xml .xsl .dtd:\"\\\\<(?i\\\\?xml|!doctype)\"::None:::\"<>/=\"\"'()+*?|\":\\n\\\n" \
+   "X Resources:.Xresources .Xdefaults .nedit:\"^[!#].*([Aa]pp|[Xx]).*[Dd]efaults\"::::::\\n\\\n" \
+   "Yacc:.y::::::\".,/\\\\`'!|@#%^&*()-=+{}[]\"\":;<>?~\":"
+
+
+# extract the relevant parts
+patternSets = jf_extract_part(nedit_rc, patternsStartPat)
+
+# Show list of available pattern sets - non-defaults
+
+if (patternName == "") {
+    patternDeclarationNonDefaultPat = "^\\s*[^:]+(?=:\\d+:\\d+\\s*\\{\\\\n\\\\)"
+
+    patternNamesList = ""
+    pos = search_string(patternSets, patternDeclarationNonDefaultPat, 0, "regex")
+    while (pos != -1) {
+        end = $search_end
+        start = search_string(patternSets, "\\S", pos, "regex")
+        patternName = substring(patternSets, start, end)
+        patternNamesList = patternNamesList patternName "\n"
+        pos = search_string(patternSets, patternDeclarationNonDefaultPat, end, "regex")
+    }
+    len = length(patternNamesList)
+    if (len == 0) {
+        dialog("No non-default pattern sets available")
+        return ""
+    }
+    patternNamesList = shell_command("sort", substring(patternNamesList, 0, len - 1))
+    patternName = list_dialog("Choose the pattern set to extract:", \
+        patternNamesList, "Ok", "Cancel")
+    if (patternName == "" || $string_dialog_button == 2) {
+        beep()
+        return ""
+    }
+}
+
+# Find The Pattern Set
+start = search_string(patternSets, "^\\s*" patternName ":", 0, "regex")
+if (start == -1) {
+    dialog("Can't find pattern set?")
+    return("")
+}
+
+# if we reach here we have a non-default pattern set -> get it
+# end of pattern set is start of the next pattern set declaration
+len = length(patternSets)
+patternDeclarationPat = "\n\\s*[^:]+(?=:(?:\\d+:\\d+\\s*\\{\\\\n\\\\|Default))"
+end = search_string(patternSets, patternDeclarationPat, $search_end, "regex")
+if (end == -1) {
+    end = len
+}
+
+patternSet = substring(patternSets, start, end)
+len = length(patternSet)
+#cut off trailing \n\
+start = search_string(patternSet, "}\\n\\", len, "backward")
+dialog(start " == " len - 4)
+if (start == len - 4) {
+    patternSet = substring(patternSet, 0, start + 1)
+}
+
+# Do we need to extract the language mode? ie is it a default language
+languageModesStartPat = "^nedit\\.languageModes: (?=\t)"
+languageModes = jf_extract_part(nedit_rc, languageModesStartPat)
+mode = ""
+test = search_string(defaultLanguage, "^" patternName "$", 0, "regex")
+if (test == -1) {
+    # it is not a default language -> mode required
+    mode = replace_in_string(languageModes,\
+            "(?n.*)(^\\s*" patternName ":.+)\n(?n.*)", "\\1", "regex")
+    if (mode == "") {
+        dialog("specific language mode not found")
+        return("")
+    }
+}
+else {
+    # it is a default language mode, was it changed?
+    start = search_string(defaultLanguageModes, "^" patternName ":.+", 0, "regex")
+    default = substring(defaultLanguageModes, start, $search_end)
+    start = search_string(languageModes, "^\\t" patternName ":.+", 0, "regex")
+    current = substring(languageModes, start + 1, $search_end)
+    test = string_compare(default, current)
+    #dialog(default "|\n" current"\n" test)
+    if (test != 0) {
+        # default was changed -> get it
+        mode = substring(current, 0, length(current) - 3)
+    }
+}
+# delete superfluous trailing if it exists
+if (substring(mode, length(mode) - 3, length(mode)) == "\\n\\") {
+    mode = substring(mode, 0, length(mode) - 3)
+}
+
+
+# Check if there are non-default styles used by the pattern set
+got_it_already = $empty_array
+stylesStartPat = "^nedit\\.styles: (?=\t)"
+stylesList = jf_extract_part(nedit_rc, stylesStartPat)
+stylesListUsed = replace_in_string(patternSet, "^\\s.+:([^:]+):[^:]*:[DC]?\\\\n\\\\$", "\\1", "regex", "copy")
+stylesUsed = split(stylesListUsed, "\n")
+styles = ""
+last_empty = stylesUsed[] - 1
+if (stylesUsed[last_empty] == "")
+    delete stylesUsed[last_empty]
+# skip first and last (non-empty) line
+# first is nedit.highli..., last is }\n
+for (i = 1; i < stylesUsed[] - 1; i++) {
+    test = search_string(defaultStyles, "^" stylesUsed[i] ":", 0, "regex")
+    if (test == -1) {
+        # No default style -> get it
+        style =  replace_in_string(stylesList,\
+                "(?n.*)^(\\s*"stylesUsed[i] ":.+\\l\\l)(?:\\\\n\\\\)?(?n.*)", "\\1", "regex")
+
+        if (!(style in got_it_already)) {
+            styles = styles style "\\n\\\n"
+            # remember it
+            got_it_already[style] = ""
+        }
+    }
+}
+
+if (substring(styles, length(styles) - 4, length(styles)) == "\\n\\\n") {
+    styles = substring(styles, 0, length(styles) - 4) "\n"
+}
+# Have pattern set, mode and styles -> build output string
+output = ""
+output = output "nedit.highlightPatterns: \\\n" patternSet "\n"
+if (mode != "") {
+    output = output "nedit.languageModes: " mode "\n"
+}
+if (styles != "") {
+    output = output "nedit.styles: \\\n" styles
+}
+return(output)
+}
+
+#==================================================================================
+# extracts the part starting after start pats from an nedit.rc file
+define jf_extract_part {
+ nedit_rc = $1
+ startPat = $2
+ endPat = "^nedit\\.[a-zA-Z]+: "
+ start = search_string(nedit_rc, startPat, 0, "regex")
+ if (start == -1) {
+     dialog(startPat" not found.")
+     return("")
+ }
+ start = $search_end 
+
+ end = search_string(nedit_rc, endPat, start, "regex")
+ if (end == -1) {
+     dialog(endPat " not found.")
+     return("")
+ }
+ # return without terminating \n
+ return substring(nedit_rc, start, --end)
+}
+
+
+#==================================================================================
+#
+# SHOW MENU ACCELERATOR KEYS
+#
+define jf_show_accel {
+pref_file = jf_get_pref_file("nedit.rc")
+if (pref_file == -1) {
+    pref_file = string_dialog("Can't find preference file. Give it in relative to HOME: ",\
+        "Ok", "Cancel")
+    if (pref_file == "" || $string_dialog_button == 2) {
+        beep()
+        return
+        }
+    }
+nedit_rc = read_file(pref_file)
+if ($read_status == 0) {
+    dialog("Can't read preference file: " pref_file)
+    return
+    }
+# Check whether data contains really preference file
+# special treatment for Shell Menu
+startPats["Shell//"] = "^nedit\\.shellCommands: \\\\\n"
+startPats["Macro//"] = "^nedit\\.macroCommands: \\\\\n"
+startPats["File//"] = "^nedit\\.fileCommands: \\\\\n"
+startPats["Edit//"] = "^nedit\\.editCommands: \\\\\n"
+startPats["Search//"] = "^nedit\\.searchCommands: \\\\\n"
+
+# No shortcuts for BG menu
+# startPats["BG||"] = "^nedit\\.bgMenuCommands: \\\\\n"
+
+endPat = "^nedit\\.[a-zA-Z]+: "
+
+# Menu entry, starting with the menu name after the whitespaces
+# The prefix part (#4) is optional -> my customizable menu patch
+#                 Name + Accel    mne sel  [prefix]
+macroItemPat = "\t([^:]+):([^:]*:)(?:[^:]*:){2,3}\\s*\\{(?n.+?\n\t\\}\\\\).*"
+
+shellItemPat = "^\s([^:]+):([^:]*:)(?:[^:]*:){2,2}\\\\n.*\n.*\n"
+
+# to put between accelerator key and menu name
+separator = "////"
+jf_require("utilities.nm")
+separator = jf_quote_literal_as_regex(separator)
+
+
+accelNameList = ""
+# File, Edit, Search, Macro and BG menus
+for (menu in startPats) {
+    menuList = jf_extract_part(nedit_rc, startPats[menu])
+    
+    # File, Edit, Search menu needn't exist 
+    # (we also want to read old nedit_rc)
+    if (menuList == "")
+        continue
+    
+    # get all the menuName:acceleratorKey pairs out of the respective 
+    # menu list by deleting anything else
+    # result is "accel:<separator>name", the colon is for dropping empty accel's
+    if (menu != "Shell||") {
+        accelNamePairs = replace_in_string(menuList, macroItemPat, "\\2"separator"\\1",\
+                             "regex", "copy")
+    }
+    else {
+        # Shell menu has different syntax
+        accelNamePairs = replace_in_string(menuList, shellItemPat, "\\2"separator"\\1", "regex", "copy")
+    }
+    
+    # drop the empty accelerators, ie, the lines starting with :
+    accelNamePairs = replace_in_string(accelNamePairs, "^:.*\n?", "", "regex", "copy")
+    
+    # prefix Name with menu information, and drop the colon
+    accelNameList = accelNameList replace_in_string(accelNamePairs,\
+                                         ":("separator")", "\\1"menu, "regex")"\n"
+}
+if (accelNameList == "") {
+    dialog("No accelerator keys found.")
+    return
+}
+#accelNameList = qsort_list(key_list)
+accelNameList = shell_command("sort", accelNameList)
+b = list_dialog("Accelerator keys from " pref_file, accelNameList, "Ok")
+}
+
+#==================================================================================
+# Read a list of macro or background menu items and delete them
+# from the preference file for uninstallation
+define jf_menu_uninstall {
+really_pref_file = "! Preferences file for NEdit"
+version_pat = "^nedit\\.fileVersion: "
+
+macro_cmd_pat  =  "^nedit\\.macroCommands: \\\\"
+bgmenu_cmd_pat =  "^nedit\\.bgMenuCommands: \\\\"
+patterns_pat   =  "^nedit\\.highlightPatterns: "
+
+menu_entry_end_pat = "^\\t}\\\\n\\\\?"
+# determining the preference file
+pref_file = jf_get_pref_file("nedit.rc")
+if (pref_file == -1) {
+    pref_file = string_dialog("Can't find preference file. Give it in relative to HOME: ",\
+        "Ok", "Cancel")
+    if (pref_file == "" || $string_dialog_button == 2) {
+        beep()
+        return
+        }
+    }
+
+pref_file_new = string_dialog("Selected preference file is:\n" pref_file "\n" \
+                "If this is ok, hit Ok, else give in new one relative to HOME: ", "Ok", "Cancel")
+if ($string_dialog_button == 0 || $string_dialog_button == 2) {
+    beep()
+    return
+    }
+if ($string_dialog_button == 1 && pref_file_new != "") {
+    pref_file = pref_file_new
+    }
+
+data = read_file(pref_file)
+if ($read_status == 0) {
+    dialog("Can't read preference file: " pref_file)
+    return
+    }
+# Check whether  really preference file of NEdit version 5.5
+test = substring(data, 0, 28)
+if (string_compare(test, really_pref_file) != 0) {
+    dialog("Doesn't seem to be an NEdit preference file! Abort.")
+    return
+    }
+pos = search_string(data, version_pat, 0, "regex")
+if (pos == -1) {
+    dialog("No version information? Abort.")
+    return
+    }
+    else {
+    version = substring(data, $search_end, $search_end + 3)
+    if (version != "5.5") {
+        dialog("Not a 5.5 version file. Abort.")
+        }
+    }
+
+# if we reach here we hopefulley have a preference file of NEdit version 5.5
+
+# first make backup copy
+write_file(data, pref_file ".bak")
+#start of macro menu items
+start_range = search_string(data, macro_cmd_pat, 0, "regex")
+if (start_range == -1) {
+    dialog("Start of macro menu items not found. Cancel.")
+    beep()
+    return
+    }
+# end of macro menu items
+end_range = search_string(data, patterns_pat, 0, "regex")
+if (end_range == -1) {
+    dialog("End of macro menu items not found. Cancel.")
+    beep()
+    return
+    }
+# Read list of menu items to be deleted and show them
+file = string_dialog("Give in the Uninstall file relative to your HOME", "OK")
+home = getenv("HOME") "/"
+if (file == "") {
+    beep()
+    return
+    }
+item_list = read_file(home file)
+if (item_list == "") {
+    dialog("File " home file " couldn't be read/found or is empty")
+    beep()
+    return
+    }
+list_dialog("Uninstall these menu entries?", item_list, "OK", "Cancel")
+if ($list_dialog_button != 1) {
+    beep()
+    return
+    }
+item_list = split(item_list, "\n", "regex")
+if (item_list[item_list[] - 1] == "") {
+    delete item_list[item_list[] - 1]
+    }
+
+flag = 0
+for (i = 0; i < item_list[]; i++) {
+    pos = search_string(data, "\t" item_list[i], start_range, "case")
+    if (pos != -1 && pos < end_range) {
+        # get end of menu item
+        item = search_string(data, menu_entry_end_pat, pos, "regex")
+        if (item != -1 && item < end_range) {
+            # delete entry
+            data = replace_substring(data, pos, $search_end + 1, "")
+            #data = substring(data, 0, pos) substring(data, $search_end + 1, length(data))
+            # pos of end_range changed when data changed
+            end_range = search_string(data, patterns_pat, 0, "regex")
+            }
+            else {
+            flag = -1
+            }
+            
+        }
+        else {
+        flag = -1
+        }
+    }
+
+# fix line continuation before bgmenu and highlighting patterns
+pos = search_string(data, bgmenu_cmd_pat, 0, "regex")
+if (substring(data, pos - 2, pos - 1) == "\\") {
+    data = replace_substring(data, pos - 2, pos - 1, "")
+    }
+pos = search_string(data, patterns_pat, 0, "regex")
+if (substring(data, pos - 2, pos - 1) == "\\") {
+    data = replace_substring(data, pos - 2, pos - 1, "")
+    }
+
+# save preference file
+write_file(data, pref_file)
+if (flag == 0) {
+    dialog("Uninstalled successfully")
+    }
+    else {
+    dialog("Some item couldn't be removed")
+    }
+    
+}
+
+#==================================================================================
+# nx_list_languagemodes(string)
+# returns the list of language modes (separated by newlines) from an nedit.rc file,
+# given in string
+#==================================================================================
+
+define nx_list_languagemodes {
+ nedit_rc = $1
+ 
+ # We assume exactly one space followed by one tab-stop, which we don't capture
+ start_pats = "^nedit\\.languageModes: (?=\t)"
+ end_pats = "^nedit\\."
+ 
+ start = search_string(nedit_rc, start_pats, 0, "regex")
+ if (start == -1) {
+    dialog("No language modes found!")
+    return ""
+ }
+ # we start in front of the tab-stop, see start_pats
+ start = $search_end
+ end = search_string(nedit_rc, end_pats, start, "regex")
+ if (end == -1) {
+    dialog("Error: While we found the start of the language mode section,\n"\
+           "   we can't find its end.  Therefore unable to perform extraction.")
+    return ""
+ }
+ language_modes = substring(nedit_rc, start, --end)
+ 
+ test = search_string(language_modes, "^\t[^:]+:.+", 0, "regex")
+ if (test == -1) {
+    dialog("Data Error. Unable to extract language modes.")
+    return ""
+ }
+ # remove anything but the name of the language modes
+ return replace_in_string(language_modes, "^\t([^:]+):.+", "\\1", "regex")
+
+}
+#==================================================================================
+# nx_smartindent(string, languageMode)
+# returns the smart indent macros for the given language mode 
+# given in string
+#==================================================================================
+
+define nx_smartindent {
+ nedit_rc = $1
+ languageMode = $2
+ 
+ # We assume exactly one space followed by one tab-stop, which we don't capture
+ smartStartPat = "^nedit\\.smartIndentInit: (?=\t)"
+ smartMacros = jf_extract_part(nedit_rc, smartStartPat)
+ 
+ # To determine the end of the smart-indent macros for our languageMode
+ # We need the other language modes
+ languageModes = nx_list_languagemodes(nedit_rc)
+ 
+ # This is a \n separated list, we remove the given languageMode from it
+ # and transform the rest into a regex search pattern 
+
+ # language mode names do contain chars that have to be escaped, eg C++
+ languageModes = jf_quote_literal_as_regex(languageModes)
+ languageModes = replace_in_string(languageModes, languageMode, "", "caseWord")
+ if (languageModes == "") {
+    dialog("nx_smartindent: Internal Error, languageModes empty")
+    return ""
+ }
+ languageModes = replace_in_string(languageModes, "\n\n?", "|", "regex")
+ 
+ # Finde the part to be extracted, starting with languageMode and ending at
+ # the start of some other mode
+ pats = ":(?=Default|\t)"
+ languageMode = "\t"languageMode pats
+ start = search_string(smartMacros, languageMode, 0, "regex")
+ if (start == -1) {
+    dialog("nx_smartindent: Language mode not found.")
+    return ""
+ }
+ endPat = "\t" "(?:"languageModes")"pats
+ end = search_string(smartMacros, endPat, $search_end, "regex")
+ if (end == -1) {
+    # it's the last smartindent macro in the smartMacros list
+    end = length(smartMacros)
+ }
+ else {
+    # if it's not the last smartindent macro, it ends with \\n\
+    # drop it, because we only extract one macro
+    end -= 4
+ }
+
+ return ("nedit.smartIndentInit: "substring(smartMacros, start, end))
+}
+
+#==================================================================================
+# Transforms an extraction of an nedit.rc files contained in the current window
+# into the original nedit format, ie, without File, Edit, Search menu and the
+# Separator over Item and Hidden extras from my patch
+#==================================================================================
+
+define jf_transform_compatible {
+
+ shellStartPat = "^nedit\\.shellCommands: \\\\\n"
+
+ macBgStartPat["macro"] = "^nedit\\.macroCommands: \\\\\n"
+
+ macBgStartPat["bg"] = "^nedit\\.bgMenuCommands: \\\\\n"
+
+ startPats["File Menu>"] = "^nedit\\.fileCommands: \\\\\n"
+ startPats["Edit Menu>"] = "^nedit\\.editCommands: \\\\\n"
+ startPats["Search Menu>"] = "^nedit\\.searchCommands: \\\\\n"
+ 
+ endPat = "^nedit\\.[a-zA-Z]+: "
+
+# Menu entry, starting with the menu name after the whitespaces
+# The prefix part (#4) is optional -> my customizable menu patch
+#                              Name accel mne sel  [prefix]
+menuItemDeclarationPat = "(^\\s*)([^:]+:(?:[^:]*:){4,4}\\s*\\{\\s*\\\\n\\\\)"
+# We also match the termination \n, so that $search_end is the start 
+# of the next line.
+ 
+ # Transform File, Edit, and Search to File Menu>, Edit Menu>, and 
+ # Search Menu, respectively.
+ to_macro_cmds = ""
+ for (menu in startPats) {
+    startPos = search(startPats[menu], 0, "regex")
+    if (startPos == -1)
+        continue
+
+    start = $search_end
+    end = search(endPat, start, "regex")
+    if (end == -1) {
+        end = $text_length
+    }
+    select(start, end)
+    replace_in_selection(menuItemDeclarationPat, "\\1"menu"\\2", "regex")
+
+    # get it, but add a \ before the terminating \n
+    to_macro_cmds = to_macro_cmds get_range(start, $selection_end - 1) "\\\n"
+    
+    # Remove the whole File, Edit, Search menu
+    replace_range(startPos, $selection_end, "")
+ }
+ 
+ # Transfer the former File, Edit, and Search menu commands to the
+ # Macro menu
+ 
+ startMacro = search(macBgStartPat["macro"], 0, "regex")
+ if (startMacro != -1) {
+    # we have a Macro menu, so put the macros to the start of it
+    start = $search_end
+    replace_range(start, start, to_macro_cmds)
+ }
+ else {
+    # we have no Macro menu in the current window, so create one
+    
+    # in this case we don't need the last \ before the \n
+    len = length(to_macro_cmds)
+    to_macro_cmds = replace_substring(to_macro_cmds, len - 2, len - 1, "")
+    macroMenu = "nedit.macroCommands: \\\n"to_macro_cmds
+    
+    # Where to put it?  Do we have a BG menu -> put before it
+    startBg = search(macBgStartPat["bg"], 0, "regex")
+    if (startBg != -1) {
+        replace_range(startBg, startBg, macroMenu)
+    }
+    else {
+        # We append it
+        EOF = $text_length
+        if (get_range(EOF - 1, EOF) == "\n")
+            replace_range(EOF, EOF, macroMenu)
+        else
+            replace_range(EOF, EOF, "\n"macroMenu)
+    }
+
+ }
+ 
+ # Transform Macro and BG menu
+ for (menu in macBgStartPat) {
+    startMenu = search(macBgStartPat[menu], 0, "regex")
+    if (startMenu == -1)
+        continue
+    
+    end = search(endPat, $search_end, "regex")
+    if (end == -1)
+        end = $text_length
+        
+    select(start, end)
+    
+    # first drop the prefix field
+    replace_in_selection("(^\\s+[^:]+:(?:[^:]*:){3,3})[^:]*:(\\s*\\{)", "\\1\\2", "regex")
+    # we also don't have Separator->S and Hide->H in the 
+    # flags field, only R for requires selection.
+    replace_in_selection("(^\\s+[^:]+:(?:[^:]*:){2,2}[^:]*)[SH]([^:]*:\\s*\\{)", "\\1\\2", "regex")
+ }
+
+ # Transform the Shell menu
+ startShell = search(shellStartPat, 0, "regex")
+ if (startShell != -1) {
+    end = search(endPat, $search_end, "regex")
+    if (end == -1)
+        end = $text_length
+    
+    select(startShell, end)
+    
+    #
+    replace_in_selection("(^\\s+[^:]+:(?:[^:]*:){2,2}[^:]*)P([^:]*:\\\\n)", "\\1\\2", "regex")
+ }
+ 
+ # Check for possible file/edit/search_menu_command("menu-name") calls
+ # and transform them into macro_menu_command("File/Edit/Search Menu>menu-name") calls
+ # See the menu key for the startPats[menu] array
+ deselect_all()
+ replace_all("(file|edit|search)_menu_command\\(\"([^\"]+)\"\\)",\
+             "macro_menu_command(\"\\u\\1 Menu>\\2\")", "regex")
+}

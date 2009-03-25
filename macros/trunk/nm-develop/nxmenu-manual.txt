@@ -1,0 +1,40 @@
+.. Document Type: reStructured Text (http://docutils.sf.net)
+
+.. -*- charset=ISO8859-1 -*-
+
+==========================
+ NEdit Menu Extraction
+==========================
+
+:Author: Dr Jörg Fischer
+:Contact: nedit@public-files.de
+:Version: 1.0
+:Date: 2008-01-20
+:Abstract:
+      This collection of macros provides an easy extraction of NEdit's
+      menu definitions and language modes from ``nedit.rc`` files, so
+      that others can import them into their ``nedit.rc`` file.
+
+
+
+
+
+Extracting Menu Items
+=====================
+Extract a whole language mode, i.e., patterns, macros, and smart indent
+macros.  Macros defined by ``@language mode``.  Done!
+
+I need to handle different formats!  My More Customizable Menus format
+can't be shared with the original NEdit.  If I extract from mine, move
+the extracted file, edit, and search menu entries to the macro menu with
+prefix ``File Menu>``, ``Edit Menu>``, and ``Search Menu>``,
+respectively.  Done!  See ``jf_transform_compatible()``
+
+**But** what I missed is possible ``macro_menu_command()`` calls!  For
+instance, my word completion macros called themselves with the
+``macro_menu_command()``.  When I moved them to the Edit menu, I had to
+replace these calls with ``edit_menu_command()``.  There are also
+``file_menu_command()`` and ``search_menu_command()``.  To transform
+this back, the word completion macros are moved to the Macro menu under
+``Edit Menu>...``.  Then the ``edit_menu_command("Name")`` call must be
+transformed into ``macro_menu_command("Edit Menu>Name")``.

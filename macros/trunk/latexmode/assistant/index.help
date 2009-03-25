@@ -1,0 +1,141 @@
+.font Helvetica
+.fontsize 12
+.forecolor black
+.backcolor #ffffd2
+.linkcolor #006800
+.controls "back forw cont index search"
+.buttons "back forw sep stop sep cont index sep find search sep inc dec"
+
+; we need this for the nice pictures (books, warning, logo, etc.)
+.include "images.help"
+; styles are used in how to use the help system.
+.include "style.help"
+
+
+; the main help files
+.include "ltx.help"
+.include "hyperref.help"
+
+; greek letters
+.include "greek-pics.help"
+; maths formulas
+.include "equations.help"
+
+;==================================================================================
+;==================================================================================
+.topic contents
+.title Contents
+
+
+<p>
+<img src=lion></p>
+<p>
+<img src=openbook> Introduction
+<ul type=topic>
+ <li><a href=introl>About LaTex</a>
+ <li> <a href="aboutdocu">About this document</a>
+</ul>
+<img src=openbook> LaTeX
+<ul type=topic>
+<li><a href=commands> Commands </a>
+<li><a href=subjects> Subjects</a>
+<li><a href=environments> Environments</a>
+</ul>
+</p>
+<p><img src=openbook> HyperRef
+<ul type=topic>
+<li> <a href=h_cmds> Commands </a>
+</ul><br>
+
+<img src=book> <a href=testing>Sample</a>
+</p>
+
+;==================================================================================
+.topic testing
+.title Sample Formulas
+<body bgcolor="white" alink="gray">
+<!--
+<font bgcolor="red">
+<a href="tcl: pipe color" title="color"> </a></font><font bgcolor="green">
+<a href="tcl: pipe color" title="color"> </a></font>
+-->
+<h5> Here is a small collection of more complex mathematical formulas</h5>
+<p>
+In order to insert this matrix into your NEdit window, simply click on it
+<center>
+<a href="tcl: pipe $matrix" title="Insert formula"><img src=matrix></a>.
+</center><br>
+Another example is this equation:
+<center>
+<a href="tcl: pipe $equation" title="Insert formula"><img src=equation></a>.
+</center><br>
+You can give in arbitrary formulas
+<center>
+<a href="tcl: pipe $fgleichsum" title="Insert formula"><img src=fgleichsum></a> </center><br>
+This may be helpful to get started with LaTeX
+<center>
+<a href="tcl: pipe $intfdx" title="Insert formula"><img src=intfdx></a><br>
+</center>
+Most beginners are a bit unsure at first if they can't see their formulas
+<center>
+<a href="tcl: pipe $intsum" title="Insert formula"><img src=intsum></a>
+</center><br>
+They <em>believe</em> it would be somehow easier to create a LaTeX document if they could see their formulas in the editor.</p> 
+<p>It's indeed unbelievable, that LaTeX can typeset professional looking mathematical formulas <b>automatically</b> right in most cases.
+</p>
+</body>
+;==================================================================================
+
+.topic introl
+.title Introduction
+
+<h1><font color="#cc0000">About LaTeX</font></h1>
+
+<p><b>TeX</b> is a word processing (or, more accurately, a typesetting)
+program. It typesets a file of text using the TeX compiler. However, TeX is much more than only a typesetter. It is also programmable. <b>LaTeX</b> is a set of programs written in TeX that add structure to TeX.</p>
+
+<h3>Structures and Layout</h3>
+<p>LaTeX can be seen as a markup language. That means, one specifies
+the structure of the document: title, sectioning, enumerations, tables, appendix, and so on. The formatting or layout, i.e., how it will look on a page, will be done by the typesetter TeX. The structure of the document bears little relation to the formatting, i.e., the same (structured) document can be formatted in different ways. It is a strength of LaTeX to provide professional layouts for common document classes like books, articles, reports, letters and more. You need only to declare the document class in the header of your file.</p>
+
+<h3>Efficiency and Reusability</h3>
+<p>By concentrating on the contents of your paper and not playing around with formatting, you save a lot of time. At the same time, you achieve a professional typesetting quality not nearly achieved by word processing programs of the WYSIWYG type ("what you see is what you get"), that concentrate on showing the layout of your document while you are writing. In short, unless you have to glue layouts together for magazines or newspapers, LaTeX together with an advanced text editor is an efficient way to produce quality documents in an open format (this means both, that a LaTeX file is plain ASCII text and therefore reusable and that by specifying only the structure of the document the whole paper can easily be reformatted).</p>
+
+<h3>Flexibility</h3>
+<p>TeX produces standardly
+as output a Device Independent (*.dvi) file that contains
+commands that can be translated into commands for a variety of output
+devices, such as printers and previewers to check the output before printing. However, how flexible TeX is, can be seen by including additional packages
+(<a href="">\usepackage</a>) such as hyperref and by the easy production of screen designed pdf documents (pdf really was not known at the time the TeX compiler was written).</p>
+
+<h3>Version</h3>
+<p>The current version of LaTeX is LaTeX2e. Its predecessor is version 2.09. Since LaTeX is known for its long-term stability and since LaTeX still understands the old 2.09 version, here is a piece of information about 
+<a href="latold">version 2.09</a>.
+</p>
+
+;==================================================================================
+.topic aboutdocu
+.title About this document
+
+
+<p>This on-line help is so far mainly a conversion of the 
+<font color="#cc0000">Hypertext Help with LaTeX</font> created by
+<a href="http://www.giss.nasa.gov/staff/sgreen/">Sheldon Green</a> 
+to the HelpSystem format. More information about the origins of Mr. Green's work can be found on his page or in his original help.</p>
+
+<h3>Purpose</h3>
+<p>This hypertext on-line help is so far meant to provide reference information
+for those with some familiarity with LaTeX. It is not an introduction
+or tutorial, but it could be. Indeed, the purpose for converting to the HelpSystem is that now it is not only possible to display help, pictures, colours and so on, but also to trigger editing commands <b>from within</b> the help browser! For example, it is possible to show pictures of symbols, even of whole mathematical formulas, and to insert the LaTeX source into your document by simply clicking on those pictures. This could also be a way to start learning LaTeX by example. Moreover, as a Tcl/Tk script, the HelpSystem is platform independent.</p>
+
+<h3>License</h3>
+<p>Since everything used for creating this on-line help is free documentation in the GNU sense, it is allowed to copy, edit or adapt this on-line help to your needs, provided that if you distribute such versions they must stay free in the above sense.</p>
+
+
+<p></p>
+<hr height="2" color="darkblue"><br>
+Return to the <a href="introl">Introduction</a>.<br>
+Go to <a href="contents">LaTeX Table of Contents</a>.<br>
+
+
+

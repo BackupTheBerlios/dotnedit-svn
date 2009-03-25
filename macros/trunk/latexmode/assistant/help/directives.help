@@ -1,0 +1,594 @@
+.topic directives
+.title Control directives
+<p>
+Control directives are used to define interface parameters for the Help System
+and define data structures.
+</p><p>
+The following is a list of valid, supported directives:
+<ul>
+<li><a href=d_$>.$</a><$ new>Added from version 1.3</$ new>
+<li><a href=d_alinkcolor>.alinkcolor</a>
+<li><a href=d_backcolor>.backcolor</a>
+<li><a href=d_buttons>.buttons</a><$ new>Added from version 1.4</$ new>
+<li><a href=d_controls>.controls</a><$ new>Added from version 1.4</$ new>
+<li><a href=d_font>.font</a>
+<li><a href=d_fontfixed>.fontfixed</a>
+<li><a href=d_fontsize>.fontsize</a>
+<li><a href=d_forecolor>.forecolor</a>
+<li><a href=d_h_appendlist>.h_appendlist</a>
+<$ new>Added from version 1.3a</$ new>
+<li><a href=d_h_ignore>.h_ignore</a>
+<$ new>Added from version 1.3 by J.W.Schmitz-H&uuml;bsch</$ new>
+<li><a href=d_h_contents>.h_contents</a>
+<$ new>Added from version 1.3 by J.W.Schmitz-H&uuml;bsch</$ new>
+<li><a href=d_h_topics>.h_topics</a>
+<$ new>Added from version 1.3 by J.W.Schmitz-H&uuml;bsch</$ new>
+<li><a href=d_image>.image</a>
+<li><a href=d_include>.include</a><$ new>Modified from version 1.3d</$ new>
+<li><a href=d_linkcolor>.linkcolor</a>
+<li><a href=d_lmargin>.lmargin</a><$ new>Added from version 1.3e</$ new>
+<li><a href=d_rmargin>.rmargin</a><$ new>Added from version 1.3e</$ new>
+<li><a href=d_title>.title</a>
+<li><a href=d_topic>.topic</a>
+</ul><br>
+<$ note>All directives are case-sensitive.</$ note>
+</p>
+
+.topic d_$
+.title Directive '.$'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.$</b> <i>name begin_text ?end_text?</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Links text to a name, which can later be used as a substitution for that text with the tag <a href=t_$>&lt;$&gt;</a>.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>name</$ param> - internal name for the assigned text. This name can be used later by
+the <a href=t_$>&lt;$&gt;</a> tag to substitue the <i>name</i> for the text. <br><$ note>Name is case insensitive.</$ note>
+<li><$ param>begin_text</$ param> - text which will be substituted by
+opening tag <a href=t_$>&lt;$&gt;</a>.
+<li><$ param>end_text</$ param> - text which will be substituted by the closing <a href=t_$>&lt;/$&gt;</a> tag.
+</ul><br>
+The following two examples do the same thing.<br>
+<$ head>Example 1:</$ head>
+<$ example>
+<!-- -->.$ my_head_style {&lt;h2 align=left&gt;&lt;font color=red&gt;&lt;u&gt;} {&lt;/u&gt;&lt;/font&gt;&lt;/h2&gt;}
+<!-- -->.$ my_favorite_text {To be or not to be?}
+
+<!-- -->.topic my_topic
+<!-- -->.title Topic
+&lt;$ my_head_style&gt;My Title!!!&lt;/$ my_head_style&gt;
+&lt;p&gt;
+My text: &lt;$ my_favorite_text&gt;&lt;br&gt;
+And again: &lt;$ my_favorite_text&gt;
+&lt;/p&gt;
+</$ example>
+<$ head>Example 2:</$ head>
+<$ example>
+<!-- -->.topic my_topic
+<!-- -->.title Topic
+&lt;h2 align=left&gt;&lt;font color=red&gt;&lt;u&gt;My Title!!!&lt;/u&gt;&lt;/font&gt;&lt;/h2&gt;
+&lt;p&gt;
+My text: To be or not to be?
+And again: To be or not to be?
+&lt;/p&gt;
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<img src=u_prev_d><a href=directives><img src=u_cont></a><a href=d_alinkcolor><img src=u_next></a>
+</p>
+
+.topic d_alinkcolor
+.title Directive '.alinkcolor'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.alinkcolor</b> <a href=colors><i>color</i></a>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the default color for active links.<br>
+If this directive is missing, the <$ _>#C00000</$ _> color will be used.
+This directive can be overridden for the current topic using the <$ _>alink</$ _>
+attribute of tag <a href=t_body>&lt;body&gt;</a>.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.alinkcolor red
+</$ example>
+or
+<$ example>
+<!-- -->.alinkcolor #800000
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_$><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_backcolor><img src=u_next></a>
+</p>
+
+.topic d_backcolor
+.title Directive '.backcolor'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.backcolor</b> <a href=colors><i>color</i></a>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the default background color.<br>
+If this directive is missing, the default system color will be used.
+This directive can be overridden for current topic using the <$ _>bgcolor</$ _>
+attribute of tag <a href=t_body>&lt;body&gt;</a>.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.backcolor white
+</$ example>
+or
+<$ example>
+<!-- -->.backcolor #FFFFFF
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_alinkcolor><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_buttons><img src=u_next></a>
+</p>
+
+.topic d_buttons
+.title Directive '.buttons'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.buttons</b> <i>list_of_buttons</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Describes visibility and order of toolbar buttons.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+The valid names of buttons (which may be abbreviated) are:
+<li><$ param>back</$ param> - back to previous topic
+<li><$ param>contents</$ param> - show contents
+<li><$ param>decrease</$ param> - decrease font size
+<li><$ param>find</$ param> - open "Find" dialog
+<li><$ param>forward</$ param> - forward to next topic.
+<li><$ param>increase</$ param> - increase font size
+<li><$ param>index</$ param> - show index of topics
+<li><$ param>next</$ param> - show next topic in current level (for autotopics only)
+<li><$ param>open</$ param> - open new file to <b>"HelpSystem"</b>
+<li><$ param>previous</$ param> - show previous topic in current level (for autotopics only)
+<li><$ param>refresh</$ param> - refresh window
+<li><$ param>reload</$ param> - reload from file and refresh
+<li><$ param>search</$ param> - open "Search in topics" dialog
+<li><$ param>separator</$ param> - add a space between buttons
+<li><$ param>stop</$ param> - stop search or displaying topic
+<li><$ param>up</$ param> - up to one level (for autotopics only)
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.buttons "back forw prev up next sep stop sep cont ind"
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note><br>
+<$ new>Added from version 1.4</$ new>
+</p><p align=right>
+<a href=d_backcolor><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_controls><img src=u_next></a>
+</p>
+
+.topic d_controls
+.title Directive '.controls'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.controls</b> <i>list_of_controls</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Describes visibility and order of header controls.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+The valid names of buttons (which may be abbreviated) are:
+<li><$ param>back</$ param> - back to previous topic
+<li><$ param>contents</$ param> - show contents
+<li><$ param>decrease</$ param> - decrease font size
+<li><$ param>find</$ param> - open "Find" dialog
+<li><$ param>forward</$ param> - forward to next topic.
+<li><$ param>increase</$ param> - increase font size
+<li><$ param>index</$ param> - show index of topics
+<li><$ param>next</$ param> - show next topic in current level (for autotopics only)
+<li><$ param>open</$ param> - open new file to <b>"HelpSystem"</b>
+<li><$ param>previous</$ param> - show previous topic in current level (for autotopics only)
+<li><$ param>refresh</$ param> - refresh window
+<li><$ param>reload</$ param> - reload from file and refresh
+<li><$ param>search</$ param> - open "Search in topics" dialog
+<li><$ param>separator</$ param> - add a space between controls
+<li><$ param>stop</$ param> - stop search or displaying topic
+<li><$ param>up</$ param> - up to one level (for autotopics only)
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.controls "back forw cont index search prev up next"
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note><br>
+<$ new>Added from version 1.4</$ new>
+</p><p align=right>
+<a href=d_buttons><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_font><img src=u_next></a>
+</p>
+
+.topic d_font
+.title Directive '.font'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.font</b> <i>fontname</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the default font.<br>
+If this directive is missing <$ _>Helvetica</$ _> will be used.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.font Helvetica
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_controls><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_fontfixed><img src=u_next></a>
+</p>
+
+.topic d_fontfixed
+.title Directive '.fontfixed'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.fontfixed</b> <i>fontname</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the defaut fixed font.
+A fixed font is used for tags, e.g. <a href=t_pre>&lt;pre&gt;</a>,
+<a href=t_tt>&lt;tt&gt;</a> etc. in the Help System.<br>
+If this directive is missing <$ _>Courier</$ _> will be used.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.fontfixed Courier
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_font><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_fontsize><img src=u_next></a>
+</p>
+
+.topic d_fontsize
+.title Directive '.fontsize'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.fontsize</b> <i>fontsize</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the default font size.<br>
+If this directive is missing a value of <$ _>12</$ _> will be used.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.fontsize 12
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_fontfixed><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_forecolor><img src=u_next></a>
+</p>
+
+.topic d_forecolor
+.title Directive '.forecolor'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.forecolor</b> <a href=colors><i>color</i></a>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the default foreground color.<br>
+If this directive is missing, <$ _>black</$ _> will be used.
+This directive can be overridden for current topic using the <$ _>text</$ _>
+attribute of tag <a href=t_body>&lt;body&gt;</a>.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.forecolor black
+</$ example>
+or
+<$ example>
+<!-- -->.forecolor #000000
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_fontsize><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_h_appendlist><img src=u_next></a>
+</p>
+
+.topic d_h_appendlist
+.title Directive '.h_appendlist'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.h_appendlist</b> <i>yes</i>|<i>no</i>|<i>true</i>|<i>false</i>|<i>1</i>|<i>0</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Flag which specifies whether or not to add a list of subtopics generated from the
+<a href=d_h_topics>.h_topics</a> directive to the end of topic text.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.h_appendlist no
+</$ example>
+</p><p>
+<$ note> If specified, this directive should be placed <u>before</u> any topics, HTML data
+and <a href=d_include>.include</a> directives.</$ note><br>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_forecolor><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_h_ignore><img src=u_next></a>
+</p>
+
+.topic d_h_ignore
+.title Directive '.h_ignore'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.h_ignore</b> <i>regexp</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Section headings matching <i>regexp</i> will be ignored in
+<a href=d_h_topics>.h_topics</a> and <a href=d_h_contents>.h_contents</a> directives.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.h_ignore &lt;h4.*.ignore
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_h_appendlist><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_h_contents><img src=u_next></a>
+</p>
+
+.topic d_h_contents
+.title Directive '.h_contents'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.h_contents</b> <i>regexp</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Section headings found by <i>regexp</i> will be used in contents.
+If <a href=d_h_contents>.h_contents</a> is used, then the buttons
+<b>Previous</b>, <b>UpLevel</b> and <b>Next</b> will be shown.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.h_contents .*
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_h_ignore><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_h_topics><img src=u_next></a>
+</p>
+
+.topic d_h_topics
+.title Directive '.h_topics'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.h_topics</b> <i>regexp</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Section headings found by <i>regexp</i> will be used as topics.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.h_topics .*
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_h_contents><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_image><img src=u_next></a>
+</p>
+
+.topic d_image
+.title Directive '.image'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.image</b> <i>name type data</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Assigns a <kbd>name</kbd> to image <kbd>data</kbd>.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>name</$ param> - internal name of image. This name can be used later by the
+<$ _>type</$ _> attribute of tags <a href=t_ul>&lt;ul&gt;</a> or <a href=t_ul#li>&lt;li&gt;</a>
+or by the <$ _>src</$ _> attribute of tag <a href=t_img>&lt;img&gt;</a>.
+<li><$ param>type</$ param> - can be one of two values:
+<ul>
+<li><$ param><i>file</i></$ param> - <$ _>data</$ _> is a name of an image file.
+<li><$ param><i>data</i></$ param> - <$ _>data</$ _> consists of in-line image data in BASE64 format.
+</ul>
+<li><$ param>data</$ param> - file name or image data, depending on parameter <$ _>type</$ _>.
+</ul>
+<br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.image arrow data R0lGODlhEAAQAKL/AMDAwH9/f0pr/wAA/wAAgAAAAAAAAAAAACH5BAEAAAAALAAAAAAQABAAAAMoCLrcOsPJB6eD1S6cLcfaBzpCaZ6CQ6zsGqitO8XvzNY2gdu75v+SBAA7
+</$ example>
+or
+<$ example>
+<!-- -->.image arrow file "arrow.gif"
+</$ example>
+</p><p align=right>
+<a href=d_h_topics><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_include><img src=u_next></a>
+</p>
+
+.topic d_include
+.title Directive '.include'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.include</b> <i>filename</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the name of a help file to be included.
+From version 1.3d the name may contain Tcl variables and/or function calls.
+</ul><br>
+<$ head>Examples:</$ head>
+<$ example>
+<!-- -->.include "images.help"
+<!-- -->.include "[pwd]/help/images.help"
+<!-- -->.include "${HelpDir}/images.help"
+</$ example><br>
+<$ note>All Tcl calls and variables are evaluating in the global namespace.</$ note>
+</p><p align=right>
+<a href=d_image><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_linkcolor><img src=u_next></a>
+</p>
+
+.topic d_linkcolor
+.title Directive '.linkcolor'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.linkcolor</b> <a href=colors><i>color</i></a>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the default color of a link.<br>
+If this directive is missing the color <$ _>#006800</$ _> will be used.
+This directive can be overridden for the current topic using the <$ _>link</$ _>
+attribute of tag <a href=t_body>&lt;body&gt;</a>.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.linkcolor green
+</$ example>
+or
+<$ example>
+<!-- -->.linkcolor #008000
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_include><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_lmargin><img src=u_next></a>
+</p>
+
+.topic d_lmargin
+.title Directive '.lmargin'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.lmargin</b> <i>marginsize</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a default left hand margin for the text body.<br>
+If this directive is missing a value of <$ _>6</$ _> will be used.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<i>.lmargin 10</i>
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_linkcolor><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_rmargin><img src=u_next></a>
+</p>
+
+.topic d_rmargin
+.title Directive '.rmargin'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.rmargin</b> <i>marginsize</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a default right hand margin for the text body.<br>
+If this directive is missing a value <$ _>6</$ _> will be used.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<i>.rmargin 5</i>
+</$ example>
+</p><p>
+<$ note>This directive is a global, i.e. the last value defined is the value that will be used.</$ note>
+</p><p align=right>
+<a href=d_lmargin><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_title><img src=u_next></a>
+</p>
+
+.topic d_title
+.title Directive '.title'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.title</b> <i>string</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a title for the current <a href=d_topic>.topic</a>.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<i>.topic my_first_topic</i>
+<!-- -->.title My first topic
+</$ example>
+</p><p align=right>
+<a href=d_rmargin><img src=u_prev></a><a href=directives><img src=u_cont></a><a href=d_topic><img src=u_next></a>
+</p>
+
+.topic d_topic
+.title Directive '.topic'
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>.topic</b> <i>name</i>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies an internal name of a topic which can then be referenced within the Help System using the <$ _>href</$ _>
+attribute of the <a href=t_a>&lt;a&gt;</a> tag.
+<br><br>
+<$ note>The Topic with the special name "<$ example>contents</$ example>", if defined,
+will be used to create and display the Contents of the help file.
+</ul><br>
+<$ head>Example:</$ head>
+<$ example>
+<!-- -->.topic my_first_topic
+</$ example>
+</p><p align=right>
+<a href=d_title><img src=u_prev></a><a href=directives><img src=u_cont></a><img src=u_next_d>
+</p>
+
+.topic
+.title
+<p>
+</p>
+
+.topic
+.title
+<p>
+</p>

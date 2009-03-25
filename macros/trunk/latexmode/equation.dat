@@ -1,0 +1,64 @@
+
+single equationequation
+\begin{split}
+~ &  &  \\
+ &  &
+\end{split}
+
+
+aligned equations, use ; align
+~ &  &  \\
+ &  &
+
+
+gathered equationsgather
+~   \\
+
+
+
+
+multilinemultline
+~   \\
+
+
+
+left-right aligned equations, use ;flalign
+~ &  &  \\
+ &  &
+
+
+alignatalignat
+
+gather }gathered
+\left.\begin{gathered}
+~   \\
+ 
+\end{gathered}
+\right\}
+\qquad \text{}
+
+
+align }aligned
+\left.\begin{aligned}
+~ &  \\
+ &
+\end{aligned}
+\right\}
+\qquad \text{}
+
+
+alignat }alignedat
+
+
+
+
+
+
+
+
+
+
+
+
+
+

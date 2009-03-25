@@ -1,0 +1,102 @@
+# tolower_noloc
+# toupper_noloc
+# CASECHANGE_NOLOC
+
+if (toupper("ä") == "ä") {
+$LOWCASE_CHAR_PAT= "à|á|â|ã|ä|å|æ|ç|è|é|ê|ë|ì|í|î|ï|ð|ñ|ò|ó|ô|õ|ö|ø|ù|ú|û|ü|ý|þ"
+$UPCASE_CHAR_PAT = "À|Á|Â|Ã|Ä|Å|Æ|Ç|È|É|Ê|Ë|Ì|Í|Î|Ï|Ð|Ñ|Ò|Ó|Ô|Õ|Ö|Ø|Ù|Ú|Û|Ü|Ý|Þ"
+
+for (i = 0; i < length($LOWCASE_CHAR_PAT); i += 2) {
+    $LOWERCASE_CHAR[substring($UPCASE_CHAR_PAT, i, i + 1)] = substring($LOWCASE_CHAR_PAT, i, i + 1)
+    $UPPERCASE_CHAR[substring($LOWCASE_CHAR_PAT, i, i + 1)] = substring($UPCASE_CHAR_PAT, i, i + 1)
+}
+
+}
+define tolower_noloc {
+ str = $1
+ 
+ str = tolower(str)
+ pos = 0
+ while (pos != -1) {
+    pos = search_string(str, $UPCASE_CHAR_PAT, 0, "regex")
+    if (pos != -1) {
+        str = replace_substring(str, pos, pos + 1, $LOWERCASE_CHAR[substring(str, pos, pos + 1)])
+    }
+    
+ }
+return(str)
+}
+
+define toupper_noloc {
+ str = $1
+ 
+ str = toupper(str)
+ pos = 0
+ while (pos != -1) {
+    pos = search_string(str, $LOWCASE_CHAR_PAT, 0, "regex")
+    if (pos != -1) {
+        str = replace_substring(str, pos, pos + 1, $UPPERCASE_CHAR[substring(str, pos, pos + 1)])
+    }
+    
+ }
+return(str)
+}
+
+define CASECHANGE_NOLOC {
+ txt = get_selection()
+ localeLetters = "[\\làáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ]"
+ 
+ pos = search_string(txt, localeLetters, 0, "regex")
+ 
+ # Return if no letters.
+ if (pos == -1) {
+     beep()
+     return
+ }
+
+ # If the case of the letters is not all the same, change to lower case.
+ if (tolower_noloc(txt) != txt && toupper_noloc(txt) != txt) {
+    txt = tolower_noloc(txt)
+ }
+ else {
+    # If all lower case, change to all upper case
+    first_letter = substring(txt, pos, pos + 1)
+    if (tolower_noloc(first_letter) == first_letter) {
+        txt = toupper_noloc(txt)
+    }
+    else {
+        # If all upper case, change to first letter upper case, rest lower case
+        #
+        # Unfortunately, there is a rare special case, where there are only 
+        # single letters.  They keep all upper case then.  I think this is
+        # not what was the idea, so
+        txt = tolower_noloc(txt)
+        tmp = replace_in_string(txt, "<"localeLetters, "1", "regex")
+        test = search_string(tmp, localeLetters, 0, "regex")
+        # If there are no letters in tmp, we don't need to do anything.
+        # txt was changed to all lower-case already
+        if (test != -1) {
+            # this should upper a-z
+            txt = replace_in_string(txt, "<\\l", "\\U&", "regex", "copy")
+            #upper rest
+            pos = 0
+            while (pos != -1) {
+                pos = search_string(txt, "<(?:"$LOWCASE_CHAR_PAT")", 0, "regex")
+                if (pos != -1) {
+                    txt = replace_substring(txt, pos, pos + 1, $UPPERCASE_CHAR[substring(txt, pos, pos + 1)])
+                }
+
+            }
+        }
+    }
+ 
+ }
+
+ s = $selection_start
+ e = $selection_end
+ l = $selection_left
+ r = $selection_right
+ replace_selection(txt)
+ if (l == -1) select(s, e)
+ else select_rectangle(s, e, l, r)
+}

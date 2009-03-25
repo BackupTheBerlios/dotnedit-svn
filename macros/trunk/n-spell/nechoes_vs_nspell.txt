@@ -1,0 +1,38 @@
+This is a short list of differences between N-spell and Nechoes 
+(http://sourceforge.net/projects/nechoes).
+
+- N-spell uses rangesets to backlight misspelled words
+  (This feature wasn't available when Nechoes was written.)
+
+- To rescan the whole document, or a part thereof, N-spell invokes a
+  new Aspell process via shell_command().
+
+- N-spell caches misspelled words, so that the spell-checker needn't
+  be used for them again.
+
+- To verify that on-the-fly checking can be used, N-spell checks
+  also for the Aspell process that the Nechoesd process invokes.
+  (If Nechoesd is called for a language not installed for Aspell,
+  the Nechoesd process keeps running but Aspell gets disabled.
+  Nechoes checked only if Nechoesd is running and hangs when trying
+  to read the FIFOs.)
+
+- N-spell tries to respects the syntax of a file (no checking in HTML
+  tags and so on).
+
+- N-spell has mouse bindings, so that you needn't put the cursor on
+  the misspelled word to get suggestions - just move the mouse
+  pointer to it and click Ctrl+btn3.
+
+- N-spell doesn't use your locale settings to test for valid words.
+  You can define the letter characters for a language on your own,
+  so that you can do German spell-checking in one window and French
+  spell-checking in another window in the same session.
+  (N-spell is prepared for English, French, German, and Spanish.)
+  In addition, switching the language doesn't require to switch your
+  locale settings.  (Personally, I customized the NEdit key bindings
+  in such a way that I can write German like on a German keyboard
+  but at the same time I have all the brackets available for writing
+  LaTeX code.  Switching the keyboard layout can't compete.  So my
+  locale is usually just C, when writing German.)
+

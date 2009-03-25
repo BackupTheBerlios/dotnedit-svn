@@ -1,0 +1,129 @@
+#===========================================================
+#
+# SNIPPETS WITH NAMES
+#
+#==========================================================
+
+
+# another problem
+$sep1="\a"
+$sep2="\b"
+$sep3="\f"
+
+
+define jf_snippets {
+# Snippets are stored in the file snippets.dat in the directory ~/nedata
+
+dsply = ""
+language = replace_in_string($language_mode, " ", "_")
+if (language == "") language = $language_mode
+language = tolower(language)
+file = $jf_path_to["snippets.nm"] "snippets_" language ".dat"
+
+snip_file = read_file(file)
+
+# If file doesn't exist or should contain no snippet
+if(!$read_status || search_string(snip_file,$sep1,0) == -1) {
+   snip_file = $sep1"Name"$sep2"\nContent"$sep3
+   write_file("",file)
+   }
+
+
+# Show snippets, name - separator - first ... last
+
+# find names
+pos = 0
+while (search_string(snip_file,$sep1,pos) != -1)  {
+     beg_name = $search_end
+     end_name = search_string(snip_file,$sep2,beg_name)
+     beg_snip = $search_end + 1
+     name = substring(snip_file, beg_name, end_name)
+     name = name "%%"
+
+     #getting the snippet, having already the begin of it
+     end_snip = search_string(snip_file,$sep3,beg_snip)
+     snip = substring(snip_file, beg_snip, end_snip)
+     #
+     # !!!! snippet must not contain \n for displaying !!!
+     #
+     snip_new = replace_in_string(snip,"\n"," ","regex")
+     if (snip_new != "") snip = snip_new
+
+     #getting first and last signs of snip
+     total = length(snip)
+     if (total>=63) 
+        {
+        fst = substring(snip,0,35)
+        lst = substring(snip,total-25,total)
+        snip = fst "..." lst
+        } 
+
+     dsply = dsply name snip "\n"
+     pos = end_snip
+     }
+
+#if nothing matched, pos = 0 !
+
+#else dsply holds what is to be displayed
+
+name = ""
+# for qsort_lists() we require utilities.nm
+jf_require("utilities.nm")
+dsply = qsort_list(dsply)
+a = list_dialog("Snippets:", dsply,"Insert","New Snippet","Delete", "Cancel")
+
+if($list_dialog_button == 0 || $list_dialog_button == 4)  {
+   beep()
+   return
+   }
+
+# insert snippet
+if ($list_dialog_button == 1 && a != "")  {
+   # getting name of snippet
+   end_name = search_string(a,"%",0)
+   name = substring(a,0,end_name)
+   # getting the snippet
+   name= $sep1 name $sep2
+#   snip_file = read_file(file)
+   pos = search_string(snip_file,name,0)
+   pos1 = $search_end + 1
+   pos2 = search_string(snip_file,$sep3,pos1)
+   insert_string(substring(snip_file, pos1, pos2))
+   }
+
+# new snippet, requires primary selection!
+if ($list_dialog_button == 2) 
+   {
+   snip = get_selection()
+   if (snip == "") 
+         {
+         dialog("Select your snippet in your file!", "OK")
+         return
+         }
+   snip = snip $sep3
+   name = string_dialog("Name the snippet","OK","Cancel")
+   name= $sep1 name $sep2
+   # no double names!
+
+   #append to snippets file
+   entry = "\n" name "\n" snip
+   append_file(entry, file)
+
+   }
+
+# delete snippet
+if ($list_dialog_button == 3 && a != "") 
+   {
+   # getting name of snippet
+   end_name = search_string(a,"%",0)
+   name = substring(a,0,end_name)
+   name = $sep1 name $sep2
+   snippet_file = read_file(file)
+   pos1 = search_string(snippet_file,name,0,"case")
+   pos3 = search_string(snippet_file,$sep3,pos1)
+   pos2 = $search_end + 1
+   snippet_file = replace_substring(snippet_file,pos1,pos2,"")
+   write_file(snippet_file,file)  
+   }
+    
+}

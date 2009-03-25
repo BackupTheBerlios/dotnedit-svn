@@ -1,0 +1,49 @@
+! Load this file by starting nedit with:
+!
+!     nedit -import <the name of this file>
+!
+! Then, check that the menu definitions were loaded correctly, and choose
+! Save Defaults from the Preferences menu.  The new menu definitions will
+! now be incorporated into your own preferences file, so the next time you
+! start NEdit, you will no longer need to use -import.
+!
+! These comments will not appear in your nedit.rc file
+!
+
+nedit.macroCommands: \
+	Rangesets>Goto next range:::: {\n\
+		RANGESET_goto_next()\n\
+	}\n\
+	Rangesets>Goto prev. range:::: {\n\
+		RANGESET_goto_prev()\n\
+	}\n\
+	Rangesets>Add:::R: {\n\
+		RANGESET_add()\n\
+	}\n\
+	Rangesets>Remove:::R: {\n\
+		RANGESET_remove_selected()\n\
+	}\n\
+	Rangesets>Clear:::: {\n\
+		RANGESET_remove_all()\n\
+	}\n\
+	Rangesets>Destroy:::: {\n\
+		RANGESET_destroy()\n\
+	}\n\
+	Rangesets>Rename:::: {\n\
+		RANGESET_rename()\n\
+	}\n\
+	Rangesets>Color:::: {\n\
+		RANGESET_color()\n\
+	}\n\
+	Rangesets>Save:::: {\n\
+		RANGESET_save()\n\
+	}\n\
+	Rangesets>Load:::: {\n\
+		RANGESET_load()\n\
+	}\n\
+	Rangesets>Find All:::: {\n\
+		RANGESET_find_all()\n\
+	}\n\
+	Rangesets>Show Changes:::: {\n\
+		RANGESET_show_changes()\n\
+	}\n

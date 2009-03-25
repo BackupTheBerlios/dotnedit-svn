@@ -1,0 +1,107 @@
+#!/usr/bin/perl -w
+
+##!/usr/local/bin/perl -w
+
+######################################################################
+# $Id: NEchoesd,v 1.2 2001/08/13 14:20:38 jlous Exp $
+# NEchoesd - NEdit Continuous Highlighting Of Erroneous Spelling Daemon
+# Copyright 2001 Joachim Lous (joachim_lous at yahoo.com)
+# Version 1.0 - July 2001
+# 
+# Requires Aspell.
+#
+# This is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any late
+# version.
+#
+# This software is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+# for more details.
+# 
+# You should have received a copy of the GNU General Public License along with
+# software; if not, write to the Free Software Foundation, Inc., 59 Temple
+# Place, Suite 330, Boston, MA  02111-1307 USA
+#
+use FileHandle;
+use IPC::Open2;
+
+if (scalar @ARGV <1){
+    die "No language specified.";
+}
+
+#Set default language here:
+$language = $ARGV[0];
+#Set filter mode like "email", "url", "tex"
+# default would be "nroff" (uh)
+#$mode = 'url';
+$dotnedit = $ENV{"NEDIT_HOME"};
+if ($dotnedit eq "") {
+    $dotnedit = $ENV{"HOME"} . "/.nedit";
+}
+$dotnedit = $dotnedit . "/";
+$IN = "$dotnedit.NEchoes_in_$language";
+$OUT = "$dotnedit.NEchoes_out_$language";
+$intlChars = "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ";
+$query = "";
+
+open2( \*Reader, \*Writer, "aspell --language-tag=$language --sug-mode=fast --mode=url -a");
+
+unless (-p $OUT){
+    unlink $OUT;
+    system('mknod', $OUT, 'p');
+}
+while (1) {
+    # Read query until EOF:
+    unless (-p $IN){
+        unlink $IN;
+        system('mknod', $IN, 'p');
+    }
+    open (IN, "< $IN") or die "can't open $IN: $!"; 
+    $query = <IN>;
+    while (<IN>){};
+    close IN;
+    
+    # Process query:
+    if ($query =~ /^[\w'$intlChars]+\n$/){
+        # It's a word for top be checked:
+        print ">$query";
+        print Writer "^$query";
+        $reply = <Reader>;
+        # if our query was filtered out by one of aspell's
+        # filters, the only answer we receive is a single
+        # newline character, then we would hang
+        if ($reply ne "\n") {
+            # Read until proper reply:
+            while ($reply !~ /^[\*+\-&\?#]/){$reply = <Reader>;}
+            # Read until blank line:
+            $dummy= <Reader>;
+            while ($dummy !~ /^\n$/){$dummy = <Reader>;}
+        }
+    } elsif ($query =~ /^[*&@][\w'$intlChars]+\n$/){
+        # It's a command to ispell:
+        print ">$query";
+        print Writer $query;
+        print Writer "#\n";
+        $reply = "OK\n";
+    } else {
+        # It's something we don't like.
+        print ">$query\n";
+        $reply = "\n";
+    }
+
+    # Write reply:
+    print "$reply";
+    unless (-p $OUT){
+        unlink $OUT;
+        system('mknod', $OUT, 'p');
+    }
+    open (OUT, "> $OUT") or die "can't open $OUT: $!"; 
+    #Block until someone reads...
+    print OUT "$reply";
+    close OUT;
+
+    #Wait:
+    #select undef, undef, undef, 0.1; # used as sub-second sleep:
+}

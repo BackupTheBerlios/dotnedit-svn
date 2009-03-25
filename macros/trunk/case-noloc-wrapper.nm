@@ -1,0 +1,84 @@
+# casechange_nolocale_wrapper
+# tolower_wrapper
+# toupper_wrapper
+# capitalizer
+
+#==================================================================================
+# problem of no locale support for cygwin
+# I don't like to maintain two types of macros
+#==================================================================================
+
+# simple locale support check
+if (toupper("ä") == "ä") {
+    load_macro_file($jf_path_to["/NEDIT_HOME/"] "casechange-nolocale.nm")
+}
+else {
+    load_macro_file($jf_path_to["/NEDIT_HOME/"] "casechange.nm")
+}
+
+
+define casechange_nolocale_wrapper {
+ if (toupper("ä") == "ä") {
+    # no locale support
+    CASECHANGE_NOLOC()
+ }
+ else {
+    CASECHANGE()
+ }
+
+}
+
+
+define tolower_wrapper {
+
+ if (toupper("ä") == "ä") {
+    # no locale support
+    return tolower_noloc($1)
+ }
+ else {
+    return tolower($1)
+ }
+}
+
+define toupper_wrapper {
+
+ if (toupper("ä") == "ä") {
+    # no locale support
+    return toupper_noloc($1)
+ }
+ else {
+    return toupper($1)
+ }
+
+
+}
+
+#==================================================================================
+# Toggles the case of the first letter of the word under cursor
+#==================================================================================
+define capitalizer {
+ class = "a-zA-ZàáâãäåæçèéêëìíîïğñòóôõöøùúûüışÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞ"
+ if ($cursor == 0) {
+    start = 0
+ }
+ else {
+     start = search("[^" class "]|\n", $cursor - 1, "regex", "backward")
+     if (start != -1) {
+        if ($search_end == $cursor) return
+     }
+     # exception for the beginning of the file
+     if (start == -1) start = 0
+        else start += 1
+ }
+ # here cursor is on a word and we have the start of it
+     c = get_range(start, start + 1)
+     if (c == toupper_wrapper(c)) {
+         replace_range(start, start + 1, tolower_wrapper(c))
+     }
+     else {
+         replace_range(start, start + 1, toupper_wrapper(c))
+     }
+ 
+}
+
+

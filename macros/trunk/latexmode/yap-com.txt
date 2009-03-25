@@ -1,0 +1,3 @@
+Put this into "View -> Options -> Inverse Search" as Command line
+
+C:\cygwin\bin\sh.exe /cygdrive/c/cygwin/bin/yap-nc.sh %l "%f"

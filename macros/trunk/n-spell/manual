@@ -1,0 +1,215 @@
+.. Document Type: reStructured Text (http://docutils.sf.net)
+
+.. -*- charset=ISO8859-1 -*-
+
+=====================
+ N-spell User Guide 
+=====================
+
+:Author: Dr Jörg Fischer 
+:Contact: jf505@users.sf.net
+:Version: 1.0
+:Date: 2008-01-20
+:Abstract:
+     This file describes how to use and configure N-spell.  For
+     troubleshooting tips and technical information, see the TECHNICAL
+     file.  For installing N-spell, see the INSTALL.
+
+
+-------------------------------
+ NEdit Spell-Checker Handling 
+-------------------------------
+
+
+Released under the version 2 GPL license (see the README file)
+
+N-spell provides handling of the (external) spell-checker program
+Aspell from inside NEdit, including continuous, or on-the-fly,
+spell-checking.
+
+This file contains usage and configuration information for N-spell.
+For technical information, list of known problems/limitations and 
+some general troubleshooting advice, see the TECHNICAL file. 
+For installation instructions, please read the INSTALL file.
+
+
+USAGE
+======
+
+.. note::
+
+  If you disable continuous spell-checking completely by setting
+  ``$nspell_use_daemon = $false`` in the file ``n-spell.nm``, you
+  needn't pay attention to the parts concerning the so-called Smart
+  Indent macros in the following, because they are used only for
+  continuous spell-checking.  You can still use all the macros shown
+  under ``Macro -> Spelling``, except for "KillDaemon", and also the
+  mouse bindings described subsequently.  The only difference will be
+  that spell-checking will not be done continuously, that is, while you
+  are typing. (Of course, ``Spelling -> Toggle Continuous`` won't turn
+  on continuous checking, then.)
+
+
+
+Make sure that you have installed and initialized N-spell properly.
+In particular, to use on-the-fly spell-checking, you need the Smart
+Indent macros for the current language mode you are in, cf. the
+INSTALL file.  If you don't initialize N-spell from the Smart Indent
+Initialization macro, you have to do so with Macro -> Spelling ->
+Toggle Continuous.  
+
+In continuous (or on-the-fly) mode,  misspelled words get
+backlighted after completion.  To see suggestions for correction,
+move the mouse pointer to the word and press mouse button 3 while
+holding Ctrl.  Notice that if you invoke the suggestions macro via
+the background menu (button 3) Spelling -> Suggest, the cursor must
+be on the word in question.  The reason is that NEdit can't really
+read the mouse pointer position to get the word.  If you are using
+Ctrl+btn 3 you won't notice, because before calling the Suggest
+macro, the cursor is shortly moved to the mouse pointer position
+(this action can only be bound to the mouse directly) and back
+again.  The mouse bindings are:
+
+
+Ctrl+btn3               Display suggestions for misspelled word
+                        at mouse pointer position
+
+Shift+Ctrl+btn3         Automatically correct the misspelled word
+                        toggling through all suggestions
+
+Alt+btn3                Ignore the word at mouse pointer position,
+                        or add it to dictionaries.
+
+
+
+If the Suggestion or Correction macros are called on words not yet
+spell-checked, a check is triggered.  (This works also if continuous
+spell-checking is turned off.)
+
+
+The other actions are all shown in the menu.  The KillDaemon macro
+will work only if you are using tcsh as NEdit's shell.  As the name
+indicates, all Nechoesd processes (see the TECHNICAL file) will be
+killed.  Doing so is normally not necessary.  But if you run N-spell
+under Cygwin and use continuous spell-checking (recall that this
+isn't recommended), you must kill all Nechoesd processes before
+trying to exit NEdit, otherwise NEdit will hang (Cygwin feature).
+
+Notice that the background color of misspelled words will be lost in
+the parts of the text, where you perform operations like Replace_all
+or a paragraph filling.  For those operations the position of the
+ranges to backlight can't be remembered by NEdit.  All you can do
+then to get the backlight back is a rescan of the document.
+
+
+Configuration
+==============
+
+Global Settings
+----------------
+In the file n-spell.nm there is a section beginning with
+'# User-editable settings:' that contains some global default
+values, which you can change to your liking.  These variables are 
+
+$nspell_defaultLanguage = "english" 
+(cf. 'Adding new dictionaries/languages' below)
+
+$nspell_defaultContinuous = $true
+(Whether to have continuous checking turned on at startup.
+Value should be $true or $false.)
+
+$nspell_defaultColor = "yellow"
+(The backlight color for marking misspelled words.)
+
+$nspell_doublonColor = "orange"
+(The backlight color for marking words repeated twice in a row row 
+[doublons])
+
+$nspell_check_in_comments = $true
+(Continuous checking in comments for programming languages like
+C(++), Java, ...)
+
+
+Defining Shortcuts
+-------------------
+If you want to define shortcuts to trigger macros, please notice
+that shortcuts can not be defined for the window background menu,
+although the dialog for defining the macros for the window
+background menu  does not mention it.  The reason is that shortcuts
+for a menu entry are only available, if the menu is displayed, which
+isn't the case for the background menu.  So, it is only possible to
+define shortcuts for the entries of the macro menu.  (If you look at
+the contents of the window background menu via Preferences ->
+Default Settings -> Customize Menus -> Window Background Menu, you
+will see that there are no macro definitions but only calls to
+macros defined in the Macro menu via the macro_menu_command()
+action.)  Now, in the macro menu there are a few entries bound to
+the mouse, which are not shown, because the name ends with
+``...@mouse``.  Since these entries are not shown (they would only be
+active in a language mode called "mouse", which doesn't exist),
+shortcuts for these entries would not be seen.  If you want to
+define shortcuts for these entries (in addition to call them via
+mouse) simply delete the ``@mouse``.  But make sure in this case that
+you delete the ``@mouse`` also in the mouse bindings and the window
+background menu, where these macros get called via
+``macro_menu_command("...@mouse")``.
+
+
+
+Adding new dictionaries/languages
+----------------------------------
+
+  - Open the n-spell.nm file
+
+  - Search for $nspell_languages and append your language to the
+    variable. (Choose a name such that Aspell can find the respective
+    dictionary.)
+  
+  - Search for "english" or "german" (including the "). This should
+    bring you to the variables $nspell_correct_wordlists,
+    $nspell_correct_words, and $nspell_int_chars. Define these
+    variables according to your language (if you have no list of
+    correct words, define the variable as the empty string).
+    
+  - If you want the added language to be the default for spelling,
+    also edit the $nspell_defaultLanguage setting.
+
+  - The added language will be available after reloading the macro
+    file n-spell.nm. (Either use File -> Load Macro File, or restart
+    NEdit.)
+     
+
+Other NEchoes settings
+-----------------------
+
+    If you shouldn't like on-the-fly spell-checking, or if you don't
+    meet the requirements for on-the-fly spell-checking (no Perl, no
+    FIFOs, you run under Cygwin), you can disable it completely by
+    setting ``$nspell_use_daemon = $false`` in ``n-spell.nm``.
+
+    In this case, the Spell-check Dialog and Rescanning (checking)
+    the whole document can still be used.
+    
+
+TODO
+====
+Change the path logic.  Now, ``HOME`` is used for the pipes and relative
+to ``HOME`` there is the ``n-spell`` folder.  Use the different logic
+from ``autoload.nm``, namely ``$dotnedit``, which is ``NEDIT_HOME`` or
+by default ``HOME/.nedit``.  To achieve this, the Perl script
+``NEchoesd`` has to be slightly modified.
+
+Setting the language seems to be changed for new Aspell.  Handle this
+correctly.  This is done.
+
+Bring the documentation to reStructuredText.  This is partly done.
+
+Either a ``$NE_globals["spell-checking"]`` or using ``$jf_path_to`` like
+``jf_path_to["/spell-checking/"]`` to determine whether or not to do
+spell-checking at all.
+
+We need to better distinguish between continuous spell-checking and
+merely using the dialog.  The latter should always work.
+
+nspell_skip is faulty, because it also checks whether we skip areas
+which aren't comments.  

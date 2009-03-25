@@ -1,0 +1,74 @@
+# smart-indent initialize
+set_wrap_margin(68)
+
+#==================================================================================
+# smart-indent return
+
+if ($column == 0) return 0
+
+cpos = $cursor
+pat_nr = "^\\s*(?:\\d\\.|\\l\\)|(?:o|\\-|\\*))\\s+"
+pats = pat_nr "|^\\s*"
+flag = 0
+f = search(pats, $cursor, "regex", "backward")
+if ($search_end != $cursor) {
+    # get indent -> tabs: arrgh
+    set_cursor_pos($search_end)
+    indent = $column
+    set_cursor_pos(cpos)
+    return indent
+}
+else {
+    f = search(pat_nr, $cursor, "regex", "backward")
+    if (f != -1) {
+        indent = measureIndent($search_end)
+        while (f != -1 && indent >= $column) {
+            f = search(pat_nr, f - 1, "regex", "backward")
+            if (f != -1) indent = measureIndent($search_end)
+            flag = 1
+        }
+        if (indent == $column) indent = 0
+        delete_to_start_of_line()
+        if (flag == 1) delete_previous_character()
+        return(indent)
+    }
+    else {
+        return 0
+    }
+
+}
+    
+
+
+#==================================================================================
+
+# Quote
+if ($selection_start == -1)
+    replace_all("^.*$", "\\> &", "regex")
+else
+    replace_in_selection("^.*$", "\\> &", "regex")
+
+
+#==================================================================================
+# Bold ,
+newtext= "*" get_selection() "*"
+if ($selection_start!=-1) {
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+1)
+}
+
+#  Emph   
+replace_in_selection(" ","_")
+newtext= "_" get_selection() "_"
+if ($selection_start!=-1) {
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+1)
+}

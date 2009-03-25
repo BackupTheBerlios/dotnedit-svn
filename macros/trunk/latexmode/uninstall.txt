@@ -1,0 +1,241 @@
+spell-check (alpha)
+Editing>Complete Word@*
+Editing>Complete Word List@*
+Editing>Complete Word@NEdit Macro
+Editing>Complete Word List@NEdit Macro
+Editing>Complete Word@LaTeX
+Editing>Complete Word List@LaTeX
+NMacro>Load functions@NEdit Macro
+NMacro>Run macro
+NMacro>extract menu
+NMacro>show accelerators
+NMacro>uninstall
+LTXMode>Main File@LaTeX
+LTXMode>Run ...>LaTeX (+src specials)@LaTeX@DTX
+LTXMode>Run ...>Next Error@LaTeX@DTX
+LTXMode>Run ...>Preview@LaTeX@DTX
+LTXMode>Run ...>Forward Search@LaTeX@DTX
+LTXMode>Run ...>View Log File@LaTeX@DTX
+LTXMode>Run ...>LaTeX@LaTeX@DTX
+LTXMode>Run ...>pdfLaTeX@LaTeX@DTX
+LTXMode>Run ...>BibTeX@LaTeX
+LTXMode>Run ...>Last Error@LaTeX
+LTXMode>Run ...>Debug on/off@LaTeX@DTX
+LTXMode>Insert>Environments@LaTeX
+LTXMode>Insert>misc-templ@LaTeX
+LTXMode>Insert>symbols@LaTeX
+LTXMode>Insert>Greek letters@LaTeX
+LTXMode>Insert>quotation marks@LaTeX
+LTXMode>Insert>colons@LaTeX
+LTXMode>Insert>AmS-equation@LaTeX
+LTXMode>Insert>AmS-equation-L@LaTeX
+LTXMode>Insert>Set@LaTeX
+LTXMode>Insert>BibTeX>article@BibTeX
+LTXMode>Insert>BibTeX>book@BibTeX
+LTXMode>Insert>sub_super@LaTeX
+LTXMode>Insert>super_sub@LaTeX
+LTXMode>Insert>nobreak-dash@LaTeX
+LTXMode>Insert>break-dash@LaTeX
+LTXMode>Insert>bigl/r@LaTeX
+LTXMode>Insert>BG>Theorems@LaTeX
+LTXMode>Insert>BG>Equations@LaTeX
+LTXMode>Insert>BG>Matrices@LaTeX
+LTXMode>Insert>BG>Format@LaTeX
+LTXMode>Insert>BG>Lists@LaTeX
+LTXMode>Insert>BG>Sections@LaTeX
+LTXMode>Insert>BG>Snippets
+LTXMode>Structures>Labels@LaTeX
+LTXMode>Structures>Sectioning@LaTeX
+LTXMode>Structures>Commands@LaTeX
+LTXMode>Structures>Bibliography@LaTeX
+LTXMode>Structures>Nomencl@LaTeX
+LTXMode>Structures>Show Ref/Cit@LaTeX
+LTXMode>Structures>The/Ref (alpha)@LaTeX
+LTXMode>Structures>Jump back@LaTeX
+LTXMode>Structures>Next Begin@LaTeX
+LTXMode>Structures>Prev Begin@LaTeX
+LTXMode>Structures>Goto Matching@LaTeX
+LTXMode>Structures>Goto Matching@*
+LTXMode>Help>LaTeX@LaTeX
+LTXMode>Help>About Help@LaTeX
+LTXMode>Help>MiKTeX@LaTeX
+LTXMode>Help>Quick Info
+LTXMode>ltx_save_all@keys
+LTXMode>tcl_hook@keys
+LTXMode>Next Error@TeX-Log
+LTXMode>Next hbox@TeX-Log
+LTXMode>Next Warning@TeX-Log
+LTXMode>Edit Sources@TeX-Log
+DTXMode>Insert Macro Env@DTX
+DTXMode>Insert End/Bg Code@DTX
+DTXMode>Insert % @DTX
+DTXMode>%? auto-indent@DTX
+Expander>Init
+Expander>Toggle on/off
+Expander>auto@keys
+Expander>auto_select
+Expander>Edit Dat
+Expander>Next Field
+Expander>lists@LaTeX
+Keyboard>Toggle Keys US-De
+Keyboard>{@keys
+Keyboard>(@keys
+Keyboard>[@keys
+Keyboard>dollar@keys
+Keyboard>minus@keys
+Keyboard>semicolon@keys
+Keyboard>colon@keys
+Keyboard>strophe@keys
+Keyboard>dstrophe@keys
+Keyboard>y@keys
+Keyboard>Y@keys
+Keyboard>z@keys
+Keyboard>Z@keys
+Keyboard>auto_indent
+Keyboard>dollar@LaTeX
+Rangesets>marks>mark_line
+Rangesets>marks>unmark_line
+Rangesets>marks>next_mark
+Rangesets>marks>previous_mark
+Rangesets>marks>next_mark_choose
+Rangesets>marks>previous_mark_choose
+Rangesets>marks>clear_all_marks
+Rangesets>marks>save_as
+Rangesets>marks>go_back
+Help>Calltip@*
+Help>Calltip@LaTeX
+Add-ons>Bookmarks>Bookmark@LaTeX
+Add-ons>Bookmarks>Edit/Open@LaTeX
+Theorems@LaTeX
+Equations@LaTeX
+Matrices@LaTeX
+Format@LaTeX
+Lists@LaTeX
+Sections@LaTeX
+Snippets
+Symbols@Data
+Comments>Quote@LaTeX@SGML HTML
+Comments>Unquote@LaTeX@SGML HTML
+Comments>ues2syntax@LaTeX@SGML HTML
+Comments>doc_strip@NEdit Macro@LaTeX
+spell-check (alpha)
+Editing>Complete Word@*
+Editing>Complete Word List@*
+Editing>Complete Word@NEdit Macro
+Editing>Complete Word List@NEdit Macro
+Editing>Complete Word@LaTeX
+Editing>Complete Word List@LaTeX
+NMacro>Load functions@NEdit Macro
+NMacro>Run macro
+NMacro>extract menu
+NMacro>show accelerators
+NMacro>uninstall
+LTXMode>Main File@LaTeX
+LTXMode>Run ...>LaTeX (+src specials)@LaTeX@DTX
+LTXMode>Run ...>Next Error@LaTeX@DTX
+LTXMode>Run ...>Preview@LaTeX@DTX
+LTXMode>Run ...>Forward Search@LaTeX@DTX
+LTXMode>Run ...>View Log File@LaTeX@DTX
+LTXMode>Run ...>LaTeX@LaTeX@DTX
+LTXMode>Run ...>pdfLaTeX@LaTeX@DTX
+LTXMode>Run ...>BibTeX@LaTeX
+LTXMode>Run ...>Last Error@LaTeX
+LTXMode>Run ...>Debug on/off@LaTeX@DTX
+LTXMode>Insert>Environments@LaTeX
+LTXMode>Insert>misc-templ@LaTeX
+LTXMode>Insert>symbols@LaTeX
+LTXMode>Insert>Greek letters@LaTeX
+LTXMode>Insert>quotation marks@LaTeX
+LTXMode>Insert>colons@LaTeX
+LTXMode>Insert>AmS-equation@LaTeX
+LTXMode>Insert>AmS-equation-L@LaTeX
+LTXMode>Insert>Set@LaTeX
+LTXMode>Insert>New Entry@BibTeX
+LTXMode>Insert>sub_super@LaTeX
+LTXMode>Insert>super_sub@LaTeX
+LTXMode>Insert>nobreak-dash@LaTeX
+LTXMode>Insert>break-dash@LaTeX
+LTXMode>Insert>bigl/r@LaTeX
+LTXMode>Insert>BG>Theorems@LaTeX
+LTXMode>Insert>BG>Equations@LaTeX
+LTXMode>Insert>BG>Matrices@LaTeX
+LTXMode>Insert>BG>Format@LaTeX
+LTXMode>Insert>BG>Lists@LaTeX
+LTXMode>Insert>BG>Sections@LaTeX
+LTXMode>Insert>BG>Snippets
+LTXMode>Structures>Labels@LaTeX
+LTXMode>Structures>Sectioning@LaTeX
+LTXMode>Structures>Commands@LaTeX
+LTXMode>Structures>Bibliography@LaTeX
+LTXMode>Structures>Nomencl@LaTeX
+LTXMode>Structures>Show Ref/Cit@LaTeX
+LTXMode>Structures>The/Ref (alpha)@LaTeX
+LTXMode>Structures>Jump back@LaTeX
+LTXMode>Structures>Next Begin@LaTeX
+LTXMode>Structures>Prev Begin@LaTeX
+LTXMode>Structures>Goto Matching@LaTeX
+LTXMode>Structures>Goto Matching@*
+LTXMode>Editing>Change Bras/Env@LaTeX
+LTXMode>Editing>Remove Eq@LaTeX
+LTXMode>Help>LaTeX@LaTeX
+LTXMode>Help>About Help@LaTeX
+LTXMode>Help>MiKTeX@LaTeX
+LTXMode>Help>Quick Info
+LTXMode>ltx_save_all@keys
+LTXMode>tcl_hook@keys
+LTXMode>Next Error@TeX-Log
+LTXMode>Next hbox@TeX-Log
+LTXMode>Next Warning@TeX-Log
+LTXMode>Edit Sources@TeX-Log
+DTXMode>Insert Macro Env@DTX
+DTXMode>Insert End/Bg Code@DTX
+DTXMode>Insert % @DTX
+DTXMode>%? auto-indent@DTX
+Expander>Init
+Expander>Toggle on/off
+Expander>auto@keys
+Expander>auto_select
+Expander>Edit Dat
+Expander>Next Field
+Expander>lists@LaTeX
+Keyboard>Toggle Keys US-De
+Keyboard>{@keys
+Keyboard>(@keys
+Keyboard>[@keys
+Keyboard>dollar@keys
+Keyboard>minus@keys
+Keyboard>semicolon@keys
+Keyboard>colon@keys
+Keyboard>strophe@keys
+Keyboard>dstrophe@keys
+Keyboard>y@keys
+Keyboard>Y@keys
+Keyboard>z@keys
+Keyboard>Z@keys
+Keyboard>auto_indent
+Keyboard>dollar@LaTeX
+Rangesets>marks>mark_line
+Rangesets>marks>unmark_line
+Rangesets>marks>next_mark
+Rangesets>marks>previous_mark
+Rangesets>marks>next_mark_choose
+Rangesets>marks>previous_mark_choose
+Rangesets>marks>clear_all_marks
+Rangesets>marks>save_as
+Rangesets>marks>go_back
+Help>Calltip@*
+Help>Calltip@LaTeX
+Add-ons>Bookmarks>Bookmark@LaTeX
+Add-ons>Bookmarks>Edit/Open@LaTeX
+Theorems@LaTeX
+Equations@LaTeX
+Matrices@LaTeX
+Format@LaTeX
+Lists@LaTeX
+Sections@LaTeX
+Snippets
+Symbols@Data
+Comments>Quote@LaTeX@SGML HTML
+Comments>Unquote@LaTeX@SGML HTML
+Comments>ues2syntax@LaTeX@SGML HTML
+Comments>doc_strip@NEdit Macro@LaTeX

@@ -1,0 +1,17 @@
+EXTERNAL HYPERLINKS
+like Python_, contain a URI in the link block.
+`Write to me`_ with your questions.
+
+.. _Python: http://www.python.org/ 
+.. _Write to me: jdoe@example.com
+
+Or like `Python <http://www.python.org/>`_.
+
+INTERNAL CROSSREFERENCES
+like example1_. 
+
+.. _example1: 
+.. _example2: 
+
+The references to example1 and 
+example2 point to this block. 

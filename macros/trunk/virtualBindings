@@ -1,0 +1,24 @@
+!
+! Motif Virtual Key Bindings
+!
+nedit*defaultVirtualBindings: \
+    osfActivate     :               <Key>KP_Enter\n\
+    osfCancel       :               <Key>Escape\n\
+    osfHelp         :               <Key>Help\n\
+    osfMenuBar      :               <Key>F10\n\
+    osfLeft         :               <Key>Left,<Key>KP_Left\n\
+    osfUp           :               <Key>Up,<Key>KP_Up\n\
+    osfRight        :               <Key>Right,<Key>KP_Right\n\
+    osfDown         :               <Key>Down,<Key>KP_Down\n\
+    osfBeginLine    :               <Key>Home,<Key>KP_Home\n\
+    osfEndLine      :               <Key>End,<Key>KP_End\n\
+    osfPageUp       :               <Key>Prior,<Key>KP_Prior\n\
+    osfPageDown     :               <Key>Next,<Key>KP_Next\n\
+    osfBackSpace    :               <Key>BackSpace\n\
+    osfDelete       :               <Key>Delete,<Key>KP_Delete\n\
+    osfInsert       :               <Key>Insert,<Key>KP_Insert\n\
+    osfUndo         :               <Key>F14\n\
+    osfAddMode      :Shift          <Key>F8\n\
+    osfCopy         :               <Key>F16\n\
+    osfCut          :               <Key>F20\n\
+    osfPaste        :               <Key>F18\n

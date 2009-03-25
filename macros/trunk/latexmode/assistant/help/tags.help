@@ -1,0 +1,678 @@
+.topic tags
+.title Topics body format
+<p>
+The body of a topic consists of pure HTML with some restrictions and additions.<br>
+Version 1.4 <i>(for version number see in <kbd>help.tcl</kbd> source)</i>
+supports the following tags:
+<ul>
+<li><a href=t_comment>&lt;!--..--&gt;</a><$ new>Added from version 1.3c</$ new>
+<li><a href=t_$>&lt;$&gt;..&lt;/$&gt;</a><$ new>Added from version 1.3</$ new>
+<li><a href=t_a>&lt;a&gt;..&lt;/a&gt;</a><$ new>Modified from version 1.3b</$ new>
+<li><a href=t_address>&lt;address&gt;..&lt;/address&gt;</a>
+<li><a href=t_b>&lt;b&gt;..&lt;/b&gt;</a>
+<li><a href=t_blockquote>&lt;blockquote&gt;..&lt;/blockquote&gt;</a>
+<li><a href=t_body>&lt;body&gt;..&lt;/body&gt;</a>
+<li><a href=t_br>&lt;br&gt;</a>
+<li><a href=t_center>&lt;center&gt;..&lt;/center&gt;</a>
+<li><a href=t_cite>&lt;cite&gt;..&lt;/cite&gt;</a>
+<li><a href=t_code>&lt;code&gt;..&lt;/code&gt;</a>
+<li><a href=t_dir>&lt;dir&gt;..&lt;/dir&gt;</a>
+<li><a href=t_div>&lt;div&gt;..&lt;/div&gt;</a>
+<li><a href=t_em>&lt;em&gt;..&lt;/em&gt;</a>
+<li><a href=t_font>&lt;font&gt;..&lt;/font&gt;</a>
+<li><a href=t_h>&lt;h1&gt;..&lt;/h1&gt;</a>,
+<a href=t_h>&lt;h2&gt;..&lt;/h2&gt;</a>,
+<a href=t_h>&lt;h3&gt;..&lt;/h3&gt;</a>,
+<a href=t_h>&lt;h4&gt;..&lt;/h4&gt;</a>,
+<a href=t_h>&lt;h5&gt;..&lt;/h5&gt;</a>,
+<a href=t_h>&lt;h6&gt;..&lt;/h6&gt;</a>
+<li><a href=t_hr>&lt;hr&gt;</a>
+<li><a href=t_i>&lt;i&gt;..&lt;/i&gt;</a>
+<li><a href=t_img>&lt;img&gt;</a>
+<li><a href=t_kbd>&lt;kbd&gt;..&lt;/kbd&gt;</a>
+<li><a href=t_ul#li>&lt;li&gt;</a>
+<li><a href=t_menu>&lt;menu&gt;..&lt;/menu&gt;</a>
+<li><a href=t_nobr>&lt;nobr&gt;..&lt;/nobr&gt;</a>
+<li><a href=t_ul>&lt;ol&gt;..&lt;/ol&gt;</a>
+<li><a href=t_p>&lt;p&gt;..&lt;/p&gt;</a>
+<li><a href=t_pre>&lt;pre&gt;..&lt;/pre&gt;</a>
+<li><a href=t_samp>&lt;samp&gt;..&lt;/samp&gt;</a><$ new>Added from version 1.3</$ new>
+<li><a href=t_strong>&lt;strong&gt;..&lt;/strong&gt;</a>
+<li><a href=t_title>&lt;title&gt;..&lt;/title&gt;</a>
+<li><a href=t_tt>&lt;tt&gt;..&lt;/tt&gt;</a>
+<li><a href=t_u>&lt;u&gt;..&lt;/u&gt;</a>
+<li><a href=t_ul>&lt;ul&gt;..&lt;/ul&gt;</a>
+<li><a href=t_var>&lt;var&gt;..&lt;/var&gt;</a>
+;<li><a href=t_>&lt;&gt;..&lt;/&gt;</a>
+</ul><br>
+<$ note> All tags are case-insensitive.</$ note>
+</p>
+
+.topic t_comment
+.title Tag <!--..-->
+<p>
+<$ new>Added from version 1.3c</$ new><br>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;!--..--&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+All text between <$ _>&lt;!--</$ _> and <$ _>--&gt;</$ _>
+will be treated as comments and will be ignored.
+</ul><br>
+</p><p align=right>
+<img src=u_prev_d><a href=tags><img src=u_cont></a><a href=t_$><img src=u_next></a>
+</p>
+
+.topic t_$
+.title Tag <$>..</$>
+<p>
+<$ new>Added from version 1.3</$ new><br>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;$</b> <i>name</i><b>&gt;..&lt;/$</b> <i>name</i><b>&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Substitutes <i>name</i> for a text string based on a previous definition using the directive
+<a href=d_$>.$</a>
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ paramEX>name</$ paramEX> - name defined using the directive <a href=d_$>.$</a>.
+</ul>
+</p><p align=right>
+<a href=t_comment><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_a><img src=u_next></a>
+</p>
+
+.topic t_a
+.title Tag <a>..</a>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;a</b> name=<i>value</i> href=<i>value</i> title=<i>value</i><b>&gt;..&lt;/a&gt;</b><$ new>Modified from version 1.3b</$ new>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Designates the start, end and destination of a hypertext link or anchor.
+The anchor element requires the <$ _>href</$ _>
+or the <$ _>name</$ _>
+property to be specified. Text and/or images can be used within an anchor.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>href</$ param> - Specifies the destination topic and/or anchor point,
+or tcl script. An anchor point is generally used to mark a some place in topic to jump by hyperlink.
+A hyperlink is used to jump to new topic and/or position marked by anchor.<br>
+When specifying an href, everything between the <$ _>&lt;a href..&gt;</$ _>
+and the <$ _>&lt;/a&gt;</$ _> becomes a clickable hyperlink to that topic.<br>
+<$ new></$ new>If the value of <$ param>href</$ param> starts with "<$ paramEX>tcl:</$ paramEX>"
+the text after prefix will be treated as tcl code to be invoked when a click is made on the link.<br>
+<$ note> The code will be executed in the global namespace.</$ note>
+<li><$ param>name</$ param> - Specifies the name of an anchor point in the topic text.
+<li><$ param>title</$ param> - Specifies the text to be displayed in status bar
+when the link is active. <$ new>Added from version 1.3b</$ new>
+
+</ul>
+</p><p align=right>
+<a href=t_$><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_address><img src=u_next></a>
+</p>
+
+.topic t_address
+.title Tag <address>..</address>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;address&gt;..&lt;/address&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies information such as an address, signature, and authorship.
+</ul>
+</p><p align=right>
+<a href=t_a><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_b><img src=u_next></a>
+</p>
+
+.topic t_b
+.title Tag <b>..</b>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;b&gt;..&lt;/b&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies that the text should be rendered in bold, where available.
+</ul>
+</p><p align=right>
+<a href=t_address><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_blockquote><img src=u_next></a>
+</p>
+
+.topic t_blockquote
+.title Tag <blockquote>..</blockquote>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;blockquote&gt;..&lt;/blockquote&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Sets apart a quotation in text.
+</ul>
+</p><p align=right>
+<a href=t_b><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_body><img src=u_next></a>
+</p>
+
+.topic t_body
+.title Tag <body>..</body>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;body</b> text=<a href=colors><i>color</i></a> bgcolor=<a href=colors><i>color</i></a> link=<a href=colors><i>color</i></a> alink=<a href=colors><i>color</i></a><b>&gt;..&lt;/body&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies the beginning and end of the document (topic) body.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>text</$ param> - Sets the text (foreground) color for the document body.
+This parameter overrides any <a href=d_forecolor>.forecolor</a> directive for the current topic only.
+<li><$ param>bgcolor</$ param> - Sets the background color for the document body.
+This parameter overrides any <a href=d_backcolor>.backcolor</a> directive for the current topic only.
+<li><$ param>link</$ param> - Sets the color for the document links.
+This parameter overrides any <a href=d_linkcolor>.linkcolor</a> directive for the current topic only.
+<li><$ param>alink</$ param> - Sets the color for the active link.
+This parameter override a <a href=d_alinkcolor>.alinkcolor</a> directive for the current topic only.
+</ul>
+</p><p align=right>
+<a href=t_blockquote><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_br><img src=u_next></a>
+</p>
+
+.topic t_br
+.title Tag <br>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;br&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Inserts a line break.
+</ul>
+</p><p align=right>
+<a href=t_body><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_center><img src=u_next></a>
+</p>
+
+.topic t_center
+.title Tag <center>..</center>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;center&gt;..&lt;/center&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Causes subsequent text and images to be centered.
+</ul>
+</p><p align=right>
+<a href=t_br><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_cite><img src=u_next></a>
+</p>
+
+.topic t_cite
+.title Tag <cite>..</cite>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;cite&gt;..&lt;/cite&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Indicates a citation. Refers to a book, paper, or other published source
+material. Text is rendered in italic.
+</ul>
+</p><p align=right>
+<a href=t_center><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_code><img src=u_next></a>
+</p>
+
+.topic t_code
+.title Tag <code>..</code>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;code&gt;..&lt;/code&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a code sample. Renders text in a small fixed-width font.
+</ul>
+</p><p align=right>
+<a href=t_cite><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_dir><img src=u_next></a>
+</p>
+
+.topic t_dir
+.title Tag <dir>..</dir>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;dir&gt;..&lt;/dir&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Denotes a directory list.
+</ul>
+</p><p align=right>
+<a href=t_code><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_div><img src=u_next></a>
+</p>
+
+.topic t_div
+.title Tag <div>..</div>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;div</b> align=<i>left</i>|<i>center</i>|<i>right</i><b>&gt;..&lt;/div&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a container that renders HTML.<br>
+<$ note> In this implementation this tag behave as tag
+<a href=t_p>&lt;p&gt;</a>.</$ note>
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>align</$ param> - Displays the paragraph <b>left</b> flush,
+<b>right</b> flush, or <b>centered</b> relative to the display.
+</ul>
+</p><p align=right>
+<a href=t_dir><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_em><img src=u_next></a>
+</p>
+
+.topic t_em
+.title Tag <em>..</em>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;em&gt;..&lt;/em&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Emphasizes text, usually by rendering it in italic.
+</ul>
+</p><p align=right>
+<a href=t_div><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_font><img src=u_next></a>
+</p>
+
+.topic t_font
+.title Tag <font>..</font>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;font</b> face=<i>value</i> color=<a href=colors><i>color</i></a> bgcolor=<a href=colors><i>color</i></a> size=<i>value</i> <i>point-size=value</i><b>&gt;..&lt;/font&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a font face, size, and color to be used for rendering the
+enclosed text.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ paramEX>bgcolor</$ paramEX> - Sets the background color to be used by the font.
+<li><$ param>color</$ param> - Sets the color to be used by the font.
+<li><$ param>face</$ param> - Sets the current font's typeface.
+<li><$ param>size</$ param> - Specifies font size. This parameter takes an
+integer value in the range 1 through 7, with 7 representing the largest font.
+Also, this parameter may be a relative value of font size in the range -2 through +4.
+<li><$ paramEX>point-size</$ paramEX> - Specifies font size in points. Also, the
+font size may be a relative value if started with a <$ _>"+"</$ _> or <$ _>"-"</$ _> sign.
+</ul>
+</p><p align=right>
+<a href=t_em><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_h><img src=u_next></a>
+</p>
+
+.topic t_h
+.title Tag <hN>..</hN>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;h<i>N</i></b> align=<i>left</i>|<i>center</i>|<i>right</i><b>&gt;..&lt;/h<i>N</i>&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Renders text as a heading style. <$ _>"N"</$ _> is a heading level and
+must takes an integer value in the range 1 through 6.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>align</$ param> - Displays the header <b>left</b> flush,
+<b>right</b> flush, or <b>centered</b> relative to the display.
+<$ new>Added from version 1.3 by J.W.Schmitz-H&uuml;bsch</$ new>
+</ul>
+</p><p align=right>
+<a href=t_font><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_hr><img src=u_next></a>
+</p>
+
+.topic t_hr
+.title Tag <hr>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;hr</b> height=<i>value</i> color=<a href=colors><i>color</i></a><b>&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Draws a horizontal rule.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>color</$ param> - Sets the color to be used by the rule.
+<li><$ paramEX>height</$ paramEX> - Specifies height of the rule, in pixels.
+</ul>
+</p><p align=right>
+<a href=t_h><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_i><img src=u_next></a>
+</p>
+
+.topic t_i
+.title Tag <i>..</i>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;i&gt;..&lt;/i&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies that the text should be rendered in italic font, where available.
+</ul>
+</p><p align=right>
+<a href=t_hr><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_img><img src=u_next></a>
+</p>
+
+.topic t_img
+.title Tag <img>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;img</b> src=<i>value</i> align=<i>top</i>|<i>middle</i>|<i>bottom</i>|<i>baseline</i> border=<i>value</i><b>&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Embeds an image in the document.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>align</$ param> - Specifies how the image is aligned with adjacent text.
+<ul>
+<li><$ param2>top</$ param2> - Aligns the top of the image with the top of the text.
+<li><$ param2>middle</$ param2> - Aligns the middle of the image with the surrounding text.
+<li><$ param2>bottom</$ param2> - Aligns the bottom of the image with the bottom of the surrounding text.
+<li><$ param2>baseline</$ param2> - Aligns the bottom of the image with the baseline of the surrounding text.
+</ul>
+<li><$ param>border</$ param> - Specifies the thickness of a border to be drawn around the image.
+Default is 0.
+<li><$ param>src</$ param> - Specifies a name of the image file or internal name which
+was defined by directive <a href=d_image>.image</a>.
+</ul>
+</p><p align=right>
+<a href=t_i><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_kbd><img src=u_next></a>
+</p>
+
+.topic t_kbd
+.title Tag <kbd>..</kbd>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;kbd&gt;..&lt;/kbd&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Renders text in fixed-width font.
+</ul>
+</p><p align=right>
+<a href=t_img><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_menu><img src=u_next></a>
+</p>
+
+.topic t_menu
+.title Tag <menu>..</menu>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;menu&gt;..&lt;/menu&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies that the following block consists of individual items.
+</ul>
+</p><p align=right>
+<a href=t_kbd><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_nobr><img src=u_next></a>
+</p>
+
+.topic t_nobr
+.title Tag <nobr>..</nobr>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;nobr&gt;..&lt;/nobr&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Turns off line breaking. Renders text without line breaks.
+</ul>
+</p><p align=right>
+<a href=t_menu><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_p><img src=u_next></a>
+</p>
+
+.topic t_p
+.title Tag <p>..</p>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;p</b> align=<i>left</i>|<i>center</i>|<i>right</i><b>&gt;..&lt;/p&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Inserts a paragraph break and denotes a paragraph.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>align</$ param> - Displays the patagraph <b>left</b> flush,
+<b>right</b> flush, or <b>centered</b> relative to the display.
+Default is left alignment.
+</ul>
+</p><p align=right>
+<a href=t_nobr><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_pre><img src=u_next></a>
+</p>
+
+.topic t_pre
+.title Tag <pre>..</pre>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;pre&gt;..&lt;/pre&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Renders text in fixed-width type.
+</ul>
+</p><p align=right>
+<a href=t_p><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_samp><img src=u_next></a>
+</p>
+
+.topic t_samp
+.title Tag <samp>..</samp>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;samp&gt;..&lt;/samp&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a sample text. Renders text in a small fixed-width font.
+</ul>
+</p><p align=right>
+<a href=t_pre><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_strong><img src=u_next></a>
+</p>
+
+.topic t_strong
+.title Tag <strong>..</strong>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;strong&gt;..&lt;/strong&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Emphasizes the text. Usually displays the text in bold.
+</ul>
+</p><p align=right>
+<a href=t_samp><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_title><img src=u_next></a>
+</p>
+
+.topic t_title
+.title Tag <title>..</title>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;title&gt;..&lt;/title&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Specifies a title for the document. <b>"HelpSystem"</b> will use this
+for topic titles and for the window caption. The end-tag is required.
+</ul>
+</p><p align=right>
+<a href=t_strong><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_tt><img src=u_next></a>
+</p>
+
+.topic t_tt
+.title Tag <tt>..</tt>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;tt&gt;..&lt;/tt&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Indicates teletype. Renders text in fixed-width type.
+</ul>
+</p><p align=right>
+<a href=t_title><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_u><img src=u_next></a>
+</p>
+
+.topic t_u
+.title Tag <u>..</u>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;u&gt;..&lt;/u&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Renders text underlined.
+</ul>
+</p><p align=right>
+<a href=t_tt><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_ul><img src=u_next></a>
+</p>
+
+.topic t_ul
+.title Tags <ul>..</ul>, <ol>..</ol>, <li>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;ul</b> type=<i>square</i>|<i>disc</i>|<i>circle</i>|<i>"name"</i> indent=<i>value</i><b>&gt;</b></$ format>
+<i>or</i>
+<$ format>
+<b>&lt;ol</b> type=<i>square</i>|<i>disk</i>|<i>circle</i>|<i>"name"</i> indent=<i>value</i><b>&gt;
+    &lt;li</b> type=<i>square</i>|<i>disk</i>|<i>circle</i>|<i>"name"</i><b>&gt;
+    ..
+&lt;/ul&gt;</b></$ format>
+<i>or</i>
+<$ format>
+<b>&lt;/ol&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+<li><$ param>&lt;ul&gt;</$ param> &amp; <$ param>&lt;ol&gt;</$ param> -
+Draws lines of text as a bulleted list. Specifies that the following
+block consists of individual items, each beginning with an
+<a href=#li>&lt;li&gt;</a> tag. The items are bulleted.
+<li><a name=li></a><$ param>&lt;li&gt;</$ param> - Denotes one item of a list.
+</ul><br>
+<$ head>Parameters:</$ head>
+<ul>
+<li><$ param>type</$ param> - Changes the style of the list or list item.
+<ul>
+<li><$ param2>square</$ param2> - Sets the bullet type of item to "<img src=squareimage>".
+<li><$ param2>disc</$ param2> - Sets the bullet type of item to "<img src=discimage>".
+                    This value is default.
+<li><$ param2>circle</$ param2> - Sets the bullet type of item to "<img src=circleimage>".
+<li><$ paramEX>"name"</$ paramEX> - Sets the bullet type of item to image named <i>"name"</i>
+which was defined by directive <a href=d_image>.image</a>.
+</ul>
+<li><$ paramEX>indent</$ paramEX> - Sets indentation size of the text block between
+<$ param>&lt;ul&gt;&lt;/ul&gt;</$ param> or
+<$ param>&lt;ol&gt;&lt;/ol&gt;</$ param> tags.
+Default value is 48 pixels.
+</ul>
+</p><p align=right>
+<a href=t_u><img src=u_prev></a><a href=tags><img src=u_cont></a><a href=t_var><img src=u_next></a>
+</p>
+
+.topic t_var
+.title Tag <var>..</var>
+<p>
+<$ head>Format:</$ head>
+<$ format>
+<b>&lt;var&gt;..&lt;/var&gt;</b>
+</$ format>
+<$ head>Description:</$ head>
+<ul>
+Indicates placeholder text for a variable. Displays text in italic font.
+</ul>
+</p><p align=right>
+<a href=t_ul><img src=u_prev></a><a href=tags><img src=u_cont></a><img src=u_next_d>
+</p>
+
+;.topic
+;.title
+;<p>
+;</p>
+
+;.topic
+;.title
+;<p>
+;</p>
+
+.topic colors
+.title Colors definition
+
+<!-- body bgcolor=#c0a0a0-->
+<h2>Color names and RGB values</h2>
+Colors can be specifying by color name or RGB value as
+<$ head>#RRGGBB</$ head>. An RGB color value consists of three
+two-digit hexadecimal numbers, with each number specifying the intensity
+of the corresponding color. For example, the color value
+<font color=#ff0000><kbd>#FF0000</kbd> is red </font>because the red number is set
+to its highest value, FF (255 in the decimal, or base 10, system).
+Green and blue are set to zero. Similarly,
+<font color=#00ff00 bgcolor=#9f9f72> <kbd>#00FF00</kbd> is green </font> and
+<font color=#0000ff> <kbd>#0000FF</kbd> is blue </font>.
+<br><br>
+Valid colors names and corresponding RGB values are:
+<pre><b>
+<font bgcolor=#c0a0a0> <font color=black>Black  </font> = <font color="#000000">#000000</font> </font>
+<font bgcolor=#c0a0a0> <font color=green>Green  </font> = <font color="#008000">#008000</font> </font>
+<font bgcolor=#c0a0a0> <font color=silver>Silver </font> = <font color="#C0C0C0">#C0C0C0</font> </font>
+<font bgcolor=#c0a0a0> <font color=lime>Lime   </font> = <font color="#00FF00">#00FF00</font> </font>
+<font bgcolor=#c0a0a0> <font color=gray>Gray   </font> = <font color="#808080">#808080</font> </font>
+<font bgcolor=#c0a0a0> <font color=olive>Olive  </font> = <font color="#808000">#808000</font> </font>
+<font bgcolor=#c0a0a0> <font color=white>White  </font> = <font color="#FFFFFF">#FFFFFF</font> </font>
+<font bgcolor=#c0a0a0> <font color=yellow>Yellow </font> = <font color="#FFFF00">#FFFF00</font> </font>
+<font bgcolor=#c0a0a0> <font color=maroon>Maroon </font> = <font color="#800000">#800000</font> </font>
+<font bgcolor=#c0a0a0> <font color=navy>Navy   </font> = <font color="#000080">#000080</font> </font>
+<font bgcolor=#c0a0a0> <font color=red>Red    </font> = <font color="#FF0000">#FF0000</font> </font>
+<font bgcolor=#c0a0a0> <font color=blue>Blue   </font> = <font color="#0000FF">#0000FF</font> </font>
+<font bgcolor=#c0a0a0> <font color=purple>Purple </font> = <font color="#800080">#800080</font> </font>
+<font bgcolor=#c0a0a0> <font color=teal>Teal   </font> = <font color="#008080">#008080</font> </font>
+<font bgcolor=#c0a0a0> <font color=fuchsia>Fuchsia</font> = <font color="#FF00FF">#FF00FF</font> </font>
+<font bgcolor=#c0a0a0> <font color=aqua>Aqua   </font> = <font color="#00FFFF">#00FFFF</font> </font>
+</b></pre>

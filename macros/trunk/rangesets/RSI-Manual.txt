@@ -1,0 +1,232 @@
+.. Document Type: reStructured Text (http://docutils.sf.net)
+.. Encoding: ISO8859-1
+
+==========================
+ NEdit Rangeset Interface
+==========================
+
+:Author: Dr Jörg Fischer
+:Contact: nedit@public-files.de
+:Version: 1.0
+:Date: 2008-01-20
+:Abstract:
+    This collection of macro subroutines provides a comfortable
+    management of rangesets by using the macro menu.
+
+
+.. contents::
+.. 
+   1  Introduction
+   2  Installation
+   3  Usage
+    3.1  Marking Text
+    3.2  Moving Between Ranges
+    3.3  Managing Rangesets
+    3.4  Additional Goodies
+   4  Changes
+   5  Credits
+
+Introduction
+============
+
+Since version 5.4, NEdit provides a feature called rangesets.  This
+means, you can mark and highlight ranges of your text that are
+non-contiguous but belong together in a certain sense.  It's similar to
+a marker pen.  The rangeset functionality is available only via macro
+subroutines.  So, to benefit from rangesets, you need to be able to
+write macros.  However, only a small number of NEdit users can do so. 
+Therefore, the RSI [#]_ macro set provides access to the general [#]_
+functionality of rangesets to the non macro programmers.
+
+
+Installation
+============
+
+The RSI macro set consists of Macro menu definitions and so-called
+user-defined macro subroutines.  These subroutines must be defined in a
+separate file.  Therefore, to install the RSI macro set you have to
+
+    1. import the Macro menu definitions and
+    2. load the macro subroutines.
+
+The first task is done from the command line with ::
+
+    nedit -import RSI-macMenu-defs.rc
+
+To include these definitions into your preferences file (``nedit.rc``),
+you have to save the preferences from the menu ``Preferences -> Save
+Defaults...`` [#]_.  
+
+Next you have to load the RSI macro subroutines.  This could be done
+from the menu, too, by calling ``File -> Load Macro File...``.  **But**
+the RSI macro set comes with a special "On Demand Loading" feature,
+actually a simplistic version of an "On Demand Loading".  Therefore, the
+RSI macro subroutines aren't loaded directly, but indirectly by another
+subroutine defined in the file ``autoload.nm``.
+
+Adapt the assignment of ``$RSI_globals["color-list"]`` by specifying the
+path to the ``rangesetRgb.txt`` file.
+
+
+Usage
+=====
+
+The RSI macro collection allows to mark some text by using a "virtual
+highlighter" and to move quickly between these marked parts of the
+document.  Moreover, you can access information about rangesets, and
+store the rangeset information for a document to a file to use it for
+the next NEdit session.  There are also two additional goodies using
+rangesets to color all occurences of a search string, and to color
+differences between two files or the file edited in the window and the
+last saved version of this file on the disk.
+
+
+Marking Text
+------------
+
+To mark a range of the text, simply select it and call ``Highlighter - >
+Add Range`` from the Macro menu.  The shortcut key is ``Ctrl+5``.  Then,
+a dialog opens with a pre-defined list of rangesets to choose from.  To
+create a new rangeset, select ``"NEW"``.
+
+If you just like to remember the current line, like setting a real mark,
+you can simply hit ``Ctrl+5`` without selecting anything.  Then the
+current line is added as range to the first defined rangeset.  Hitting
+``Ctrl+5`` again moves the line to the next rangeset.  This works
+always, if the cursor is on any range -- needn't be a line --, this
+range will be moved to the next rangeset.  This avoids the extra step of
+choosing a rangeset from a dialog.  Generally, if there is a selection,
+a dialog pops up to ask for a rangeset.  If there is no selection, the
+dialog is avoided and the next best rangeset is chosen.
+
+Removing the highlighting from some text works similarly.  Just place the
+cursor on it and call ``Highlighter -> Remove Range`` from the Macro menu.
+The shortcut key is ``Shift+Ctrl+5``.  If you only want to remove a
+part of a range, just select this part.  Then choose the rangeset from
+the dialog.
+
+If you want to get rid of all highlightings at once, simply call 
+``Highlighter -> Clear Ranges``.
+
+
+Moving Between Ranges
+---------------------
+
+There are two different types of functions implemented to move the
+cursor to the next or previous range of a rangeset, namely ``Next
+[Previous] Range`` and ``Next [Previous] Range (chosen)``.  The shortcut
+keys for the former are ``[Shift+]Ctrl+3`` and for the latter
+``[Shift+]Ctrl+4``.  
+
+The difference is that calling ``Highlighter -> Next Range`` moves the
+cursor to the next range, regardless of rangesets, while calling
+``Highlighter -> Next Range(chosen)`` moves the cursor to the next range
+of the same rangeset [#norsi]_ the cursor is currently positioned on.  If the
+cursor is not on a range of a rangeset, a dialog will ask you to choose
+a rangeset, cp. `Marking Text`_.
+
+
+
+
+Managing Rangesets
+------------------
+
+The RSI macro set lets you easily create new rangesets by selecting
+``"NEW"`` from the choice dialog popped up when marking text, cf.
+`Marking Text`_.  Moreover, you can change the names and the colors of
+rangesets by calling ``Highlighter -> Rename Set`` and ``Highlighter ->
+Change Colors``, respectively.  While the rename macro always ask for a
+name of a rangeset created by the RSI macros, the coloring macro only
+asks for a rangeset, if the cursor isn't located on a rangeset
+[#norsi]_.  Finally, to destroy one or all of the rangesets created by
+the RSI macros, call ``Highlighter -> Destroy Set(s)``.
+
+Of course, rangeset can also be created independently of the RSI macros.
+The ``Highlighter -> RS Information`` macro displays a calltip with
+information about **all** the rangesets in current window.  Note, the
+names of the rangesets created by the RSI macros are prefixed with
+``uRSi5_`` to distinguish uniquely from other rangesets.  The ``Destroy
+All RS`` macro destroys any rangesets in the current window, i.e., the
+storage they occupie is released.
+
+If you have defined several rangesets in the current document and want
+to go on editing the next day using these rangesets, you can simply save
+and restore these rangesets by calling ``Highlighter -> Save RSets`` and
+(after re-opening the document) ``Highlighter -> Load RSets``,
+respectively.  The rangeset info is stored in XML format either within
+the document (inline) or in an extra file.  
+
+Of course, if you store the information in an extra file, this
+information isn't bound to a particular document, except for the stored
+positions.  This means, if you have defined a set of rangesets (with
+colors) for document A and want to use the same set also for document B,
+you needn't define the set again in document B.  Only save the
+information from document A to a file and load it from there to document
+B, then clear all ranges to add the new ranges in document B to the
+loaded rangesets.  Then you can store these positions (and the
+rangesets) in another separate file for reuse again.
+
+
+Additional Goodies
+------------------
+
+
+- ``Highlighter -> Find All`` allows to highlight all occurrences of
+  a given string pattern.
+
+- ``Highlighter -> Show Changes`` performs a live ``wdiff``
+  between the last stored version of your document and the version
+  currently edited in the window.
+  
+- ``Highlighter -> wdiff File1 File2`` pops up the file selection dialog
+  to ask for two files to perform a ``wdiff`` between.
+
+
+
+Changes
+=======
+
+There are some major changes to the original `rangeset macro
+collection`_.
+These are:
+
+  - operate consistently on single document and not over all open
+    documents.
+  - quick next/previous range macro
+  - added "RS Information" and "Destroy All RS"
+  - "Show Changes" macro changed to using ``wdiff``
+  - added "wdiff File1 File2"
+  - coloring and next/previous (choose) also for rangesets not defined
+    by the RSI macros
+  - adapted to ``jf_require()`` (ie, simplistic "On Demand Macro
+    Loading") 
+    
+
+
+Credits
+=======
+
+ - Author of the rangeset patch is Tony Balinski.
+
+ - Author of the rangeset macro interface set is Uwe Lehnert.  
+  
+   Current maintainer thereof is Dr Jörg Fischer.
+
+------------------------
+
+Footnotes:
+
+.. [#] Rangeset Interface
+
+.. [#] There are other macro sets for more specialized task like
+   diff'ing and merging.
+
+.. [#] Note, this isn't done automatically for imports, so if you
+   simply close NEdit after an import of menu definitions, these 
+   will be lost.
+
+.. [#norsi] This takes also rangesets into consideration, that weren't
+   defined by the RSI macro set.
+
+.. _rangeset macro collection:        
+    http://nedit.hackvalue.nl/niki/index.php/RangesetMacroCollection

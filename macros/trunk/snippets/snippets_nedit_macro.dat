@@ -1,0 +1,10 @@
+
+REQUIRE
+if (jf_require("utilities.nm") == "")
+ERROR
+errMsg = jf_require("keyPress.nm")
+if (errMsg != "") {
+    calltip(errMsg)
+    return
+}
+

@@ -1,0 +1,215 @@
+define ltx_rewrap {
+soft_ret = " \n"
+
+# indenation for lists (\item, \bibitem)
+indent = ""
+
+math_open = "$"
+math_close = "$"
+
+string = $1 #get_selection()
+margin = 72
+para_out = ""
+para_in = split(string, "(?<!\\\\)\\$|\\\\\\(|\\\\\\)", "regex")
+#dialog($1)
+found = search_string(string, "\\\\(bib)?item", 0, "regex")
+if (found == 0) {
+dialog("indent")
+    indent = " "
+}
+
+for (i = 0; i < para_in[]; i = i + 2) {
+    para_in[i] = replace_in_string(para_in[i], "\n", " ", "copy")
+    while (length(para_in[i]) > margin) {
+#      dialog(para_in[i]"\n\n"para_out)
+         space = search_string(para_in[i], " ", margin, "backward")
+         if (space != -1) {
+             para_out = para_out indent substring(para_in[i], 0, space) soft_ret
+             para_in[i] = substring(para_in[i], space + 1, length(para_in[i]))
+         }
+         else {
+            space = search_string(para_in[i], " ", margin)
+            if (space != -1) {
+                para_out = para_out indent substring(para_in[i], 0, space) soft_ret
+                para_in[i] = substring(para_in[i], space + 1, length(para_in[i]))
+            }
+            else {
+            para_out = para_out indent para_in[i] soft_ret
+            para_in[i] = ""
+            }
+         }
+    }     
+    if ((i+1) in para_in) {
+      # odd entries contain inline math
+      para_in[i+1] = math_open para_in[i+1] math_close
+      temp = split(para_in[i+1], "\n")
+      if (temp[] > 2) {
+          # if $...$ contains more than one newline, set math on newline and leave untouched
+          # except for possible indentation
+          para_out = para_out indent para_in[i] "\n" \
+                    replace_in_string(para_in[i+1], "^", indent, "regex", "copy")"\n"
+      }
+      else {
+        para_in[i+1] = replace_in_string(para_in[i+1], "\n", " ", "copy")
+        # add rest of para_in[i] and $...$, where spaces are replaced with $sub_sep,
+        # to para_in[i+2] for rewrapping
+        if ((i+2) in para_in) {
+          para_in[i+2] = para_in[i] \
+                         replace_in_string(para_in[i+1], " ", $sub_sep, "copy") \
+                         para_in[i+2]
+        }
+        else {
+          # math on last line
+              if (length(para_in[i] para_in[i+1]) < margin) {
+                  para_out = para_out para_in[i] para_in[i+1]
+              }
+              else {
+                para_out = para_in[i] soft_ret indent para_in[i+1]
+              }
+        }
+      }
+    }
+    else {
+      para_out = para_out indent para_in[i]
+    }
+}
+para_out = replace_in_string(para_out, $sub_sep, " ", "copy")
+#replace_selection(para_out)
+if (indent != "") {
+    para_out = substring(para_out, length(indent), length(para_out))
+}
+return(para_out)
+}
+
+
+define ltx_formatting {
+para_break_pat = "\\\\(?:begin|end|chapter|section)"
+
+cur_pos = $cursor
+
+para_start = $selection_start #search(para_break_pat, cur_pos, "regex")
+
+para_end = $selection_end #search(para_break_pat, cur_pos, "regex", "backward")
+
+block = get_selection() #get_range(para_start, para_end)
+#dialog(para_start" "para_end"\n" block)
+
+
+
+# handle comments
+com_start = search_string(block, "(?<!\\\\)%", 0, "regex")
+i = -1
+com_end = 0
+if (com_start == -1) {
+    part[0] = block
+    comment = $empty_array
+}
+while (com_start != -1) {
+    part[++i] = substring(block, com_end, com_start)
+    dialog("comments loop - part["i"]\n"part[i])
+    # look for end of comment
+    com_end = search_string(block, "\n", com_start)
+    # no newline => all the rest is comment
+    if (com_end == -1) {
+        comment[i] = substring(block, com_start, length(block))
+        com_start = -1 # break
+    }
+    else {
+        # have newline
+        com_end = $search_end
+        comment[i] = substring(block, com_start, com_end)
+        com_start = search_string(block, "(?<!\\\\)%", com_end, "regex")
+        # get last part after comment
+        if (com_start == -1) {
+            part[++i] = substring(block, com_end, length(block))
+        }
+    }
+}
+
+output = ""
+for (i = 0; i < part[]; i++) {
+    # handle lists (\item, \bibitem)
+    item_end = search_string(part[i], "\\item", 0)
+    endpos = $search_end
+    if (item_end == -1) {
+        if (i in comment) {
+            output = output ltx_rewrap(part[i]) "\n" comment[i] 
+        }
+        else {
+            output = output ltx_rewrap(part[i]) "\n"
+        }
+    }
+    item_start = 0
+    flag = 1
+    while (item_end != -1) {
+        endpos = $search_end
+        output = output ltx_rewrap(substring(part[i], item_start, item_end)) "\n"
+        dialog("item loop - \n"output)
+        # end of item = begin of next item
+        item_start = item_end
+        item_end = search_string(part[i], "\\item", endpos)
+        flag = 0
+        if (item_end == -1) {
+            output = output ltx_rewrap(substring(part[i], item_start, length(part[i])))"\n"
+        }
+    }
+    if (flag == 0 && i in comment) {
+        output = output "\n" comment[i] 
+    }
+}
+
+
+replace_range(para_start, para_end, output)
+}
+
+
+define jf_testing {
+
+cpos = $cursor
+
+empty_line_or_comment = "(?:\\n\\s*\\n|%)"
+
+section_pat = "(?:\\\\(?:(?:sub){0,3}(?:section|paragraph)|part|chapter|minisec|add(?:part|sec|chap)))"
+
+bg_pat = "(?:\\\\(?:begin>|\\[))"
+
+end_pat = "(?:\\\\(?:end>|\\]))"
+
+start = search(empty_line_or_comment"|"section_pat"|"bg_pat"|"end_pat,\
+                 $cursor, "regex", "backward")
+
+if (start == -1) {
+
+}
+while (start != -1) {
+    found = get_range(start, $search_end)
+    if (found == "\\begin") {
+        # corresponding end
+        set_cursor_pos($search_end)
+        corres_end = ltx_bg_end()
+        set_cursor_pos(cpos)
+        if ("start" in corres_end) {
+            if ($cursor <= corres_end["start"]) {
+                # cursor inside bg/end pair => check type
+                
+                
+                # break loop
+            
+            }
+            else {
+                # cursor not inside this bg/end pair => search for next begin
+            }
+            
+        }
+        else {
+            # no corresponding end => check type of \begin
+        }
+    }
+    else {
+    #|><|
+    }
+    
+}
+
+
+}

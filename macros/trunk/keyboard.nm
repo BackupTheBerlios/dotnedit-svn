@@ -1,0 +1,391 @@
+# Mainly for Windows, when you only can use a US-keyboard (locale disabled).
+
+# jfGermanKeyboard
+# jf_key_switching
+# jfCloseBraArray
+# jfWalkThroughBras
+# ltx_sub_super
+# jf_newline_and_autoindent
+
+
+$jfKeyboard["mode"] = $empty_array
+$jfKeyboard["availableModes"] = "en\nde\nalt\ntex"
+$jfKeyboard["closeBrackets"] = 1
+$jfKeyboard["CAPSLOCK"] = 0
+
+$jfKeyboard["`"] = $empty_array
+
+$jfKeyboard["["] = $empty_array
+$jfKeyboard["{"] = $empty_array
+$jfKeyboard[";"] = $empty_array
+$jfKeyboard[":"] = $empty_array
+$jfKeyboard["'"] = $empty_array
+$jfKeyboard["\""] = $empty_array
+$jfKeyboard["-"] = $empty_array
+$jfKeyboard["y"] = $empty_array
+$jfKeyboard["z"] = $empty_array
+$jfKeyboard["Y"] = $empty_array
+$jfKeyboard["Z"] = $empty_array
+
+# These keys get no mode.  They must be contained in the array
+# for technical reasons.
+$jfKeyboard["$"] = $empty_array
+$jfKeyboard["("] = $empty_array
+
+# The different modes.  Notice, the default mode "en" must *not*
+# be in the arrays!
+$jfKeyboard["["]["de"] = "ü"
+$jfKeyboard["["]["tex"] = "\"u"
+$jfKeyboard["["]["alt"] = "ue"
+$jfKeyboard["{"]["de"] = "Ü"
+$jfKeyboard["{"]["tex"] = "\"U"
+$jfKeyboard["{"]["alt"] = "Ue"
+$jfKeyboard[";"]["de"] = "ö"
+$jfKeyboard[";"]["tex"] = "\"o"
+$jfKeyboard[";"]["alt"] = "oe"
+$jfKeyboard[":"]["de"] = "Ö"
+$jfKeyboard[":"]["tex"] = "\"O"
+$jfKeyboard[":"]["alt"] = "Oe"
+$jfKeyboard["'"]["de"] = "ä"
+$jfKeyboard["'"]["tex"] = "\"a"
+$jfKeyboard["'"]["alt"] = "ae"
+$jfKeyboard["\""]["de"] = "Ä"
+$jfKeyboard["\""]["tex"] = "\"A"
+$jfKeyboard["\""]["alt"] = "Ae"
+$jfKeyboard["-"]["de"] = "ß"
+$jfKeyboard["-"]["tex"] = "\"s"
+$jfKeyboard["-"]["alt"] = "ss"
+$jfKeyboard["y"]["de"] = "z"
+$jfKeyboard["y"]["tex"] = "z"
+$jfKeyboard["y"]["alt"] = "z"
+$jfKeyboard["z"]["de"] = "y"
+$jfKeyboard["z"]["tex"] = "y"
+$jfKeyboard["z"]["alt"] = "y"
+$jfKeyboard["Y"]["de"] = "Z"
+$jfKeyboard["Y"]["tex"] = "Z"
+$jfKeyboard["Y"]["alt"] = "Z"
+$jfKeyboard["Z"]["de"] = "Y"
+$jfKeyboard["Z"]["tex"] = "Y"
+$jfKeyboard["Z"]["alt"] = "Y"
+
+
+
+
+# void jfGermanKeyboard()
+# This function is to be bound to [ { ; : ' " - y z Y Z keys,
+# and a self_insert() *before* the function is called.  Depends on
+# the global $jfKeyboard array.  Handles the keyboard according to the modes, 
+# that is, allows the german umlaute while not losing the US keyboard layout.
+# Allows also to close brackets automatically.
+# 
+define jfGermanKeyboard {
+  # not really necessary, but one never knows
+  $jfKeyboard[""] = 0
+  
+ 
+  thisFile = $file_path $file_name
+  cpos = $cursor
+  # get the character typed immediately before the function call
+  # using self_insert()  (In this way, the keyboard works just like normal,
+  # if the function isn't available.  That is, we don't depend too strongly
+  # on the X translations.)
+  typedChar = get_character(cpos - 1)
+  previousChar = get_character(cpos - 2)
+  if (!(typedChar in $jfKeyboard)) {
+      # this shouldn't happen
+      dialog("jfGermanKeyboard: All handled chars must be\n"\
+             "in the $jfKeyboard array, cf. keboard.nm")
+      return
+  }
+
+  # This part should be handled elsewhere!
+  # It belongs to the walk through brackets thing.
+  # It should also be customizable.
+  if ($language_mode == "LaTeX" && (typedChar == "{" || typedChar == "[") ) {
+      temp = search("(\\}|\\]) +.", cpos, "regex", "backward")
+      if ($search_end == cpos) {
+          replace_range(temp + 1, cpos - 1, "")
+          
+          # Adjust the cursor position.
+          cpos = $cursor
+      }
+  }
+
+  
+  closeBrackets = $jfKeyboard["closeBrackets"]
+  if (!(thisFile in $jfKeyboard["mode"])) {
+      # just check if we have to close a bracket
+      if (closeBrackets) {
+          closingBrackets = jfCloseBraArray($language_mode)
+          # In LaTeX there are two char wide brackets, eg, \[, \(, \{
+          # This isn't ideal, but there are so many special cases.
+          if ($language_mode == "LaTeX" && previousChar == "\\") {
+              typedChar = "\\"typedChar
+          }
+          if (typedChar in closingBrackets) {
+              replace_range(cpos, cpos, closingBrackets[typedChar])
+          }
+      }
+      return
+  }
+  # Here the current file has a mode, and the typed character was ensured
+  # to be in $jfKeyboard.  So,
+  mode = $jfKeyboard["mode"][thisFile]
+  if (!(mode in $jfKeyboard[typedChar])) {
+      # the default mode "en" isn't and (mustn't be!) in $jfKeyboard
+      # just check if we have to close a bracket
+      if (closeBrackets) {
+          # In LaTeX there are two char wide brackets, eg, \[, \(, \{
+          # This isn't ideal, but there are so many special cases.
+          if ($language_mode == "LaTeX" && previousChar == "\\") {
+              typedChar = "\\"typedChar
+          }
+          closingBrackets = jfCloseBraArray($language_mode)
+          if (typedChar in closingBrackets) {
+              replace_range(cpos, cpos, closingBrackets[typedChar])
+          }
+      }
+      return
+  }
+  else {
+      # mode is not "en" !!!
+      charToType = $jfKeyboard[typedChar][mode]
+      
+      # For CAPSLOCK on, we switch the case, but only for 
+      # the umlaute.  (The nolocale wrapper thing could be dropped, if you have
+      # locale available always.  In this case remove the jf_require call and
+      # replace tolower/toupper_wrapper simply with tolower or toupper, respectively.)
+      if ($jfKeyboard["CAPSLOCK"]) {
+          if (search_string(";:'\"[{-", typedChar, 0, "case") != -1) {
+              if (jf_require("case-noloc-wrapper.nm") == "") {
+                  if (charToType == tolower_wrapper(charToType)) {
+                      charToType = toupper_wrapper(charToType)
+                  }
+                  else {
+                      charToType = tolower_wrapper(charToType)
+                  }
+              }
+          }
+      }
+      
+      # Handle special cases, depending on language mode for instance
+
+      # Generally, if we type the same char two times in a row,
+      # we want the english char back (except for y, z).
+      if (previousChar == charToType && tolower(typedChar) != "y" && tolower(typedChar) != "z") {
+          replace_range(cpos - 2, cpos, typedChar)
+
+          # in addition, we check for closing bracket
+          if (closeBrackets) {
+              closingBrackets = jfCloseBraArray($language_mode)
+              # In LaTeX there are two char wide brackets, eg, \[, \(, \{
+              # This isn't ideal, but there are so many special cases.
+              if ($language_mode == "LaTeX" && previousChar == "\\") {
+                  typedChar = "\\"typedChar
+              }
+              if (typedChar in closingBrackets) {
+                  replace_range(cpos-1, cpos-1, closingBrackets[typedChar])
+              }
+          }
+          return
+      }
+      
+      # Language mode specific stuff that allows to ignore the German
+      # umlaute.  If we can exclude the umlaute, we simply return,
+      # since we self_inserted already.
+      # If we can\t exclude, we go on.
+      
+      # like in LaTeX, we ignore the umlaute, if we are writing commands
+      # (This customization is one of the main points of doing this sort
+      # of keyboard handlin.)
+      if ($language_mode == "LaTeX") {
+          # Are we writing a command or are we inside an Inline Maths environment
+          pats = get_pattern_at_pos($cursor)
+          if ("pattern" in pats) {
+              pattern = pats["pattern"]
+          }
+          else {
+              pattern = ""
+          }
+
+          test = search("\\\\[a-zA-Z0-9_]*|_|\\^", cpos - 1, "regex", "backward")
+          if ($search_end == cpos - 1 || pattern == "Inline Math") {
+              # check for closing bracket
+              if (closeBrackets) {
+                  closingBrackets = jfCloseBraArray($language_mode)
+                  if (previousChar == "\\") {
+                      typedChar = "\\"typedChar
+                  }
+                  if (typedChar in closingBrackets) {
+                      replace_range(cpos, cpos, closingBrackets[typedChar])
+                  }
+              }
+              return
+          }
+      }
+
+
+      # General, language mode independent stuff
+      
+      # we insert ß only in rare cases
+      if (typedChar == "-") {
+          vokale = "aeiouäöü"
+          if ($jfKeyboard["CAPSLOCK"]) {
+              vokale = "AEIOUÄÖÜ"
+              if (charToType == "ß") {
+                  charToType = "SS"
+              }
+          }
+          test = search_string(vokale, previousChar, 0, "case")
+          if (test != -1) {
+              replace_range(cpos - 1, cpos, charToType)
+          }
+          return
+      }
+      
+      # The capital umlaute are also special
+      if (typedChar == "{" || typedChar == ":" || typedChar == "\"") {
+          test = search_string(previousChar, "[a-zäöü]", 0, "regex")
+          if (test == -1) {
+              replace_range(cpos - 1, cpos, charToType)
+          }
+          # For the "{" we have to check whether to close
+          # (note: the LaTeX case of \{ is handled already)
+          else if (typedChar == "{" && closeBrackets) {
+              replace_range(cpos, cpos, "}")
+          }
+          return
+      }
+      
+      # If all special cases failed, replace the typed character
+      replace_range(cpos - 1, cpos, charToType)
+  }
+
+
+}
+
+
+# Switching
+define jf_key_switching {
+  file = $file_path $file_name
+  if (!(file in  $jfKeyboard["mode"]))
+      $jfKeyboard["mode"][file] = "en"
+
+  mode = list_dialog("Choose", $jfKeyboard["availableModes"], "Ok")
+  if (mode != "" && $list_dialog_button == 1) {
+     $jfKeyboard["mode"][file] = mode
+  }
+
+  # If we have no expansions, we return. (On success, jf_require returns "".)
+  errmsg = jf_require("expansions.nm")
+  if (errmsg != "")
+     return
+
+  expansions_init()
+}
+
+define jfShowKeyboardMode {
+  file = $file_path $file_name
+  if (file in $jfKeyboard["mode"]) {
+      mode = $jfKeyboard["mode"][file]
+      calltip(toupper(mode))
+      # how fast is your computer?
+      for (i=1;i<70000;i++) {}
+      kill_calltip()
+   }
+   else {
+      calltip("EN")
+      for (i=1;i<70000;i++) {}
+      kill_calltip()
+   }
+}
+
+# Takes a language mode as argument and returns an array with keys
+# open brackets and values the respective closing brackets
+define jfCloseBraArray {
+  language = $1
+  closingBracket["["] = "]"
+  closingBracket["("] = ")"
+  closingBracket["{"] = "}"
+  
+  # This should be language dependent
+  moreBrackets["LaTeX"] = "$:$\n\\[:\\]\n\\(:\\)\n\\{:\\}"
+  moreBrackets["ResText"] = "`:`"
+  moreBrackets["NEdit Macro"] = "\":\""
+  moreBrackets["SGML HTML"] = "<:>\n\":\""
+  
+  if (language in moreBrackets) {
+      keyValuePairs = split(moreBrackets[language], "\n")
+      for (i = 0; i < keyValuePairs[]; i++) {
+          tmp = split(keyValuePairs[i], ":")
+          closingBracket[tmp[0]] = tmp[1]
+      }
+  }
+
+  return closingBracket
+}
+
+
+# To be bound to the space key.  Complements the closing brackets
+# macros by walking passed the closing bracket with the space key.
+# You can use Shift+Space to avoid it.
+# Takes the position after self_insert() as argument.
+# This means that space was inserted.
+define jfWalkThroughBras {
+  pos = $1
+  mode = 0
+  punctuation = "[,;!:.?]"
+  bracketsDefaultPats = "[\\}\\)\\]]"
+  bracketsPats["LaTeX"] = "\\\\?[\\$\\}\\)\\]]"
+  bracketsPats["ResText"] = "``|[`\\}\\)\\]]"
+  bracketsPats["NEdit Macro"] = "[\"\\}\\)\\]]"
+  
+  previousChar = get_character(pos - 2)
+  if (previousChar == " ")  {
+      pats = bracketsDefaultPats
+      if ($language_mode in bracketsPats) {
+          pats = bracketsPats[$language_mode]
+      }
+      if (search(pats, $cursor, "regex") == $cursor) {
+          set_cursor_pos(pos - 4)
+          if (mode) {
+              replace("("punctuation")? {2,2}("pats")", "\\2\\1 ", "regex")
+          }
+          else {
+              replace(" {2,2}("pats")", "\\1", "regex")
+          }
+      }
+  }
+}
+
+
+
+define ltx_sub_super {
+hit = $1
+subsup["_"] = "_{}^{|><|}"
+subsup["^"] = "^{}_{|><|}"
+
+pos = $cursor
+char = get_character(pos-1)
+if (char in  subsup) {
+    delete_previous_character()
+    insert_string(subsup[char])
+    set_cursor_pos(pos+1)
+}
+else {
+  start = search("\\S", $cursor-1, "regex", "backward")
+  if ($search_end != $cursor) {
+    replace_range(start+1, $cursor, hit)
+  } 
+  else {
+    insert_string(hit)
+    }
+}
+
+}
+
+define jf_newline_and_autoindent {
+pos = search("^\\s*", $cursor, "regex", "backward")
+insert_string("\n" get_range(pos, $search_end))
+}
+

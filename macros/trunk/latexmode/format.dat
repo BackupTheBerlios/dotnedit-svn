@@ -1,0 +1,43 @@
+
+EMPHAZISE\emph{}
+
+FOOTNOTE\footnote{}
+
+BOLD\textbf{}
+
+quotation marks (us)``''
+quotation marks (ge)"`"'
+
+\glqq\grqq{}
+single
+\glq\grq{}
+
+quotation marks (fr)">"<
+
+\frqq\flqq{}
+single
+\frq\flq{}
+
+Verb\verb||
+Verb*\verb*||
+underline\underline{}
+
+overline\overline{}
+
+mathrm\mathrm{}
+
+smaller{\footnotesize}
+
+small{\small}
+
+Normal{\normalsize}
+
+LARGE{\large }
+
+LARGER{\Large}
+small caps\textsc{}
+typewriter\texttt{}
+
+sans serif\textsf{}
+
+

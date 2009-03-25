@@ -1,0 +1,91 @@
+#==================================================================================
+#
+# Programming an interface to Tcl/Tk - HelpSystem
+#
+#==================================================================================
+
+# ``.outtcl`` and ``.intcl`` are files to transfer strings between a Tcl script and
+# NEdit.
+# the tcl script writes its output that is to be inserted in a nedit window in outtcl
+# the subroutine tcl reads it and writes it in the current file
+# the current file is written in intcl through the smart-indent hook, i.e., the last
+# open file, which was edited (something must be inserted to invoke the hook), will
+# be the current file
+
+# If nobody else determined the OS, we try it here.
+$NE_globals[""] = 0
+if (!("op_system" in  $NE_globals)) {
+     nedit_v = shell_command("nedit -V", "")
+     if (search_string(nedit_v, "Built on: Win\\w*", 0, "regex") != -1) {
+      $NE_globals["op_system"] = "mswindows"
+     }
+     else {
+      $NE_globals["op_system"] = "unix"
+     }
+}
+
+$tcl_globals[""] = 0
+
+# You need a c shell (tcsh or csh) for this
+# Notice that even with the correct redirection syntax it does not work for bourne 
+# shells prior to NEdit v5.5! (Still doesn't work under Cygwin for bourne shells.)
+$daemon = " >& /dev/null &"
+#$daemon_sh = " < /dev/null > /dev/null 2>&1"
+
+
+# You need Tcl/Tk version 8.2 or later for the HelpSystem.
+# Possibly one needs a different call on mswindows 
+if ($NE_globals["op_system"] == "mswindows") {
+    $tcl_globals["wish"] = "wish "
+}
+else {
+    $tcl_globals["wish"] = "wish "
+}
+
+$tcl_globals["path"] =  $jf_path_to["tcl_interface.nm"]
+
+define tcl_insert {
+ 
+ str = read_file($tcl_globals["path"] ".outtcl")
+
+ # not necessary, will be handled by Tcl
+ #focus_window("last")
+
+ # Windows compatibility
+ if ($NE_globals["op_system"] == "mswindows") {
+     str = replace_in_string(str, "\r", "", "copy")
+ }
+
+ insert_string(str)
+}
+
+#==================================================================================
+# smart-indent hook for LaTeX in this case
+
+define tcl_hook {
+ current_file = $file_path $file_name 
+
+ if (!("last_file" in $tcl_globals))
+    $tcl_globals["last_file"] = ""
+ 
+ # "last_file" is ensured to be in $tcl_gobals
+ if ($tcl_globals["last_file"] != current_file) {
+     $tcl_globals["last_file"] = current_file
+     write_file(current_file, $tcl_globals["path"] ".intcl")
+ }
+
+}
+
+#==================================================================================
+define tcl_assistant {
+script = $1 " "
+action = $2
+if (action != "") action = " "action
+path = $tcl_globals["path"]
+if ($NE_globals["op_system"] == "mswindows") 
+    path = path2win(path)
+pid = shell_command("cd " path "\n" $tcl_globals["wish"] script path action $daemon ,"")
+}
+
+
+#==================================================================================

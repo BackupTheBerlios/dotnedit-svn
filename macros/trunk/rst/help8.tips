@@ -1,0 +1,11 @@
+FOOTNOTES
+Footnote references, like [5]_.  Autonumbered 
+ones are possible [#]_ and with label [#note]_. 
+
+.. [5] A numerical footnote. Note 
+   there's no colon after the ``]``.
+
+.. [#] This is autonumbered one. 
+
+.. [#note] This is with label, for 
+   repeated use.

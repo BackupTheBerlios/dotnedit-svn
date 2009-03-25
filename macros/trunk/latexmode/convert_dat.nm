@@ -1,0 +1,16 @@
+symb["¤"] = "\a"
+symb["¢"] = "\b"
+symb["Ø"] = "\f"
+symb["×"] = "\v"
+symb["ø"] = $sub_sep
+files = shell_command("ls test/*.dat", "")
+list_dialog("Check", files, "OK")
+file = split(files, "\n")
+for (i = 0; i < file[]; i++) {
+    text = read_file(file[i])
+    for (s in symb) {
+        text = replace_in_string(text, s, symb[s], "case", "copy")
+        }
+    write_file(text, file[i])
+    }
+

@@ -1,0 +1,18 @@
+HELP Page 1        -           KEYBINDINGS
+Next page  -  Shift+F1
+-------------------------------
+Complete Word                ...    F4
+Complete Command
+Show list of Completions   ...    F5
+Show Calltip                   .,.    Ctrl+'
+Kill Calltip                       ...    Esc
+
+Switch language             ...    Alt+.
+
+Show Lables                  ...    Alt+Shift+L
+        Sectioning             .,.    Alt+Shift+S
+        Commands             ...    Alt+Shift+C
+
+Expand                          ...    Space
+Expand with selection      ...    Ctrl+Space
+Avoid expansion             ...    Shift+Space 

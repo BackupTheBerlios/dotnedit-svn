@@ -1,0 +1,19 @@
+# Rangesets>Merge files from diff
+	NEDIT_require_macro_file("RSfileMerge.nm")
+	
+	fileMerge_from_diff()
+
+
+#Rangesets>Show Changes
+	NEDIT_require_macro_file("RSshowChange.nm")
+	
+	diff_with_saved()
+	
+	clear = dialog("Clear Difference Rangesets A, C and D?", "Yes", "No")
+	if (clear == 1)
+	  {
+	  rangeset_destroy($rsl_name["a"])
+	  rangeset_destroy($rsl_name["c"])
+	  rangeset_destroy($rsl_name["d"])
+	  }
+

@@ -1,0 +1,33 @@
+# multiple selections
+
+# create if not there already
+if ($mult_sel=="") {
+    $mult_sel=rangeset_create()
+    rangeset_set_color($mult_sel,"#D8A9FF")
+    }
+rangeset_add($mult_sel,$selection_start,$selection_end)
+
+
+#==================================================================================
+# unselect 
+t=-1
+for (i=0;i<$rangeset_list[];i++) {
+    if ($mult_sel==$rangeset_list[i]) t++
+    }
+
+if (t==1) {
+    rangeset_destroy($mult_sel)
+    $mult_sel=""
+    }
+
+
+#==================================================================================
+# paste all ranges
+r=rangeset_info($mult_sel)
+text=""
+for (i=1;i<=r["count"];i++) {
+    a=rangeset_range($mult_sel,i)
+    text= text "\n" get_range(a["start"],a["end"])
+    }
+text=substring(text,1,length(text))
+string_to_clipboard(text)

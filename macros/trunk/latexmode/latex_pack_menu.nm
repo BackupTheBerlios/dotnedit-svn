@@ -1,0 +1,345 @@
+#==================================================================================
+# running previewer, except for ltx_forward_search
+
+#
+# Run ...>LaTeX (+src specials)@LaTeX
+# ===============
+# For Windows, it is assumed you're running MiKTeX.
+if ($windows == "true") {
+   # for MiKTeX compile with source specials, confirm the MiKTeX and Yap manuals
+   run_lat("win latex source",$ltx_debug_mode)
+   }
+   else
+      {
+      # when using latest teTeX BETA, e.g. SuSE 8.0
+      run_lat("latex source",$ltx_debug_mode)
+      }
+
+# Run ...>LaTeX@LaTeX
+# ===============
+if ($windows == "true") {
+   run_lat("win latex",$ltx_debug_mode)
+   }
+   else {
+   run_lat("latex",$ltx_debug_mode)
+   }
+# Run ...>pdfLaTeX@LaTeX
+# ===============
+run_lat("pdflatex",$ltx_debug_mode)
+
+# Run ...>Preview@LaTeX
+# ===================
+work = ltx_main_file()
+if ($windows == "true") {
+   work["path"] = path2win(work["path"])
+   }
+   
+dvi_file = substring(work["file"],0,length(work["file"])-3) "dvi"
+t = shell_command($previewer $win_esc work["path"] dvi_file $win_esc $daemon,"")
+
+
+# if dvi file exists,, csh ~/shell.csh
+
+#there = shell_command("if ({ test -e " $win_esc path dvi_file $win_esc " }) then\n"\
+#      "echo true\nelse\necho false\nendif" ,"")
+
+#if (there == "true\n")
+#	{
+	
+#dialog(t "\n" $shell_cmd_status)
+#	}
+#	else
+#		{
+#		dialog("DVI file does not exists.","OK")
+#		}			 
+
+# Run ...>Debug on/off@LaTeX
+if ($ltx_debug_mode == "on") {
+    $ltx_debug_mode = "off"
+    }
+    else {
+      $ltx_debug_mode = "on"
+      }
+    
+
+
+#==================================================================================
+# invoking the HelpSystem
+
+# topic greek letters
+# use path name variable $data to allow for different setups
+# use command variable $tk to allow different names for `wish' - Windows compatibility
+# " greek" is the topic the HelpSystem will open with.
+path = $data
+if ($windows == "true") path = path2win(path)
+shell_command("cd " $data "assistant\n" $tk "latex.tcl " path " greek" $daemon ,"")
+
+# latex contents
+shell_command("cd " $data "assistant\n" $tk "latex.tcl " path $daemon ,"")
+
+# help about HelpSystem
+shell_command("cd " $data "assistant\n" $tk "about-help.tcl " path $daemon ,"")
+
+
+#==================================================================================
+#==================================================================================
+# sub and super indices
+
+pos = $cursor
+char = get_character(pos-1)
+if (char == "_")
+    {
+    delete_previous_character()
+    insert_string("_{}^{|><|}")
+    set_cursor_pos(pos+1)
+    }
+    else
+        {
+        insert_string("_")
+        }
+
+#==================================================================================
+# german quotation marks
+quot["l","de"] = "\"`"
+quot["r","de"] = "\"'"
+quot["l","en"] = "``"
+quot["r","en"] = "''"
+
+f = search("(?n\\s)",$cursor-1,"regex","backward")
+if ($search_end == $cursor && ("l" $sub_sep $Switch_keys ) in quot)
+    {
+    insert_string(quot["l",$Switch_keys])
+    }
+    else
+        {
+        insert_string(quot["r",$Switch_keys])
+        }
+    
+
+
+#==================================================================================
+# WINDOW BACKGROUND MENU 
+# COMMENTS
+#==================================================================================
+
+# QUOTE
+sign["NEdit Macro"] = "#"
+sign["LaTeX"] = "%"
+sign["Plain"] = "\\>"
+sign["Setext"] = "\\.\\."
+sign["X Resources"] = "!"
+
+if ($language_mode in sign)
+    {
+    str = sign[ $language_mode] " &"
+    if ($selection_start == -1)
+    	{
+    	replace_all("^.*$",str , "regex")
+	}
+	else
+	    {
+	    # cure if start of selection is not at start of line
+	    pos = $cursor
+	    beginning_of_selection()
+	    beginning_of_line("extend")
+	    set_cursor_pos(pos)
+	    replace_in_selection("^.*$", str, "regex")
+	    }
+
+    }
+    else
+        {
+	beep()
+	}
+    
+#==================================================================================
+# UNQUOTE
+
+sign["NEdit Macro"] = "#"
+sign["LaTeX"] = "%"
+sign["Plain"] = "\\>"
+sign["Setext"] = "\\.\\."
+sign["X Resources"] = "!"
+
+if ($language_mode in sign)
+    {
+    str = "(^" sign[ $language_mode] " )(.*)$"
+    if ($selection_start == -1)
+    	{
+    	replace_all(str,"\\2","regex")
+	}
+	else
+	    {
+	    # cure if star of selection is not at start of line
+	    pos = $cursor
+	    beginning_of_selection()
+	    beginning_of_line("extend")
+	    set_cursor_pos(pos)
+	    replace_in_selection(str,"\\2","regex")
+	    }
+
+    }
+    else
+        {
+	beep()
+	}
+
+#==================================================================================
+# Menu entry ues2syntax
+ues[1] = "ü"
+ues[2] = "ö"
+ues[3] = "ä"
+ues[4] = "ß"
+ues[5] = "Ü"
+ues[6] = "Ö"
+ues[7] = "Ä"
+
+if ($language_mode == "LaTeX" || $language_mode == "Plain")
+{
+tex[1] = "\"u"
+tex[2] = "\"o"
+tex[3] = "\"a"
+tex[4] = "\"s"
+tex[5] = "\"U"
+tex[6] = "\"O"
+tex[7] = "\"A"
+}
+else if ($language_mode == "SGML HTML")
+{
+tex[1] = "&uuml;"
+tex[2] = "&ouml;"
+tex[3] = "&auml;"
+tex[4] = "&szlig;"
+tex[5] = "&Uuml;"
+tex[6] = "&Ouml;"
+tex[7] = "&Auml;"
+}
+else
+{
+dialog("Only for Plain, LaTeX or HTML","OK")
+return
+}
+but = dialog("Your choice","ü -> " tex[1],tex[1] " -> ü","Cancel")
+if (but == 3) return
+
+if ($selection_start == -1)
+	{
+	if (but == 1)
+		{
+		for (aKey in ues) replace_all(ues[aKey],tex[aKey],"case")
+		}
+	if (but == 2) 
+		{
+		for (aKey in ues) replace_all(tex[aKey],ues[aKey],"case")
+		}
+	}
+	else
+	   {
+	   if (but == 1)
+	   	{
+		for (aKey in ues) replace_in_selection(ues[aKey],tex[aKey],"case")
+		}
+	   if (but == 2) 
+	   	{
+		for (aKey in ues) replace_in_selection(tex[aKey],ues[aKey],"case")
+		}
+	   }	 
+
+
+
+#==================================================================================
+# Menu entry DOCSTRIP
+
+com_pat["LaTeX"] = "(?n%.*?$)"
+com_pat["NEdit Macro"] = "(?n#.*?$)"
+
+if ($language_mode in com_pat)
+   {
+   if ($selection_start == -1) 
+      {
+      text = get_range(0,$text_length)
+      text = doc_strip(text,com_pat[ $language_mode])
+      select_all()
+      replace_selection(text)
+      }
+      else 
+      {
+      text = get_selection()
+      text = doc_strip(text,com_pat[ $language_mode])
+      replace_selection(text)
+      }
+   }
+   else
+      {
+      return
+      }  
+
+
+#==================================================================================
+
+#==================================================================================
+# save old close@keys
+save_old_state()
+close()
+
+# save old quit@keys
+# notice that 
+# save_old_state()
+# exit()
+# will not work in general
+
+save_old_state()
+rotate = focus_window("last")
+while(rotate != "")
+    {
+    save_old_state()
+    close()
+    rotate = focus_window("next")
+    }
+exit()
+
+# goto old@keys
+file = $data "oldstate.dat"
+datas = read_file(file)
+
+if (datas == "") return
+   
+found = search_string(datas,$sep1 $file_path $file_name $sep2,0)
+
+if (found!=-1)
+   {
+   start = $search_end
+   found2= search_string(datas,$sep3,found)
+   previous_pos = substring(datas,start,found2)
+   set_cursor_pos(previous_pos)
+   }
+#==================================================================================
+#==================================================================================
+# Help>LaTeX or MiKTeX: only for Windows
+
+# MikTeX
+if ($windows == "true")
+   {
+   t = shell_command("hh c:\\\\texmf\\\\doc\\\\miktex\\\\miktex.chm"\
+    $daemon ,"")
+   }
+   else
+      {
+      dialog("Help implemented for Windows only","OK")
+      return
+      }
+
+# latex   
+if ($windows == "true")
+   {
+   t = shell_command("winhlp32 c:\\\\texmf\\\\doc\\\\latex\\\\help\\\\latex2e.hlp"\
+    $daemon ,"")
+
+   }
+   else
+      {
+      dialog("Help implemented for Windows only","OK")
+      return
+      }
+#==================================================================================
+

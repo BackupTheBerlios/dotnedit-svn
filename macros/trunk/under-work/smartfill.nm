@@ -1,0 +1,13 @@
+define jf_smart_fill {
+n = 1
+sel = get_selection()
+t = split(sel, "\n")
+nLines = t[]
+fillText = ""
+for (i = n; i < nLines; i++) {
+    fillText = fillText i "\n"
+    }
+fillText = fillText i
+# Replace the selection with the fill text
+replace_selection(fillText)
+}

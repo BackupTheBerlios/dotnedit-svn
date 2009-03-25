@@ -1,0 +1,64 @@
+
+geschae-brief
+% BRAUCHT DINBRIEF.STY und graphicx.sty
+% ====================
+
+% Mit `Ctrl + x' zum n"achsten Eintrag springen.
+
+%--------------------------------------------------------------------------
+% Deutscher Gesch"aftsbrief ohne Briefkopf, mit Ihre ZEICHEN, Ihre NACHRICHT und EINGEBUNDENER Unterschrift.
+%--------------------------------------------------------------------------
+
+
+
+\documentclass[12pt]{dinbrief}
+\usepackage{german}
+% wenn man versucht ein Logo im briefkopf oder eine Unterschrift als Graphikdatei einzubinden
+% \usepackage{graphicx}
+
+\nowindowrules
+\nowindowtics
+\addresshigh
+
+\def\einfachkopf{
+\parbox[t]{4cm}{
+|>mein-name<|\\
+|>mein-strasse<|\\
+|>mein-plz<| |>mein-ort<|
+}
+}
+
+\address{\einfachkopf}
+\signature{|>mein-name<|}
+\place{|>mein-ort<|}
+\phone{|>mein-vorwahl<|}{|>mein-tnummer<|}
+
+
+
+\begin{document}
+
+\yourmail{{\small |>Zeichen, Datum von Anschreiben (Jahr-Monat-Tag)<|}}
+\date{|>heutiges Datum, Format Jahr-Monat-Tag<|}
+\begin{letter}{|>Empfaenger - Adresse mit \\ getrennt, absetzen von Postleitzahl mit<|
+% Postfach 3322\\[\medskipamount]
+% 1100 Waldstadt
+}
+
+\subject{\textbf{|>Betreff, mehrere Zeilen mit \\ <|}}
+
+\opening{|>Anrede<|}
+
+
+|>BRIEFTEXT<|
+
+
+\closing{Mit freundlichen Gr"u"sen}
+
+%\closing[{\includegraphics[height=2\baselineskip]{signatur.ps}}]{Mit freundlichen Gr"u"sen}
+
+
+%\ps{|>Als Stilmittel um Wichtiges abzusetzen<| }
+
+\end{letter}
+\end{document}
+

@@ -1,0 +1,9 @@
+
+matrix convex state space
+matrix base norm space
+projection
+mapping
+mappings
+such that 
+completely positive
+operator system

@@ -1,0 +1,11 @@
+INDIRECT TARGETS
+have a  reference in their link blocks, like
+
+.. _one: two_
+.. _two: three_
+.. _three:
+
+If the reference name contains any colons
+the phrase must be enclosed in backquotes
+or the colon(s) must be backslash-escaped 
+in the link target.

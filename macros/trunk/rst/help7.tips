@@ -1,0 +1,17 @@
+ANONYMUOUS TARGETS
+begin with ".. __:"; no reference name is allowed:
+
+.. __: http://www.python.org
+
+They may begin with "__" only:
+
+__ http://www.python.org
+
+The order of anonymous references and targets
+is significant: the first anonymous reference will 
+link to the first anonymous target.
+Python_ is `a programming language`__. 
+
+.. _Python: http://www.python.org/ 
+
+__ Python_ 

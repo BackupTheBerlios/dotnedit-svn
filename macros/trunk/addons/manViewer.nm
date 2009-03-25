@@ -1,0 +1,169 @@
+#   NEdit's very own manpage viewer.
+#
+#   Call the main function using a macro menu entry like this:
+#       if (-1 == $selection_start)
+#       {
+#           searchterm = string_dialog("Which Manpage?", "OK", "Dismiss")
+#           if (1 != $string_dialog_button)
+#           {
+#               return
+#           }
+#       } else
+#       {
+#           searchterm = get_selection("any")
+#       }
+#       nMan(searchterm)
+#
+define nMan
+{
+    #   Original dialog version by Tony Balinski, posted 2003-07-29 in the
+    #   NEdit Developer's Mailing list
+    #   (Message-ID: <1059485879.3f2678b74bad4@impt2-1.free.fr>)
+    #
+    #   Copyright of modifications 2003, 2004 Thorsten Haude
+
+    if ($n_args != 1)
+    {
+        #   Wrong number of arguments
+        beep()
+        return
+    }
+    searchterm = $1
+
+    section = getManSection(searchterm)
+    if (-1 == section)
+    {
+        return
+    }
+
+    # we have to ensure grotty's old output format for bold and underline
+    command = "man -Z -Tlatin1 "section " " searchterm "|grotty -c"     #   "| uniq"
+    manResult = shell_command(command, "")
+
+    if ($shell_cmd_status != 0)     {
+        dialog("Error calling man:\n\n" manResult)
+        return
+    }
+
+    removeBoldUnderPat = "(.)\b(?=\\1)|_\b"
+    manResultClean = replace_in_string(manResult, removeBoldUnderPat, "", "regex","copy")
+
+    new("window")
+    focus_window("last")
+
+    cursor = 0
+    insert_string(manResultClean)
+    set_locked(1)
+    set_cursor_pos(0)
+
+    # create and color rangesets for bold/underline highlights
+    boldRS = rangeset_create()
+    underlineRS = rangeset_create()
+    underBoldRS = rangeset_create()
+    rangeset_set_color(boldRS, "gray")
+    rangeset_set_color(underlineRS, "wheat")
+    rangeset_set_color(underBoldRS, "LightSlateGray")
+
+    boldUnderLinePat = "(?:([^\b])\b\\1)+|(?:_\b([^\b])(?:\b\\2)?)+"
+    # We simply assume that the first match in the man file
+    # isn't already underlined and bold together.
+    # The first match will be something like NAME or SYNOPSIS.
+    # Anyhow, underlined and bold together is rather rare, but
+    # may happen, see for instance man gcc.
+    notUnBo = 1
+    offset = 0    
+    found = search_string(manResult, boldUnderLinePat, 0, "regex")
+    while (found != -1) {
+        next = $search_end
+        lenMatch = $search_end - found
+
+        # using offset before removal of *this* match
+        start = found - offset
+
+        # Is it a Bold or an Underline part?
+        if (substring(manResult, found, found + 1) != "_") {
+            # It's bold.
+            rId = boldRS
+        }
+        else if (substring(manResult, found + 2, found + 3) == "_") {
+            # It's bold.
+            rId = boldRS
+        }
+        else if (substring(manResult, found + 3, found + 4) == "\b") {
+            # it is both underlined and bold!
+            rId = underBoldRS
+            notUnBo = 0
+        }
+        else {
+            # underlined
+            rId = underlineRS
+        }
+        
+        # if not Underlined and Bold, for three chars matched, 
+        # two will be removed
+        if (notUnBo) {
+            offset += (lenMatch / 3) * 2
+        }
+        else {
+            # underlined and bold, then for five chars matched, 
+            # four will be removed
+            offset += (lenMatch / 5) * 4
+            notUnBo = 1
+        }
+
+        # using offset *after* removal of this match
+        end = $search_end - offset
+
+        # coloring
+        rangeset_add(rId, start, end)        
+
+        # next one
+        found = search_string(manResult, boldUnderLinePat, next, "regex")
+    }
+
+
+}
+
+define getManSection
+{
+    #   Copyright 2004 Thorsten Haude
+    #
+    #   This is free software; you may modify and redistribute it under
+    #   the terms of the GNU General Public License, Version 2 or, at your
+    #   option, any later version.
+    #   (http://www.gnu.org/licenses/gpl.html)
+
+    if (1 != $n_args)
+    {
+        #   Wrong number of arguments
+        beep()
+        return
+    }
+    searchterm = $1
+
+    #   Eventually, getManSection() should return both searchterm and section
+    command = "man -k " searchterm "| grep '^" searchterm "'"
+    aproposResult = shell_command(command, "")
+    if (0 != $shell_cmd_status)
+    {
+        beep()
+        return -1
+    }
+
+    if (length(replace_in_string(aproposResult, "^.*$", "", "regex")) == 1)
+    {
+        aproposLine = aproposResult
+    } else
+    {
+        aproposLine = list_dialog("Choose manpage", aproposResult, "OK", "Cancel")
+        if (1 != $list_dialog_button)
+        {
+            return -1
+        }
+    }
+
+    sectionPos = search_string(aproposLine, "(?<=\\()\\d\\l?(?=\\))", 0, "regex")
+    section = substring(aproposLine, sectionPos, $search_end)
+
+    return section
+}

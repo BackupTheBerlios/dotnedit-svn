@@ -1,0 +1,294 @@
+# Colors for Rangesets
+$lightyellow  = "#EFF0AA"
+$lightred     = "#F4CECE"
+$lightgreen   = "#C2F0C2"
+$lightblue    = "#D4D7F8"
+$lightseablue = "#C8ECEC"
+$lightorange  = "#F1D7AF"
+$lightviolett = "#F3CDF5"
+
+
+$ltx_err_ranges=$empty_array
+$latex_errors=$empty_array
+$ltx_cur_err=""
+# takes two arguments $1 -> cmd line, $2 -> mode  (debug or not), $3 -> menu name of Next Error macro
+define run_lat_new {
+  comp["latex source"]="latex -interaction=nonstopmode -src-specials=par,display,math,parend "
+  comp["win latex source"]="latex -interaction=nonstopmode --src "
+  comp["latex"]="latex -interaction=nonstopmode "
+  comp["win latex"]="latex -interaction=nonstopmode "
+  comp["pdflatex"]="pdflatex -interaction=nonstopmode "
+  str=tolower($1)
+  mode=$2
+  next_error_menu_name=$3
+  empty_line="\\n\\n"
+  if (str in comp) {
+     compiler=comp[str]
+     }
+     else {
+	dialog("Give compiler name (latex - pdflatex ?)","OK")
+	return
+	}
+
+  if ($main_file!="" && $main_path!="") {
+     file=$main_file
+     path=$main_path
+     }
+     else
+	{
+	file=$file_name
+	path=$file_path
+	}
+# save all would be better
+  macro_menu_command("save_all@keys")
+
+
+#Before compiling -> clean errors and rangesets
+#==================================================================================
+# This is for Rangesets versions.
+# filename = focus_window("last")
+# while(filename != "") {
+# if (filename in $ltx_err_ranges) {
+#     for (i=0;i<$ltx_err_ranges[filename][];i++) 
+#     {
+#     if (i in $ltx_err_ranges[filename]) rangeset_set_color($ltx_err_ranges[filename][i],"")
+#     #dialog("dick")
+#     }
+#     rangeset_destroy($ltx_err_ranges[filename])
+#     #dialog("doof")
+#     }
+# filename=focus_window("next")
+# }
+# focus_window(path file)
+# delete $ltx_err_ranges[]
+#==================================================================================
+
+delete $latex_errors[]
+# Warning when you use Named Marks Macro!
+delete $mks_string[]
+
+# $win_esc for handling weird Windows path and file names
+tex_out=shell_command("cd " $win_esc path $win_esc ";" \
+        compiler $win_esc file $win_esc,"")
+# check if command succeded ?
+
+log_file=read_file(path substring(file,0,length(file)-3) "log")
+if ($read_status==0) dialog("log file not found")
+# to get rid of Windows' <cr>
+log_file=filter_cr(log_file)
+debug_pat=""
+if (mode == "debug") debug_pat="|(?:Ov|Und)erfull \\\\hbox|LaTeX Warning"
+error_pat="^!" debug_pat
+# index
+i=0
+found_error=search_string(log_file,error_pat , 0, "regex")
+while (found_error!=-1) {
+    i=i + 1
+    next_pos=$search_end + 1
+    #dialog(i "\n" next_pos)
+    $latex_errors[i]=$empty_array
+    # determine type of error
+    t=substring(log_file,found_error, found_error + 1)
+    if (t=="!") $latex_errors[i]["type"]="error"
+    if (t=="L") $latex_errors[i]["type"]="warning"
+    if (t=="O"||t=="U") $latex_errors[i]["type"]="hbox"
+    # determine the error message
+    end_msg=search_string(log_file,empty_line,found_error+1,"regex")
+    # if failed !!!!
+    start_msg=search_string(log_file,empty_line,found_error+1,"regex","backward")
+    # if failed !!!!
+    $latex_errors[i]["message"]=substring(log_file,$search_end,end_msg)
+    # determine the error file
+    start_fname=search_string(log_file,"\\(.+\\.tex",found_error,"regex","backward")+1
+    # if failed !!!
+    $latex_errors[i]["file"]=path substring(log_file,start_fname,$search_end)
+    # determine the line number
+    if ($latex_errors[i]["type"]=="error") {
+        pos_lnr=search_string(log_file,"^l.",found_error,"regex") + 2
+        $latex_errors[i]["line"]=substring(log_file,pos_lnr,\
+                                    search_string(log_file,"[^0-9]",pos_lnr,"regex"))
+        }
+        else {
+          one_row=substring(log_file,found_error,search_string(log_file,"$",found_error+1,"regex"))
+          pos_lnr=search_string(one_row,"lines? [0-9]+",0,"regexNoCase")
+          # if failed !!!!
+          $latex_errors[i]["line"]=substring(one_row,pos_lnr+5,$search_end)
+          }
+    # next search
+    found_error=search_string(log_file,error_pat,next_pos,"regex")
+# end while loop
+}
+# go to first error ?
+if ($latex_errors[]>0) {
+    $ltx_cur_err=0
+    macro_menu_command(next_error_menu_name)
+    }
+    else {
+      calltip("No errors - Congratulations!")
+      }
+    
+}
+
+have $latex_errors, 
+which are arrays indexed by number of error, 
+these contain file name, type of error [error, warning, hbox] line number, message, 
+and an empty key for position
+this will get a mark or an rangeset index
+
+After compilation go automatically to first error, 
+if no error but warning type -> ask user
+
+When switching to window, look for all items in this window
+all items in the window get a position key, with a mark in
+
+#==================================================================================
+#VERSION WITH MARKS
+# set mode="no-marks" to disable the use of marks
+# or mode="safe-marks" to use line number if a mark seemed to fail
+# (which is itself unsafe!)
+mode="marks"
+next_error_menu_name="Next Error@LaTeX" # menu name
+if (!("1" in $latex_errors)) {
+    dialog("No errors! Rerun LaTeX!")
+    return
+    }
+
+# increase to next error
+if (++$ltx_cur_err>$latex_errors[]) {
+    beep()
+    $ltx_cur_err=1
+    }
+
+mark_string="0123456789zyxwvu"
+footnote="\n-------\nError " $ltx_cur_err " of "$latex_errors[]   
+
+cur_file=$file_path $file_name
+
+#NOW THE NEXT ERROR FUNCTION
+if (cur_file!=$latex_errors[$ltx_cur_err]["file"]) {
+#dialog($ltx_cur_err)
+#dialog($latex_errors[$ltx_cur_err]["file"])
+#dialog("nanu")
+    open($latex_errors[$ltx_cur_err]["file"])
+    focus_window($latex_errors[$ltx_cur_err]["file"])
+    # to avoid to increase by two
+    $ltx_cur_err--
+    macro_menu_command(next_error)
+    return
+    }
+
+# here cur_file is $latex_errors[$ltx_cur_err]["file"]
+if (!("position" in $latex_errors[$ltx_cur_err]) && mode!="no-marks") {
+    # seems to be the first error in this file
+    # mark errors in this file
+    # initialize marks
+    if (!(cur_file in $mks_string)) {
+        $mks_string[cur_file]=mark_string
+        }
+        
+    for (j=1;j<=$latex_errors[];j++)
+        {
+        if (cur_file == $latex_errors[j]["file"]) {
+            #dialog("was?")
+            goto_line_number($latex_errors[j]["line"])
+            newmark= substring($mks_string[cur_file],0,1)
+            $mks_string[cur_file]= substring($mks_string[cur_file],1,length($mks_string[cur_file]))
+            mark(newmark)
+            $latex_errors[j]["position"]=newmark
+            }
+        }
+    }
+# at this point a mark was already set
+if (mode=="no-marks" || !("position" in $latex_errors[$ltx_cur_err])) {
+    goto_line_number($latex_errors[$ltx_cur_err]["line"])
+    }
+    else {
+      cpos=$cursor
+      goto_mark($latex_errors[$ltx_cur_err]["position"])
+      # attempt if really problem with a mark ?
+      if (cpos==$cursor && mode=="safe-marks") goto_line_number($latex_errors[$ltx_cur_err]["line"])
+      }
+# show message
+calltip($latex_errors[$ltx_cur_err]["message"] footnote)
+#This was the go to next error,
+#==================================================================================
+
+
+#==================================================================================
+# Rangesets version
+#
+next_error_menu_name="Next Error@LaTeX" # menu name
+
+if (!("1" in $latex_errors)) {
+    dialog("No errors! Rerun LaTeX!")
+    return
+    }
+
+# increase to next error
+if (++$ltx_cur_err>$latex_errors[]) {
+    beep()
+    $ltx_cur_err=1
+    }
+
+#Version with rangesets
+next_error_menu_name="Next Error@LaTeX" # menu name
+footnote="\n-------\nError " $ltx_cur_err " of "$latex_errors[]   
+cpos=$cursor
+cur_file=$file_path $file_name
+# Initialize,  das darf man nur einmal machen, wieso hier -> run_lat!
+if (!(cur_file in $ltx_err_ranges)) {
+    $ltx_err_ranges[cur_file]=rangeset_create(3)
+    rangeset_set_color($ltx_err_ranges[cur_file][0],$lightred)
+    rangeset_set_color($ltx_err_ranges[cur_file][1],$lightyellow)
+    rangeset_set_color($ltx_err_ranges[cur_file][2],$lightorange)
+    for (i=1;i<=$latex_errors[];i++)
+        {
+        if ($latex_errors[i]["type"]=="warning") $latex_errors[i]["type"]=$ltx_err_ranges[cur_file][1]
+        if ($latex_errors[i]["type"]=="error") $latex_errors[i]["type"]=$ltx_err_ranges[cur_file][0]
+        if ($latex_errors[i]["type"]=="hbox") $latex_errors[i]["type"]=$ltx_err_ranges[cur_file][2]
+        }
+    }
+
+
+#NOW THE NEXT ERROR FUNCTION
+if (cur_file!=$latex_errors[$ltx_cur_err]["file"]) {
+#dialog($ltx_cur_err)
+#dialog($latex_errors[$ltx_cur_err]["file"])
+#dialog("nanu")
+    open($latex_errors[$ltx_cur_err]["file"])
+    focus_window($latex_errors[$ltx_cur_err]["file"])
+    # to avoid to increase by two
+    $ltx_cur_err--
+    macro_menu_command(next_error_menu_name)
+    return
+    }
+
+# here cur_file is $latex_errors[$ltx_cur_err]["file"]
+if ("position" in $latex_errors[$ltx_cur_err]) {
+    pos=rangeset_range($latex_errors[$ltx_cur_err]["type"],$latex_errors[$ltx_cur_err]["position"])
+    if ("start" in pos) {
+        # otherwise range has been destroyed
+        set_cursor_pos(pos["start"])
+        }
+    }
+    else {
+      # seems to be the first error in this file
+      # mark errors in this file 
+      for (j=1;j<=$latex_errors[];j++)
+          {
+#dialog(j)
+          if (cur_file == $latex_errors[j]["file"]) {
+          #dialog("was?")
+              goto_line_number($latex_errors[j]["line"])
+              $latex_errors[j]["position"]=\
+                        rangeset_add($latex_errors[j]["type"],$cursor,$cursor+3)
+              }
+          }
+#dialog("hi")      
+goto_line_number($latex_errors[$ltx_cur_err]["line"])
+      }
+# show message
+calltip($latex_errors[$ltx_cur_err]["message"] footnote)
+
+#This was the go to next error,
+#==================================================================================

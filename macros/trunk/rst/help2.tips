@@ -1,0 +1,15 @@
+BULLET LISTS: 
+
+- This is item 1 
+- Bullets are "-", "*" or "+".  Continuing text
+  must be aligned after the bullet + spaces.
+
+ENUMERATED LISTS: 
+
+5. Enumerators are arabic numbers, 
+   single letters, or roman numerals 
+#. This item is auto-enumerated 
+
+A blank line is required before the first 
+item and after the last.  Sublists done with
+indentation.

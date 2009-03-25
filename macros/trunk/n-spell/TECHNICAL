@@ -1,0 +1,414 @@
+.. Document Type: reStructured Text (http://docutils.sf.net)
+
+.. -*- charset=ISO8859-1 -*-
+
+==========================
+ N-spell Technical Notes 
+==========================
+
+:Author: Dr Jörg Fischer 
+:contact: jf505@users.sf.net
+:Version: 1.0
+:Date: 2008-01-20
+:Abstract:
+     This file gives troubleshooting tips and technical background
+     information.  For installation instructions, see INSTALL.  For
+     using and configuring N-spell, see the MANUAL.
+
+
+-------------------------------
+ NEdit Spell-Checker Handling 
+-------------------------------
+
+Released under the version 2 GPL license (see the README file)
+
+N-spell provides handling of the (external) spell-checker program
+Aspell from inside NEdit, including continuous, or on-the-fly,
+spell-checking.
+
+This file contains some technical information about how N-spell
+works, a list of known problems/limitations and some general
+troubleshooting advice. For installation instructions, please read
+the INSTALL file.
+
+
+
+Features
+========
+
+* Continuous (on-the-fly) spell-checking (can be disabled).
+
+* Alternatively, you can spell-check the whole document and step
+  through the misspelled words using an dialog box.
+
+* Detect when user has corrected a word.
+
+* Suggest and apply corrections for misspellings.
+
+* Add words to dictionary (shared with other programs using Aspell).
+
+* Temporarily ignore words.
+
+* Dynamic language selection.
+
+* Quick mouse, keyboard or context menu operation, in addition to the
+  normal menu interface.
+
+* Finds doublons (the second word word is a doublon)
+
+* Respects the syntax of a file (ie, doesn't check in HTML tags,
+  LaTeX math,...)
+    [Note: This isn't complete, yet.]
+
+* Checks comments in programming languages like C, Java, ...
+
+
+
+
+Limitations in NEdit
+====================
+
+On the fly spell-checking pushes the possibilities of NEdit's macro
+language to its limits.  As the term "macro language" indicates,
+originally NEdit was only able to record sequences of keyboard
+actions, usually called macros.  But this would get me into a talk
+about NEdit's history.
+
+NEdit has no built-in spell-checker.  So, it has to communicate with
+an external spell-checker.  This could be done through NEdit's
+shell_command() function.  However, this function returns the results
+of the called process only after the process has finished.  Calling a
+new Aspell process for each word that has to be checked would be
+much too slow for continuous spell-checking.  
+
+NEdit's only other possibility to communicate with an external
+process is through named pipes, also called FIFOs.  But after
+writing or reading NEdit closes the pipes.  Hence we can't let NEdit
+talk with Aspell directly through the pipes, because closing the
+pipes would also terminate the Aspell process.  The workaround is to
+use a Perl script for writing and reading the pipes that survives
+when the pipes get closed and holds open a handle to Aspell.  NEdit
+writes a word in question to the pipe.  The Perl script reads it and
+writes it to Aspell, receives the answer and writes it to the pipe,
+where NEdit reads it. 
+
+However, the old Unix way of communicating through pipes is rather
+loose.  If NEdit reads the pipe but Aspell doesn't answer, for
+instance, when Aspell or the Perl script died while we are writing
+in NEdit using continuous spell-checking, then NEdit will hang, see
+troubleshooting.
+
+This should not happen normally---just that you know it can happen. 
+For this reason, I do not recommend to use continuous spell-checking
+on Cygwin.  (I tested it on Cygwin v1.5.17, and it mostly works. 
+But I also had some sporadic hangs losing the whole changes of my
+file, once even the parts that I had saved from time to time.  I did 
+not experience such problems on Linux.)  Notice, that N-spell can be
+told not to use continuous spell-checking.  You can still spell-check
+the whole document and correct the mistakes guided by a dialog 
+showing suggestions for corrections.
+
+
+I'm listing further limitations and their consequences for on the
+fly spell-checking inside NEdit.
+
+1. It is only possible to run one macro at a time. If you try to
+   start macro B, while macro A is still running, macro B will be
+   blocked.  When macro A finishes, the request that macro B should
+   run is forgotten.
+
+For continuous spell-checking you have to run macros automatically at
+least when you leave newly written words. Doing so by changing the
+key binding (to bind some keys to macros via the macro_menu_command()
+action), you must make sure not to run into trouble caused by point 1.  
+(If a key is bound to a macro, hitting this key will be ignored while
+another macro is still running.)
+
+Hence it looks somewhat simpler to let the macros be triggered by 
+NEdit's smart-indent hook.  Here you can type while the so-called
+type-in macro is running, and the letters typed are inserted
+directly after the type-in macro finishes, without losing them.  Of
+course, the type-in macro should not run too long, but you don't
+have the trouble to rebind most of the cursor moving keys. 
+
+This approach was chosen by NEchoes, and I kept it for N-spell (also
+for my own convenience).  However:
+
+2. Only characters or newlines actually typed on the keyboard causes
+   NEdit to fire type-in macros. Tabs, backspacing, deleting,
+   cutting, pasting, replacing, justifying etc. do not. 
+
+Specific consequences for NEchoes, and hence also N-spell are
+  
+   - A word will not be checked until the next actual typing after
+     the cursor leaves the modified word.
+
+   - If any non-typing operation affects a portion of the text
+     before the latest typing position, NEchoes may lose track of
+     where the last editing occurred, and the last edited word might
+     not be checked. Normal operation will resume after the next
+     actual character typed.
+
+   - If a word is altered, but the only changed made was to delete
+     characters from it, the word will not be re-checked automatic-
+     ally, back-lighted or not. There is presently no practical way
+     for N-spell to discover where this deleting happened.
+
+     Possible workarounds: 
+
+     * Do a 'suggest' on the tagged word (Recommended).
+       The word will be re-checked instantly. Quick and robust.
+     * Insert a space or any other non-letter immediately after the
+       back-lighted word. The word will be re-checked instantly. May
+       be easy to forget deleting the unwanted extra space, though.
+     * Do a rescan of the document or a selection covering the edit.
+       Unnecessarily heavy, but also robust, and catches any other
+       lingering unchecked words too.
+
+   - Pasted-in, imported, search/replaced, or other text
+     inserted/modified without actual keyboard typing will not be
+     automatically checked.
+
+     Workaround:
+
+     * Do a rescan on the affected portion, or the whole document,
+       after any such operation.
+
+   - In general:
+
+     N-spell will catch most errors while typing, but you may still
+     want to order a final rescan at the end, before resting assured
+     that the whole text is checked.
+
+
+3. Macros cannot currently access the mouse pointer's position in
+   the text, so the target of all per-word commands in the menus is
+   decided by the position of the text cursor, not the mouse
+   pointer.
+
+If you move the mouse pointer to a misspelled word and use 
+Ctrl + button 3, the cursor is shortly moved to the pointer position
+to get the word and reset again.  But if you invoke the Suggest
+macro via the background menu (button 3) Spelling -> Suggest, the
+cursor must be on the word in question!
+
+
+4. The context menu cannot currently be modified from macros. Thus,
+   per-word suggestions cannot be listed there, but require a
+   separate dialog instead.
+
+  
+5. NEchoesd (the proxy process used to mediate between NEdit and
+   Aspell) has no way of knowing whether it is still needed, so the
+   process and its Aspell instance (possibly several of both if you
+   have been switching languages) will remain running even after
+   NEdit is closed. This is not normally a problem: they consume no
+   processing power in this state, and their presence will speed up
+   initialization the next time you enter spelling mode. If you
+   still want them gone, for example if their memory consumption
+   bothers you, you can safely kill them, provided no open NEdit
+   windows are currently in continuous-checking mode using that
+   language. They will be restarted on demand.
+
+If you are using tcsh as NEdit's shell, the PIDs of the NEchoesd
+processes are retrieved inside NEdit and you can kill the processes
+with Macro -> Spelling -> KillDaemon(Cygwin).  Notice that on Cygwin
+you have to kill the processes, before exiting NEdit, otherwise
+NEdit will hang (but you haven't been recommended to use continuous
+spell-checking running on Cygwin anyway).
+
+(I have no idea, why the PIDs can't be retrieved using sh.)
+
+
+
+
+Technical Description
+=====================
+
+N-spell uses the core parts of NEchoes, which are roughly the Perl
+script called NEchoesd and some macros triggered by key-presses, to
+get continuous spell-checking. The following description relevant
+for continuous spell-checking is simply copied from the NEchoes
+documentation. So, some parts may not apply 100%, but you get more
+than just the idea.  
+
+(One difference is that N-spell colors the background of misspelled
+words.  At the time NEchoes was written, this feature was not available
+in NEdit, so misspelled words were tagged like ``*thiss`` and colored
+with the help of syntax highlighting.  This required a special language
+mode for spell-checking.)
+
+
+Start of NEchoes description
+----------------------------
+
+There are five main components in NEchoes:
+
+#. A NEdit language mode, providing text highlighting for tagged words,
+   and defining the various macros below
+
+#. Smart-indent macros in the language mode. NEchoes does not use them
+   for indenting at all, but they are triggered by most key-presses from
+   the users, and thus used to discover changes and perform spell-
+   checking and tagging when appropriate.
+
+#. Normal NEdit macros, triggered by menu commands or keyboard
+   shortcuts, used for user-requested operations such as "Add Word" or
+   "Rescan".
+
+#. Aspell (not really part of NEchoes), performing the actual checking.
+
+#. NEchoesd, a Perl script mediating communication between the macros and
+   Aspell.
+
+
+Startup sequence:
+
+* When the spelling mode is entered, its smart-indent initialization
+  macro  is run. This defines all the main macro functions NEchoes
+  uses. The actual menu and keypress bindings only consist of
+  single-line calls to these.
+
+* Unless you've configured NEchoes otherwise, it will also
+  automatically enter Continuous Checking mode.
+
+* This will in turn start up an instance of NEchoesd for the current
+  language, unless one is already running. Manually turning on
+  continuous mode, requesting a rescan, or switching to a different
+  language, will also start up a suitable NEchoesd if necessary.
+
+* The NEchoes macros use the ps(1) command to detect running NEchoesd
+  processes. You need a version of ps that support the "-U" and "-o
+  pid,args" options, with semantics as in the BSD version. Most do. 
+
+* NEchoesd will start up a copy of Aspell for the specified language.
+
+
+Monitoring mechanism:
+
+* NEdit does not support background threads, such as Word uses for
+  continuous checking, so NEchoes in stead uses the keypress macros
+  intended for smart-indenting to stay up to date.
+
+* Spell-checking a word at every keypress, let alone the whole
+  document, would be much too slow on many systems, and checking a word
+  while it's being edited isn't very interesting in any case, so
+  NEchoes in stead tries to quickly detect if the current keypress
+  occurred in a different word than the last one, i.e. the user just
+  completed editing a word.
+
+* Only when it thinks this has occurred is checking triggered, for the
+  word that was last modified; other keypresses are discarded quickly.
+  This strategy is admittedly fallible, and delays checking one more
+  keypress than would be ideal, but it still works quite well.
+
+* Spell-checking and the delay involved is thus incurred only for every
+  new word typed (roughly). This is seldom enough that the delay is
+  short enough (using Aspell's "fast" setting, which is NEchoes'
+  default) to not get in the way of fluid typing and editing. At least
+  unless your CPU is really struggling, or you're a really incredible
+  typist. 
+
+
+Inter-process communication:
+
+* Aspell, in the mode relevant for this type of application, works as a
+  filter receiving words on stdin and outputting its evaluation and
+  possibly suggestions on stdout.
+
+* NEdit macros have no concept of file handles, and thus cannot keep
+  streams open to/from a process running alongside NEdit. A new Aspell
+  instance for each check would be too slow, so NEchoes uses named
+  pipes (fifos) for its external communication, since these can be
+  accessed with the normal NEdit read_file and append_file macro
+  subroutines.
+
+* These functions open and close the file for each call, so connecting
+  Aspell directly to the fifos would make it terminate after each
+  request. Therefore the proxy process, NEchoesd, is needed to mediate
+  requests. It can survive repeated opening and closing of the fifos,
+  but keep continuous streams open to Aspell.
+
+* NEchoesd also does some filtering and reformatting of the
+  communications, to provide a simplified, more predictable and less
+  error-prone interface for the macros to use, than the raw Aspell
+  streams. Macros basically send single-word requests to one fifo, and
+  can (must!) always retrieve a single-line response from another.
+
+* The fifos are created by NEchoesd as hidden files in the user's home
+  directory, with names reflecting the dictionary that instance of
+  Aspell is using.
+
+
+
+
+Troubleshooting
+================
+
+* If you get a message complaining that NEchoesd could not be started,
+  you probably need to ensure that NEchoesd is in your path, and/or 
+  that you have read and execute permissions for it.
+  Once this is rectified, you should be able to re-enable spell-checking
+  from the macro menu, without restarting NEdit. 
+
+* If NEchoesd (the proxy process used to communicate with Aspell)
+  dies, or communication with it is somehow broken, NEdit will
+  freeze if it is still in Spelling mode. If this happens, restart
+  NEchoesd from the prompt (see below), and NEdit should come back
+  to life. If this doesn't help (rare), try typing 
+
+  "echo dummy >> ~/.NEchoesd_out" 
+
+  on the command line.
+
+* If spell-checking starts behaving consistently strangely, NEdit's  
+  communication with NEchoesd has probably come out of sync.  This should
+  not happen anymore, but just in case, you can fix it by restarting
+  NEchoesd from the command line (see below).
+  
+* Should it become necessary to restart NEchoesd from the prompt:
+
+  + First make sure the old one is really dead:
+
+    - At the command line, use "ps -U <yourusername> |grep NEchoesd" to
+      find out NEchoesd's PID (the first number on the line).
+    - Terminate the processes (if any) using "kill <PID>".
+
+  + Immediately run NEchoesd from the command line (don't edit the
+    document in the meantime) using "NEchoesd <language-tag>".
+    example: "NEchoesd en-american".
+  + It is a good idea to use this only to get NEdit and the spelling mode
+    back into working order.
+    After that, terminating NEchoesd and immediately re-enabling spell-
+    checking from the macro menu will have NEchoesd started in the
+    normal way.
+  + Restarting NEchoesd will lose all of Aspell's session data, such as
+    the list of temporarily ignored words.
+
+
+
+Why Aspell?
+===========
+
+If you wonder why N-spell requires Aspell instead of the more common
+Ispell, the main reason is that Aspell is supposed to replace Ispell 
+in the future.
+
+Aspell has better international support, since it has a more consistent
+encoding of international characters, using 8-bit encoding across the
+board.  Moreover, Aspell is more modern and intelligent in general,
+providing better suggestions for misspelled words than just about
+anything out there.  Using GNU configure, it is straightforward to
+install on a broad range of platforms, and the same goes for installing
+additional dictionaries.  It is also released under the LGPL.
+
+Aspell is mostly compatible with Ispell; if you have other applications
+that use Ispell, chances are they can be easily be made to use Aspell,
+making Aspell's advantages available there too.  See the Aspell website
+for more info (http://aspell.sourceforge.net)
+
+It is possible to make N-spell work with Ispell with a little hacking
+(mainly altering the command-line syntax in NEchoesd, and the language
+tags in the macro code).  It will still have problems with several
+languages though, (e.g., German), where the most common dictionaries use
+a visual ASCII-combinations for accented/special letters.

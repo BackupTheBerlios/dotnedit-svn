@@ -1,0 +1,31 @@
+
+ - nechoesd: different path handling using NEDIT_HOME
+ - n-spell.nm : different path handling using NEDIT_HOME
+
+
+From BETA to 1.0
+=================
+
+ - Implemented skipping of LaTeX math environments.
+
+ - Completed installation instructions and manual.
+
+ - Fixed Spelling -> Toggle Continuous.
+
+ - Removed Spelling -> Initialise N-spell.  Use Toggle Continuous
+   instead.
+
+ - Renamed Rescan Document to Check File/Selection.
+
+ - When checking the whole file with Check File/Selection, look
+   for doublons, too.
+
+ - Added variable for backlight color marking doublons.
+
+ - Fixed nspell_removeTags() (which turns off the backlight color by
+   removing the words from the rangeset or by destroying rangesets.)
+
+ - Fixed nspell_selectLanguage(), so that it works if N-spell wasn't
+   initialized yet.
+
+ - Added missing compatibility functions required for Cygwin.

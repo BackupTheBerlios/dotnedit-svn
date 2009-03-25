@@ -1,0 +1,108 @@
+
+define jf_smart_wrap {
+
+initial_indent = ""
+
+line_start = search("^", $cursor, "regex", "backward")
+
+# wenn cursor ueber margin gelaufen ist, bringe ihn auf next line
+if ($column > $wrap_margin) {
+    last_blank = search("\\s", $cursor - 1, "regex", "backward")
+    if (last_blank >= line_start) {
+        replace_range(last_blank + 1, last_blank + 1, "\n")
+        # new line start
+        line_start = search("^", $cursor, "regex", "backward")
+    }
+}
+
+# here we are always in a situation where $column <= $wrap_margin
+# (well, except for there is no blank on the current line)
+
+pos = $cursor
+
+# if the cursor is directly before a newline character, this will be considered
+# as a paragraph end, so that no wrapping is to do
+if (get_character($cursor) == "\n" || $cursor == $text_length) return
+
+line_end = search("$", $cursor, "regex")
+
+width = line_end - line_start
+
+# quick check if there is anything to do
+if (width <= $wrap_margin) {
+    # can we put anything from the next line to the current line
+    t = search("\\s|\\S+", line_end + 1, "regex")
+    dialog(t"\n"line_end + 1)
+    if (t != line_end + 1) dialog("?")
+    
+    # first word on next line bigger than space left on current line
+    if (($wrap_margin - width) < ($search_end - t)) return
+}
+
+# if we reach here, there is some wrapping to do
+
+# treffer vor \n, weil line_end vor \n trifft - oder -1, dann textlaenge
+para_end = search("(?<!\\s)\n|\n\\s*$", $cursor, "regex")
+if (para_end == -1) para_end = $text_length
+
+
+
+# bestimme letztes blank vor $wrap_margin in der zeile 
+# *dahinter* wird umgebrochen
+
+if (width > $wrap_margin) {
+    last_blank = search("(?<=\\s)", line_start + $wrap_margin, "regex", "backward")
+    
+    # wenn kein blank in der zeile, kann man nicht umbrechen
+    if (last_blank < line_start) {
+    dialog("no blank in current line")
+    return
+    }
+    wrap_start = last_blank
+    trailing_newline = "\n"
+}
+else {
+    # width <= $wrap_margin
+    last_blank = line_end
+    wrap_start = last_blank + 1
+    trailing_newline = ""
+}
+# was ist wenn last_blank = para_end also line_end = para_end
+
+# formatiere von ende letztes blank aktuelle zeile bis para_end
+
+txt = get_range(wrap_start, para_end)
+dialog(txt)
+# first line different
+if (width < $wrap_margin)
+    initial_indent =  jf_repeat("\x1B", width)
+
+txt = jf_wrap(txt, $wrap_margin, initial_indent, "", 0, 0, 0, 0)
+dialog(">>>"txt)
+if (width < $wrap_margin)
+    txt = substring(txt, width, length(txt))
+
+# ersetze von letztes blank bis para_end
+replace_range(last_blank, para_end, trailing_newline txt)
+
+}
+
+# ==============================================================================
+# repeat(str, n): returns a string built by repeating str n times. It uses
+#       string doubling to reduce concatenation operations.
+# ==============================================================================
+
+define jf_repeat {
+str = $1
+len = $2
+
+res = ""
+while (len > 0) {
+    if (len % 2)
+        res = res str
+    len /= 2
+    if (len > 0)
+        str = str str
+}
+return res
+}

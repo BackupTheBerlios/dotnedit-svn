@@ -1,0 +1,81 @@
+
+fori
+for (i = |><|; i; i++) {
+
+}
+fos
+for (|>s<| = |><|; |>s<|; |>s<|++) {
+
+}
+forj
+for (j=|><|;j;j++) {
+
+}
+foin
+for (|>s<| in |><|) {
+
+}
+
+wh
+while (|><|) {
+
+}
+
+iff
+if (|><|) {
+
+}
+els
+else {
+|><|
+}
+ife
+|>iff<|
+|>els<|
+
+
+ist
+insert_string(|>String<|)
+
+gese
+get_selection()
+geca
+get_character(|><|)
+
+ris
+replace_in_string(|>s<|, |>search_for<|, |>replace_with<|, |>[type]<|, "copy")
+sis
+search_string(|>string<|,|>search_for<|,|>start<|,|>[type]<|,|>[direction]<|)
+gtr
+get_range(|>start<|,|>end<|)
+lmd
+$language_mode
+fowi
+focus_window(|><|)
+lin
+#==================================================================================
+
+bofs
+beginning_of_selection()
+bofl
+beginning_of_line()
+sco
+shell_command(|>command<|,|>input_string<|)
+ldb
+$list_dialog_button
+sdb
+$string_dialog_button
+ranc
+rangeset_create(|><|)
+rana
+rangeset_add(|>rs<|,|>start, end<|)
+ranr
+rangeset_range(|>rs<|,|>index<|)
+
+
+
+
+
+
+
+

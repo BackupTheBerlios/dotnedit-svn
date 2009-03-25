@@ -1,0 +1,52 @@
+if ($selection_start == -1) {
+    beep()
+    return
+}
+
+# Ask the user what character to fill with
+fillChar = string_dialog("Fill selection with what character?",\
+"OK", "Cancel")
+if ($string_dialog_button == 2 || $string_dialog_button == 0)
+    return
+
+# Count the number of lines in the selection
+nLines = 0
+for (i=$selection_start; i<$selection_end; i++)
+    if (get_character(i) == "\n")
+    	nLines++
+
+# Create the fill text
+rectangular = $selection_left != -1
+line = ""
+fillText = ""
+if (rectangular) {
+    for (i=0; i<$selection_right-$selection_left; i++)
+	line = line fillChar
+    for (i=0; i<nLines; i++)
+	fillText = fillText line "\n"
+    fillText = fillText line
+} else {
+    if (nLines == 0) {
+    	for (i=$selection_start; i<$selection_end; i++)
+    	    fillText = fillText fillChar
+    } else {
+    	startIndent = 0
+    	for (i=$selection_start-1; i>=0 && get_character(i)!="\n";
+        i--)
+    	    startIndent++
+    	for (i=0; i<$wrap_margin-startIndent; i++)
+    	    fillText = fillText fillChar
+    	fillText = fillText "\n"
+	for (i=0; i<$wrap_margin; i++)
+	    line = line fillChar
+	for (i=0; i<nLines-1; i++)
+	    fillText = fillText line "\n"
+	for (i=$selection_end-1; i>=$selection_start &&
+        get_character(i)!="\n"; \
+	    	i--)
+	    fillText = fillText fillChar
+    }
+}
+
+# Replace the selection with the fill text
+replace_selection(fillText)

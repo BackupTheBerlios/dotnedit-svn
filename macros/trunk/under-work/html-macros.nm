@@ -1,0 +1,213 @@
+if ($selection_start == -1){
+    replace_all("ä", "&auml;","case")
+    replace_all("ü", "&uuml;","case")
+    replace_all("ö", "&ouml;","case")
+    replace_all("Ö", "&Ouml;","case")
+    replace_all("Ä", "&Auml;","case")
+    replace_all("Ü", "&Uuml;","case")
+    replace_all("ß", "&szlig;","case")
+} else {
+    replace_in_selection("ä", "&auml;","case")
+    replace_in_selection("ü", "&uuml;","case")
+    replace_in_selection("ö", "&ouml;","case")
+    replace_in_selection("Ö", "&Ouml;","case")
+    replace_in_selection("Ä", "&Auml;","case")
+    replace_in_selection("Ü", "&Uuml;","case")
+    replace_in_selection("ß", "&szlig;","case")
+}
+
+
+
+# line break
+insert_string("<br>")
+newline()
+
+# paragraph
+newtext= "<p>" get_selection() "</p>"
+if ($selection_start!=-1) {
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+3)
+}
+
+
+# link
+if ($selection_start!=-1) {
+	sel=get_selection()
+	x=replace_in_string(sel,"http://","")
+	if (x!="") {
+		sel=x
+		replace_range($selection_start,$selection_end,"<a href=\"" get_selection() "\">" sel "</a>")
+	} else {
+		c=$selection_start
+		replace_range($selection_start,$selection_end,"<a href=\"\">" get_selection() "</a>")
+		set_cursor_pos(c+9)	
+	}
+} else {
+	replace_range($cursor,$cursor,"<a href=\"\"></a>")
+	set_cursor_pos($cursor+9)
+}
+
+
+# anchor
+if ($selection_start!=-1) {
+	newtext="<a name=\"" get_selection() "\"></a>"
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,"<a name=\"\"></a>")
+	set_cursor_pos($cursor+9)
+}
+
+
+# mailto
+if ($selection_start!=-1) {
+	c=$selection_start
+	sel=get_selection()
+	replace_range($selection_start,$selection_end,"<a href=\"mailto:\">" sel "</a>")
+	set_cursor_pos(c+16)
+} else {
+	replace_range($cursor,$cursor,"<a href=\"mailto:\"></a>")
+	set_cursor_pos($cursor+16)
+}
+
+# image
+if ($selection_start!=-1) {
+	newtext= "<img src=\"" get_selection() "\">"
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	newtext= "<img src=\"\">"
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+10)
+}
+
+# hori rule
+newtext= "<hr size=1 noshade>" get_selection()
+if ($selection_start!=-1) {
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+length(newtext))
+}
+
+# stylesheet
+newtext="<link rel=\"stylesheet\" href=\"" get_selection() "\" type=\"text/css\">"
+if ($selection_start!=-1) {
+	replace_selection(newtext)
+	set_cursor_pos($cursor+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+29)
+}
+
+# bold
+newtext= "<b>" get_selection() "</b>"
+if ($selection_start!=-1) {
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+3)
+}
+
+# italic
+newtext= "<i>" get_selection() "</i>"
+if ($selection_start!=-1) {
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+3)
+}
+
+# underline
+newtext= "<u>" get_selection() "</u>"
+if ($selection_start!=-1) {
+	c=$selection_start
+	replace_selection(newtext)
+	set_cursor_pos(c+length(newtext))
+} else {
+	replace_range($cursor,$cursor,newtext)
+	set_cursor_pos($cursor+3)
+}
+
+big, small, sub, sup, code, pre, tt, cite
+
+h1, h2, h3, h4, h5
+
+# special chars
+if ($selection_start == -1){
+    replace_all("&", "&amp;","case")
+    replace_all("<", "&lt;","case")
+    replace_all(">", "&gt;","case")
+    replace_all("\"", "&quot;","case")
+} else {
+    replace_in_selection("&", "&amp;","case")
+    replace_in_selection("<", "&lt;","case")
+    replace_in_selection(">", "&gt;","case")
+    replace_in_selection("\"", "&quot;","case")
+}
+
+# tabular
+replace_in_selection ("(^.*$)", "<TR><TD>&", "regex")
+replace_in_selection("\t", "</TD><TD>")
+replace_in_selection("\n", "</TD></TR>\n")
+selection = get_selection()
+replace_selection("<TABLE>\n" selection "</TABLE>")
+deselect_all()
+
+# lists
+replace_in_selection ("(^.*$)", "<LI>&", "regex")
+selection = get_selection()
+replace_selection("<UL>\n" selection "</UL>")
+deselect_all()
+ 
+numbered
+
+# ASCII 2 pre
+if (search_string(sel, "&", 0) != -1)
+   replace_in_selection("&", "&amp;")
+if (search_string(sel, "<", 0) != -1)
+   replace_in_selection("<", "&lt;")
+if (search_string(sel, ">", 0) != -1)
+   replace_in_selection(">", "&gt;")
+s=$selection_start
+e=$selection_end
+select($cursor,$cursor)
+set_cursor_pos(s)
+insert_string("<pre>\n")
+set_cursor_pos(e+6)
+insert_string("</pre>\n")
+
+# insert closing
+#Makro from the nedit-homepage
+position = $cursor
+start = $cursor
+closed = 1
+ab_start = $cursor
+
+while (closed == 1)
+{
+   search_start = search("\\<[a-zA-Z][-.a-zA-Z0-9]*", start - 1, "regex", "backward")
+   pom = "</" get_range(search_start + 1, $search_end) ">"
+   search2 = search(pom, search_start, "literal", "forward")
+   if (search2 > -1 && search2 < ab_start)
+      closed = 1
+   else
+      closed = 0
+   start = search_start - 1
+}
+
+if (search_start < ab_start)
+   insert_string(pom)
+

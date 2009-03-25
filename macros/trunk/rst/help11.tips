@@ -1,0 +1,9 @@
+ADMONITIONS 
+(attention, caution, danger, error, hint, important,
+note, tip, warning, admonition) contain other 
+body elements:
+
+.. note:: This is a paragraph
+
+   - Here is a bullet list.
+

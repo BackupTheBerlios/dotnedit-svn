@@ -1,0 +1,10 @@
+This is an example file.
+
+abbrevation
+expansion
+
+
+@dus
+date +%m-%d-%y
+@dde
+date +%d.%m.%y

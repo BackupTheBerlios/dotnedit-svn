@@ -1,0 +1,11 @@
+FIGURES 
+(graphics with a caption) may placed like this:
+
+.. figure:: larch.png
+   :scale: 50
+   :alt: map to buried treasure
+
+   The larch. (This is the caption)
+
+   The legend consists of all elements after 
+   the caption. Including tables and the like.)

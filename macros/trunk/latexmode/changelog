@@ -1,0 +1,106 @@
+
+ - move word completion for latex from code_word_comp.nm to 
+   latex_mode.nm 
+
+ - use new setup with jf_require()
+
+ - $windows renamed to $os_system with values mswindows, linux
+ - pdfopen, pdfclose, ltx_preview, $ltx_mode (dvi or pdf)
+   [Test the thing on linux!]
+ - (un)comment with right mouse click
+ - fix in spell_filter for \cite[]
+
+
+
+Changes from 0.9 to 0.9.1:
+==========================
+
+ - simple test if we are on MS Windows using MiKTeX
+   (variable $windows was mistakenly set to "true", which 
+    caused shell commands to fail on Unix/Linux)
+ 
+ - enhancements for the spell-checking macro 
+   (following a user request)
+
+
+
+Changes from 0.8a to 0.9:
+=========================
+
+ New features:
+
+ - Ctrl+m extended for \begin/\end matching (and $ matching)
+
+ - changing brackets and environments (e.g. $...$ <-> \[...\])
+ 
+ - goto next/previous \begin
+
+ - added macro to insert nomenclature entries
+ 
+ - added possibility of "hypersearch" for labels 
+
+
+ Bug fixes:
+
+ - fixed: \\cite\l*[t,p]?{one,two,three}
+ 
+ - fixed: Sections with optional argument were not found
+ 
+ - added missing `Jump back' (after jumping to reference)
+ 
+ - excluded comments and text after \endinput from finding 
+   labels, sections, etc.
+ 
+ - removed bogus keybindings for Ctrl+w and Ctrl+q
+ 
+ - removed KP Enter binding 
+
+
+
+Changes from 0.8 to 0.8a:
+=========================
+
+ - fix in ltx_list_citations(): Skip @string/@preamble
+
+ - fix for completing references and citations
+
+ - fix in ltx_insert_lists(): Skip \begin-\end blocks
+
+ - added keyword search for citations
+
+ - added more examples to example.tex
+
+ - improved the manual
+
+
+
+Changes from 0.5 to 0.8:
+========================
+
+ - Restructuring: All macros have been defined as functions
+   (subroutines) and are stored in files. The menu entries contain
+   only calls to these functions. 
+
+ - .dat file format: Changed the separators in the .dat files to
+   (hopefully) unused ASCII characters (< 128), so that the
+    LaTeX-Mode can also be used with languages like Russian.
+
+ - Key-bindings: Writing German on a US keyboard layout.
+
+ - Equations: Skipping \begin-\end blocks, so that equations can
+   contain matrices.
+
+ - TeX Shell: Showing errors in calltips. Debug mode. Use of Source
+   Specials. Small .log file mode.
+
+ - References: Quick information in calltips. Fix "by Proposition
+   \ref{foobar}" to "by Lemma \ref{foobar}", when the environment
+   of \label{foobar} was changed from Proposition to Lemma.
+
+ - Syntax Highlighting: Enriched LaTeX patterns, new BibTeX
+   patterns, DTX-Mode (not yet fully integrated with the LaTeX-Mode)
+
+ - Sectioning: Now aware of KOMA additions.
+
+ - Expansions/Completions: Bug fixes, more completions.
+

@@ -1,0 +1,22 @@
+Spelling>SuggestCorrection@mouse
+Spelling>AutoCorrect@mouse
+Spelling>IgnoreOrAddWord@mouse
+Spelling>Spell-check dialog
+Spelling>Check File/Selection
+Spelling>Select Language
+Spelling>Toggle Continuous
+Spelling>Change/Turn off Backlight
+Spelling>Goto next error
+Spelling>FindAll Doublons
+Spelling>GotoNextDoublon
+Spelling>Remove Backlight
+Spelling>KillDaemon(Cygwin)
+Spelling>Suggest
+Spelling>AutoCorrect
+Spelling>Ignore Word
+Spelling>AddWord2Dict.
+Spelling>Goto next error
+Spelling>SelectLanguage
+Spelling>ToggleContinuous
+Spelling>Change Color
+Spelling>KillDaemon(Cygwin)

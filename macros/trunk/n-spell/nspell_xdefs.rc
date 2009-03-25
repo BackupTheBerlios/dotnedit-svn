@@ -1,0 +1,10 @@
+! Definitely required for Cygwin (1.5.17)
+!nedit.shell: /bin/tcsh
+
+nedit*text.Translations: #override \n\
+ ~Shift~Meta Ctrl Alt<Btn3Down> : mouse_pan() \n\
+ Ctrl~Meta Alt~Shift Button3<MotionNotify>: mouse_pan()\n\
+ Ctrl~Shift~Meta~Alt<Btn3Down> : mark(9) grab_focus() macro_menu_command("Spelling>SuggestCorrection@mouse") goto_mark(9)\n\
+ Ctrl Shift~Meta~Alt<Btn3Down> : mark(9) grab_focus() macro_menu_command("Spelling>AutoCorrect@mouse") goto_mark(9)\n\
+ ~Ctrl~Shift~Meta Alt<Btn3Down> : mark(9) grab_focus() macro_menu_command("Spelling>IgnoreOrAddWord@mouse") goto_mark(9)\n\
+ Ctrl~Meta~Alt~Shift Button3<MotionNotify>: extend_adjust()\n

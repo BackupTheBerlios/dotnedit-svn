@@ -1,0 +1,44 @@
+# If you search for a regular expression like "foo(baar)faa" you want to have
+# the match baar (ie \1) available.
+# This function bring the substitutions \1,...,\9 in a global accesible array
+
+$reg_search_sub = $empty_array
+
+define jf_reg_search {
+search_for = $1
+start = $2
+type = $3
+pos = search(search_for,start,type)
+item = get_range(pos,$search_end)
+for (i = 1; i < 10; i++) {
+    r = replace_in_string(item, search_for, "\\" i, type)
+    if (r != "") $reg_search_sub[i] = r
+    }
+for (i = 1; i < 10; i++) {
+     if (i in $reg_search_sub) {
+         dialog(i " : " $reg_search_sub[i])
+         }   
+    }
+return(pos)
+}
+
+define jf_reg_search_in_string {
+string = $1
+search_for = $2
+start = $3
+type = $4
+pos = search_string(string, search_for, start, type)
+item = substring(string, pos, $search_end)
+dialog(item)
+for (i = 1; i < 10; i++) {
+    r = replace_in_string(item, search_for, "\\" i, type)
+    dialog(i":"r)
+    if (r != "") $reg_search_sub[i] = r
+    }
+for (i = 1; i < 10; i++) {
+     if (i in $reg_search_sub) {
+         dialog(i " : " $reg_search_sub[i])
+         }   
+    }
+return(pos)
+}

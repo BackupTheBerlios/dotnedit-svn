@@ -1,0 +1,51 @@
+#Rangesets>Run Through
+
+# YOU NEED to determine the rangeset L  !!!
+
+old_p=$cursor
+r=rangeset_info(L)
+if (r["defined"]==1) {
+mes="rangeset \"" L "\"\n"\
+    "Rangeset "  " has " r["count"] " ranges \n"
+color=r["color"]
+if (color != "") {
+   mess = mess "Color " color
+   }   
+mes = mes "\nModify behaviour \"" r["mode"] "\""
+mes = mes "\n(Number of defined rangesets: " $rangeset_list[] ")"
+if (dialog(mes, "OK", "Dismiss") != 1) {
+    return
+    }
+
+carry_on = 1
+for (i = 1; carry_on == 1 && i <= r["count"]; i++) {
+    # deselect_all()
+    range=rangeset_range(L, i)
+    if (range!=$empty_array) {
+    t = " range  "i" of " r["count"] ": [" range["start"] ", " range["end"] "]\n"
+    if (color="") {
+        select(range["start"],range["end"])
+        }
+    set_cursor_pos(range["start"])
+    set_cursor_pos(range["end"])
+    set_cursor_pos(range["start"])
+    carry_on = dialog("Rangeset " L " range " t, "OK", "Dismiss")
+    }
+    else {
+    dialog("error")
+    }
+}
+if (carry_on == 1)
+  set_cursor_pos(old_p)
+}
+
+#==================================================================================
+#
+# Rangesets>Add
+
+rangeset_add(L)
+
+#==================================================================================
+#
+# Rangesets>Remove
+rangeset_subtract(L)

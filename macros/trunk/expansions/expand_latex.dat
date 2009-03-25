@@ -1,0 +1,337 @@
+
+wrt
+with respect to 
+wtp
+with the property that 
+ie
+i.\,e.~
+eg
+e.\,g.~
+iek
+i.\,e., 
+egk
+e.\,g., 
+
+GENERAL
+=======
+\latex
+\LaTeX
+
+'a
+\alpha
+
+'b
+\beta
+
+'g
+\gamma
+
+'d
+\delta
+
+'e
+\epsilon
+
+'ve
+\varepsilon
+
+'z
+\zeta
+
+'th
+\theta
+
+'vt
+\vartheta
+
+'i
+\iota
+
+'k
+\kappa
+
+'vk
+\varkappa
+
+'l
+\lambda
+
+'vi
+\varpi
+
+'vr
+\varrho
+
+'s
+\sigma
+
+'vs
+\varsigma
+
+'u
+\upsilon
+
+'vp
+\varphi
+
+'o
+\omega
+
+'gg
+\Gamma
+
+'dd
+\Delta
+
+'tt
+\Theta
+
+'ll
+\Lambda
+
+'ss
+\Sigma
+
+'uu
+\Upsilon
+
+'oo
+\Omega
+
+ti
+\tilde{|><|}
+
+di
+\diamond 
+
+sh
+{^\sharp}
+
+ri
+\rightarrow 
+
+ra
+\rangle 
+
+la
+\langle 
+
+'lr
+\langle |><|\rangle
+
+bg
+\begin{|>s<|}
+|><|
+\end{|>s<|}
+
+
+bgl
+\begin{|>s<|}\label{|><|}
+\end{|>s<|}
+
+
+neco
+\newcommand{|><|}{}
+tc
+\textcolor{|><|}{|>s<|}
+tt
+\textcolor{|>s<|}
+
+dov
+\overline{\overline{|><|}}
+
+ovl
+\overline{|><|}
+
+mca
+\mathcal{|><|}
+
+fra
+\frac{|><|}{|><|}
+
+enu
+\begin{enumerate}
+\item|><|
+\end{enumerate}
+
+
+
+
+
+
+SPECIAL
+=======
+mcos
+\m convex set
+mcoc
+\mconvex\ combination
+
+c*
+\cstern algebra
+c*s
+\cstern subalgebra
+w*
+\wstern algebra
+
+kn
+$K=(K_n)_{n\in\N}$ 
+
+nin
+{n\in\N}
+
+
+jpro
+[\cdot,\cdot]_\varphi^a
+
+majc
+\smult^{^\sharp}\otimes\C^n
+
+
+ose
+(\opsys,e)
+aos
+(\opsys,e_\lambda)
+
+os
+\opsys 
+
+vks
+(V,K)^*
+
+vk
+(V,K)
+
+
+xm
+\smult{\opsys} 
+xms
+\smult{\opsys}^|>sh<|
+
+
+%l
+%--------------------------------------------------------------------------
+crw
+----------------------------------------
+Document created with NEdit version 5.4
+----------------------------------------
+
+
+
+pila
+{\pi_\lambda}
+
+fba
+\fbe(\irre,B(H))
+
+prof
+\begin{proof}
+|><|
+\end{proof}
+
+lem
+\begin{lem}
+|><|
+\end{lem}
+
+leml
+\begin{lem}\label{|><|}
+
+\end{lem}
+
+exa
+\begin{exam}
+|><|
+\end{exam}
+
+exal
+\begin{exam}\label{|><|}
+
+\end{exam}
+
+rem
+\begin{rem}
+|><|
+\end{rem}
+
+reml
+\begin{rem}\label{|><|}
+
+\end{rem}
+
+thm
+\begin{thm}
+|><|
+\end{thm}
+
+thml
+\begin{thm}\label{|><|}
+
+\end{thm}
+
+cor
+\begin{cor}
+|><|
+\end{cor}
+
+corl
+\begin{cor}\label{|><|}
+
+\end{cor}
+
+dfn
+\begin{defn}
+|><|
+\end{defn}
+
+dfnl
+\begin{defn}\label{|><|}
+
+\end{defn}
+
+prop
+\begin{prop}
+|><|
+\end{prop}
+
+propl
+\begin{prop}\label{|><|}
+
+\end{prop}
+
+
+
+
+
+
+
+mbn
+\m base norm 
+mbns
+\m base norm space
+mnt
+M_n(T(H))
+mnb
+M_n(B(H))
+xiij
+\xi_i\odot\xi_j
+zeij
+\zeta_i\odot\zeta_j
+xiji
+\xi_j\odot\xi_i
+xii
+\xi_i\odot\xi_i
+xid
+\xi\odot\xi
+xi1
+\xi_1\odot\xi_1
+etd
+\eta\odot\eta
+
+xij
+\xi_j\odot\xi_j
+sgdh
+Sehr geehrte Damen und Herren,
+sgf
+Sehr geehrte Frau |><|
+sgh
+Sehr geehrter Herr |><|

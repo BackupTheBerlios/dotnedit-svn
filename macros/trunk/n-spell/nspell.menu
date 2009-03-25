@@ -1,0 +1,98 @@
+! INSTALLATION
+!
+! Load these macros and/or background menu commands by starting nedit with:
+!
+!       nedit -import <name of this file>
+!
+! Then, check that the macros and/or background menu commands were loaded
+! correctly, and choose Save Defaults from the Preferences menu.  The new
+! macros and/or background menu commands will now be incorporated into your
+! own nedit.rc file, so the next time you start NEdit, you will no longer need
+! to use -import.
+!
+! These comments will not appear in your nedit.rc file
+!
+
+nedit.macroCommands: \
+	Spelling>SuggestCorrection@mouse:::: {\n\
+		nspell_suggest($cursor)\n\
+		#goto_mark(9)\n\
+	}\n\
+	Spelling>AutoCorrect@mouse:::: {\n\
+		nspell_autoCorrect($cursor)\n\
+		goto_mark(9)\n\
+	}\n\
+	Spelling>IgnoreOrAddWord@mouse:::: {\n\
+		nspell_ignoreOrAddWord($cursor)\n\
+	}\n\
+	Spelling>Spell-check dialog:::: {\n\
+		nspell_step_through()\n\
+	}\n\
+	Spelling>Check File/Selection:::: {\n\
+		nspell_rescan()\n\
+		if ($selection_start != -1) nspell_doublon()\n\
+	}\n\
+	Spelling>Select Language:::: {\n\
+		nspell_selectLanguage()\n\
+	}\n\
+	Spelling>Toggle Continuous:::: {\n\
+		nspell_toggleContinuous()\n\
+	}\n\
+	Spelling>Change/Turn off Backlight:::: {\n\
+		nspell_changeColor()\n\
+	}\n\
+	Spelling>Goto next error:::: {\n\
+		nspell_next_error()\n\
+	}\n\
+	Spelling>FindAll Doublons:::: {\n\
+		nspell_doublon()\n\
+	}\n\
+	Spelling>GotoNextDoublon:::: {\n\
+		doublon_pat = "(?n<([\\\\läüöÄÜÖßàáâçèéêîòóôùúûëï'ñí]+)\\\\s+\\\\1>)"\n\
+		find(doublon_pat, "regex", "wrap")\n\
+		deselect_all()\n\
+	}\n\
+	Spelling>Remove Backlight:::: {\n\
+		nspell_removeTags()\n\
+	}\n\
+	Spelling>KillDaemon(Cygwin):::: {\n\
+		nspell_killDaemon()\n\
+	}\n
+nedit.bgMenuCommands: \
+	Spelling>Suggest:::: {\n\
+		macro_menu_command("Spelling>SuggestCorrection@mouse")\n\
+	}\n\
+	Spelling>AutoCorrect:::: {\n\
+		macro_menu_command("Spelling>AutoCorrect@mouse")\n\
+	}\n\
+	Spelling>Ignore Word:::: {\n\
+		macro_menu_command("Spelling>Ignore Word@mouse")\n\
+	}\n\
+	Spelling>AddWord2Dict.:::: {\n\
+		macro_menu_command("Spelling>Add Word to Dict.@mouse")\n\
+	}\n\
+	Spelling>Goto next error:::: {\n\
+		macro_menu_command("Spelling>Goto next error")\n\
+	}\n\
+	Spelling>SelectLanguage:::: {\n\
+		macro_menu_command("Spelling>Select Language")\n\
+	}\n\
+	Spelling>ToggleContinuous:::: {\n\
+		macro_menu_command("Spelling>Toggle Continuous")\n\
+	}\n\
+	Spelling>Change Color:::: {\n\
+		macro_menu_command("Spelling>Change/Turn off Backlight")\n\
+	}\n\
+	Spelling>KillDaemon(Cygwin):::: {\n\
+		macro_menu_command("Spelling>KillDaemon(Cygwin)")\n\
+	}\n
+nedit.languageModes: Spelling:::Smart::::
+nedit.smartIndentInit: 	\
+	Spelling:	set_auto_indent("smart")\n\
+	nspell_initialise()\n\
+	--End-of-Macro--\n\
+	nspell_keyPress($1, "\\n")\n\
+	return 0\n\
+	--End-of-Macro--\n\
+	nspell_keyPress($1, $2)\n\
+	--End-of-Macro--

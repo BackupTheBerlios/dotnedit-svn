@@ -1,0 +1,224 @@
+! Special MS WINDOWS settings
+
+nedit.bgMenuButton: 
+
+! nedit.printCommand: /cygdrive/c/WINDOWS/system32/NOTEPAD.EXE /p %
+! nedit.printCommand: lpr -P 'hp LaserJet 1010 Series Driver'
+!nedit.printNameOption:  
+!nedit.printQueueOption: hpLaserJet
+
+
+!===========================================================================
+!                               XDVI
+!===========================================================================
+!XDVI.editor: nc
+
+! W A R N I N G !!!!!!!!!
+! The key-bindings defined at the end of this file assume that
+! you are using a standard US keyboard layout.
+! You will get probably more or less funny effects, if you dont
+! write on a US keyboard, so better change the key-bindings in this
+! case appropriately.
+!nedit.findReplaceUsesSelection: True
+!===========================================================================
+!                               N_EDIT
+!===========================================================================
+!nedit*XmFileSelectionBox.pathMode: XmPATH_MODE_RELATIVE
+! Joachim
+nedit*enableThinThickness: True
+nedit*enableToggleVisual: False
+nedit*enableToggleColor:  True
+nedit*XmToggleButton.indicatorSize: 11
+nedit*enableEtchedInMenu: True
+nedit*XmMenuShell*XmTearOffButton*ShadowThickness: 2
+!nedit*text.heavyCursor: True
+!===============================================================
+!nedit*fontList: -adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1
+!nedit*statsLine.FontList: -adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1
+!nedit*calltip.FontList: -adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1
+!nedit*calltip.background: green
+!nedit.backlightCharTypes: 0-31,127-159:yellow;9-13:green
+!nedit.bgMenuButton: <Btn3Up>
+!nedit*scrollBarPlacement: BOTTOM_LEFT
+nedit.prevOpenFilesMask: /iceows/|tmpmsg.*|\\.(?ichk)|/temp/|tmp#.*
+
+
+nedit*XmFileSelectionBox.pathMode: XmPATH_MODE_FULL
+nedit*text.autoWrapPastedText: False
+nedit.maxPrevOpenFiles: 40
+nedit*XmMenuShell.XmRowColumn.tearOffModel: XmTEAR_OFF_ENABLED
+nedit*pane.marginWidth: 0
+nedit*pane.marginHeight: 0
+nedit*scrolledW*spacing: 0
+!nedit*text.cursorVPadding: 3
+nedit.autoScrollVPadding: 4
+!nedit.geometry: +15+10
+nc.autoStart: True
+!nc.serverCommand: /usr/X11R6/bin/nedit -server
+
+nedit*calltip.fontList: -xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-1
+nedit*text.background: gray95
+nedit*text.selectBackground: lightblue
+
+
+!nedit*menuBar*background: AntiqueWhite4
+
+nedit*statsAreaForm*foreground: black
+nedit*statsAreaForm*background: gray60
+!nedit*iSearchForm*background: gray60
+!nedit*iSearchForm*foreground: black
+nedit*statsAreaForm*XmText*background: gray85
+!nedit*statsLineForm*background: gray60
+
+nedit*XmLFolder.inactiveForeground: gray41
+nedit*XmLFolder.inactiveBackground: gray63
+
+
+nedit*textVertScrollBar*background: gray70
+nedit*helpText.background: gray95
+nedit*helpText.selectBackground: green
+
+nedit*XmText.background:       gray95
+!nedit*XmTextField.background:  white
+!nedit*XmList.background:       white
+
+
+nedit.typingHidesPointer: False
+nedit*text.blinkRate: 250
+nedit.shell: /bin/tcsh
+
+! Key handling.
+! Notice that there is a order of precedence for key bindings
+!nedit*editMenu.cut.accelerator:
+nedit*windowBackgroundMenu.accelerator: Shift<Key>F12
+nedit*macroMenu.accelerator: <Key>F12
+nedit*helpMenu.gettingstarted.accelerator: <Key>F1
+nedit*fileMenu.newWindow.accelerator: Shift Ctrl<Key>n
+nedit*fileMenu.newWindow.acceleratorText: Shift+Ctrl+N
+nedit*fileMenu.newTab.accelerator: Ctrl<Key>n
+nedit*fileMenu.newTab.acceleratorText: Ctrl+N
+nedit*searchMenu.gotoMatching.accelerator: Ctrl<Key>m
+!nedit*macroMenu.learnKeystrokes.accelerator: <Key>F8
+!nedit*macroMenu.finishLearn.accelerator: <Key>F9
+!nedit*macroMenu.replayKeystrokes.accelerator: <Key>F10
+
+! Highest precedence have menu keys, so to use them for another purpose
+! you must unbind them. To unbind the Ctrl+X key, for example, write
+!nedit*editMenu.cut.accelerator:
+!nedit*editMenu.cut.acceleratorText:
+nedit*shellMenu.executeCommandLine.accelerator: <Key>KP_Enter
+nedit*shellMenu.executeCommandLine.acceleratorText: KP Enter
+
+! nedit*fileMenu.open.accelerator:
+!nedit*editMenu.cut.accelerator:
+!nedit*editMenu.cut.acceleratorText:  Alt+X
+!
+!Shift~Ctrl~Alt~Meta <Key> s : self_insert() macro_menu_command(Keyboard>KeyPressHook@keys)\n\
+!
+
+nedit*text.Translations: #override \n\
+ ~Shift~Alt~Meta~Ctrl<KeyRelease>Caps_Lock : macro_menu_command("Keyboard>CapsLock@keys")\n\
+ ~Shift~Alt~Meta~Ctrl<KeyPress>Tab : macro_menu_command("ResText>Tab Key@ResText")\n\
+ Shift~Alt~Meta~Ctrl<KeyPress>osfBackSpace : macro_menu_command("ResText>Backspace@ResText")\n\
+ ~Shift~Alt~Meta Ctrl<Key>Return : macro_menu_command("Keyboard>auto_indent@keys")\n\
+ ~Shift~Alt~Meta Ctrl<Key> osfBeginLine: mark(0) beginning_of_file()\n\
+ ~Shift~Alt~Meta Ctrl<Key> osfEndLine: mark(0) end_of_file()\n\
+ Shift~Meta~Ctrl~Alt<Key>space : insert_string(" ") \n\
+ ~Shift~Meta~Ctrl~Alt<Key>space : self_insert() macro_menu_command(Keyboard>space@keys)\n\
+ Shift~Meta~Ctrl Alt<Key> [ : insert_string("{") \n\
+ Shift~Meta~Ctrl Alt<Key> 9 : insert_string("(") \n\
+ ~Shift~Meta~Ctrl Alt<Key> [ : insert_string("[") \n\
+ ~Shift~Meta~Ctrl Alt<Key> 4 : insert_string("$") \n\
+ Shift~Meta~Ctrl~Alt<Key> [ : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ Shift~Meta~Ctrl~Alt<Key> 9 : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ ~Shift~Meta~Ctrl~Alt<Key> [ : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ Shift~Meta~Ctrl~Alt<Key> 4 : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ Shift~Meta~Ctrl Alt<Key> - : insert_string("_") \n\
+ ~Shift~Meta~Ctrl~Alt<Key> - : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ Shift~Meta~Ctrl~Alt<Key> ; : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ ~Shift~Meta~Ctrl~Alt<Key> ; : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ Shift~Meta~Ctrl~Alt<Key> ' : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ ~Shift~Meta~Ctrl~Alt<Key> ' : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ Shift~Meta~Ctrl~Alt<Key> y : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ ~Shift~Meta~Ctrl~Alt<Key> y : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ Shift~Meta~Ctrl~Alt <Key> z : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ ~Shift~Meta~Ctrl~Alt<Key> z : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ ~Shift~Meta~Ctrl~Alt<Key> ` : self_insert() macro_menu_command("Keyboard>jfGermanKeyboard@keys")\n\
+ <Key>F2: post_window_bg_menu()\n\
+ <Key>F10 : insert_string("F6")\n\
+ <Key>F7 : insert_string("F7")\n\
+ ~Shift~Alt~Meta~Ctrl<Btn1Down> : mark(0) grab_focus() \n\
+ <Btn1Up> :  macro_menu_command("LTXMode>tcl_hook@keys") extend_end()\n\
+ ~Alt~Meta~Ctrl Shift<Btn3Down> : macro_menu_command("LTXMode>Editing>Change Bras/Env@LaTeX")\n\
+ ~Shift~Meta~Ctrl~Alt<Btn3Down> : move_destination() bg_menu_command("Comments>(Un)Quote") move_destination()\n\
+ ~Shift~Meta Ctrl Alt<Btn3Down> : mouse_pan() \n\
+ Ctrl~Meta Alt~Shift Button3<MotionNotify>: mouse_pan()\n\
+ Ctrl~Shift~Meta~Alt<Btn3Down> : mark(9) grab_focus() macro_menu_command("Spell-Checker>SuggestCorrection@mouse") goto_mark(9)\n\
+ Ctrl Shift~Meta~Alt<Btn3Down> : mark(9) grab_focus() macro_menu_command("Spell-Checker>AutoCorrect@mouse") goto_mark(9)\n\
+ ~Ctrl~Shift~Meta Alt<Btn3Down> : mark(9) grab_focus() macro_menu_command("Spell-Checker>IgnoreOrAddWord@mouse") goto_mark(9)\n\
+ Ctrl~Meta~Alt~Shift Button3<MotionNotify>: extend_adjust()\n
+! <Btn2Up> : copy_primary() copy_to_or_end_drag()\n
+!  Alt~Ctrl<Btn1Down> : insert_string("000")\n\
+!  Alt <Btn2Down> : move_destination()
+
+! Ctrl<KeyRelease>osfRight : mark(0)\n\
+! Ctrl<KeyRelease>osfLeft : mark(0)\n\
+
+! translations for XmText[Field] widgets 
+
+nedit*XmText.translations: #override \n\
+  Ctrl~Alt~Meta<KeyPress>v: delete-selection() paste-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>c: copy-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>x: cut-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>u: delete-to-start-of-line()\n\
+  Shift~Ctrl~Alt~Meta<KeyPress>osfInsert: delete-selection() paste-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>osfInsert: copy-clipboard()\n\
+  Shift~Ctrl~Alt~Meta<KeyPress>osfDelete: cut-clipboard()\n\
+  Shift~Ctrl~Alt~Meta<KeyPress>osfBackSpace: beginning-of-line() delete-to-end-of-line()\n\
+  Shift Alt<KeyPress>': insert-string("Ä")\n\
+  Shift Alt<KeyPress>;: insert-string("Ö")\n\
+  Shift Alt<KeyPress>[: insert-string("Ü")\n\
+  Alt<KeyPress>': insert-string("ä")\n\
+  Alt<KeyPress>;: insert-string("ö")\n\
+  Alt<KeyPress>[: insert-string("ü")\n\
+  Alt<KeyPress>-: insert-string("ß")\n\
+  Ctrl<KeyPress>a: select-all()\n
+!  Ctrl~Alt~Meta~Shift<KeyPress>f : select-all() macro-menu-command("test")\n
+
+
+nedit*XmTextField.translations: #override \n\
+  Ctrl~Alt~Meta<KeyPress>v: delete-selection() paste-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>c: copy-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>x: cut-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>u: delete-to-start-of-line()\n\
+  Shift~Ctrl~Alt~Meta<KeyPress>osfInsert: delete-selection() paste-clipboard()\n\
+  Ctrl~Alt~Meta<KeyPress>osfInsert: copy-clipboard()\n\
+  Shift~Ctrl~Alt~Meta<KeyPress>osfDelete: cut-clipboard()\n\
+  Shift~Ctrl~Alt~Meta<KeyPress>osfBackSpace: beginning-of-line() delete-to-end-of-line()\n\
+  Ctrl<KeyPress>a: select-all()\n
+
+
+! <Btn3Down> : post_window_bg_menu()\n\
+! <Btn3Up> : grab_focus()\n
+
+!  
+
+! <KeyRelease>osfUp : macro_menu_command("cursor_bar@keys")\n\
+! <Btn1Down> : grab_focus() macro_menu_command("cursor_bar@keys")\n
+
+! <MotionNotify> : macro_menu_command("cursor") grab_focus() \
+macro_menu_command("mouse")\n
+! post_window_bg_menu(rect)\n\
+
+! Calltip position problem
+!  <KeyRelease>osfBackSpace : macro_menu_command("calltip_fix_line@keys")\n\
+!  Ctrl<KeyRelease>Return : macro_menu_command("calltip_fix_line@keys")\n\
+!  Alt<KeyRelease>Return : macro_menu_command("calltip_fix_line@keys")\n\
+!  Shift<KeyRelease>Return : macro_menu_command("calltip_fix_line@keys")\n\
+!  <KeyRelease>Return : macro_menu_command("calltip_fix_line@keys")\n\
+!  <Key>KP_Subtract :  macro_menu_command("calltip_fix_up@keys")\n\
+!  <Key>KP_Add : macro_menu_command("calltip_fix_down@keys")\n\
+! <KeyRelease>osfUp : mark(0) macro_menu_command("calltip_fix_line@keys")\n\
+! <KeyRelease>osfDown : mark(0) macro_menu_command("calltip_fix_line@keys")\n\
+
+

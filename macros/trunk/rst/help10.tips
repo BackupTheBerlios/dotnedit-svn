@@ -1,0 +1,8 @@
+SUBSTITUTIONS
+are like inline directives, allowing graphics and 
+arbitrary constructs within text. 
+
+The |biohazard| symbol must be used on
+containers used to dispose of medical waste. 
+
+.. |biohazard| image:: biohazard.png 

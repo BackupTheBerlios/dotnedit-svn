@@ -1,0 +1,1484 @@
+* comment *
+Tips file for NEdit's macro language.
+NEdit version 5.4.
+
+
+* language *
+NEdit Macro
+
+* comment *
+The tips show up in Plain mode, too.
+
+
+* comment *
+Global variables.
+ 
+$active_pane
+$active_pane
+  Index of the current pane.
+
+$auto_indent
+$auto_indent
+  Contains the current preference for auto indent. Can be "off", "on" or
+  "auto".
+
+$calltip_ID
+$calltip_ID
+  Equals the ID of the currently displayed calltip, or 0 if no calltip is
+  being displayed.
+
+$cursor
+$cursor
+  Position of the cursor in the current window.
+
+$column
+$column
+  Column number of the cursor position in the current window.
+
+$display_width
+$display_width
+  Width of the current pane in pixels.
+
+$em_tab_dist
+$em_tab_dist
+  If tab emulation is turned on in the Tabs... dialog of the Preferences menu,
+  value is the distance between emulated tab stops. If tab emulation is turned
+  off, value is -1.
+
+$empty_array
+$empty_array
+  An array with no elements. This can be used to initialize an array to an
+  empty state.
+
+$file_format
+$file_format
+  Current newline format that the file will be saved with. Can be "unix",
+  "dos" or "macintosh".
+
+$file_name
+$file_name
+  Name of the file being edited in the current window, stripped of directory
+  component.
+
+$file_path
+$file_path
+  Directory component of file being edited in the current window.
+
+$font_name
+$font_name
+  Contains the current plain text font name.
+
+$font_name_bold
+$font_name_bold
+  Contains the current bold text font name.
+
+$font_name_bold_italic
+$font_name_bold_italic
+  Contains the current bold-italic text font name.
+
+$font_name_italic
+$font_name_italic
+  Contains the current italic text font name.
+
+$highlight_syntax
+$highlight_syntax
+  Whether syntax highlighting is turned on.
+
+$incremental_backup
+$incremental_backup
+  Contains 1 if incremental auto saving is on, otherwise 0.
+
+$incremental_search_line
+$incremental_search_line
+  Has a value of 1 if the preference is selected to always show the
+  incremental search line, otherwise 0.
+
+$language_mode
+$language_mode
+  Name of language mode set in the current window.
+
+$line
+$line
+  Line number of the cursor position in the current window.
+
+$list_dialog_button
+$list_dialog_button
+  Number of the button pressed in the list_dialog() box
+  (the first button is number 1).
+
+$locked
+$locked
+  True if the file has been locked by the user.
+
+$make_backup_copy
+$make_backup_copy
+  Has a value of 1 if original file is kept in a backup file on save,
+  otherwise 0.
+
+
+$VERSION
+$VERSION
+Returns NEdit's version number ('5006' for NEdit 5.6). 
+
+
+$max_font_width
+$max_font_width
+  The maximum font width of all the active styles. Syntax highlighting styles
+  are only considered if syntax highlighting is turned on.
+
+$min_font_width
+$min_font_width
+  The minimum font width of all the active styles. Syntax highlighting styles
+  are only considered if syntax highlighting is turned on.
+
+$modified
+$modified
+  True if the file in the current window has been modified and the
+  modifications have not yet been saved.
+
+$n_display_lines
+$n_display_lines
+  The number of lines visible in the currently active pane.
+
+$n_panes
+$n_panes
+  The number of panes in the current window.
+
+
+$marks
+$marks
+  Array containing the positions of active marks in the current window.
+  The array keys are the mark labels a-z and 0-9.
+  (Note: Not part of standard NEdit.)
+
+$command_shell
+$command_shell
+  The shell started by shell_command(), e.g., "/bin/sh". 
+  (Note: Not part of standard NEdit.)
+
+
+$backlight_string
+  The current value of the window's backlighting specification.  This
+  is empty if backlighting is turned off.  It can be changed through
+  calls to the built-in macro function set_backlight_string().
+  (Note: Not part of standard NEdit.)
+
+
+
+* alias *
+$args
+$n_args
+$1
+$2
+$3
+$4
+$5
+$6
+$7
+$8
+$9
+
+
+$args
+$1, $2, $3, $4, $5, $6, $7, $8, $9
+$args[expr]
+$n_args
+Argument information.  The first 9 arguments (if there are that many) can
+be referenced as read-only values using the shorthand form.  All arguments
+can be accessed as values in the $args array, using a numeric index
+starting at 1. The total number of arguments received by a function is
+given by $n_args or $args[].
+
+
+$overtype_mode
+$overtype_mode
+  True if in Overtype mode.
+
+$read_only
+$read_only
+  True if the file is read only.
+
+$read_status
+$read_status
+   $read_status = 1 if read_file() was succesful otherwise = 0
+
+$selection_start
+$selection_start, $selection_end
+  Beginning and ending positions of the primary selection in the current
+  window, or -1 if there is no text selected in the current window.
+
+$selection_end
+$selection_start, $selection_end
+  Beginning and ending positions of the primary selection in the current
+  window, or -1 if there is no text selected in the current window.
+
+$selection_left
+$selection_left, $selection_right
+  Left and right character offsets of the rectangular (primary) selection in
+  the current window, or -1 if there is no selection or it is not rectangular.
+
+$selection_right
+$selection_left, $selection_right
+  Left and right character offsets of the rectangular (primary) selection in
+  the current window, or -1 if there is no selection or it is not rectangular.
+
+$server_name
+$server_name
+  Name of the current NEdit server.
+
+$shell_cmd_status
+$shell_cmd_status
+  Exit status of the command invoked by shell_command().
+
+$show_line_numbers
+$show_line_numbers
+  Whether line numbers are shown next to the text.
+
+$show_matching
+$show_matching
+  Contains the current preference for showing matching pairs, such as "[]" and
+  "{}" pairs. Can be "off", "delimiter", or "range".
+
+
+$string_dialog_button
+$string_dialog_button
+   $string_dialog_button = 0 when string_dialog() dismissed, otherwise number
+   of button pressed.
+
+$match_syntax_based
+$match_syntax_based
+  Whether pair matching should use syntax information, if available.
+
+$statistics_line
+$statistics_line
+  Has a value of 1 if the statistics line is shown, otherwise 0.
+
+$sub_sep
+$sub_sep
+  Contains the value of the array sub-script separation string.
+
+$tab_dist
+$tab_dist
+  The distance between tab stops for a hardware tab character, as set in the
+  Tabs... dialog of the Preferences menu.
+
+$text_length
+$text_length
+  The length of the text in the current window.
+
+$top_line
+$top_line
+  The line number of the top line of the currently active pane.
+  Note: In continuous wrap mode it is *not* the absolute line number.
+
+$use_tabs
+$use_tabs
+  Whether the user is allowing the NEdit to insert tab characters to maintain
+  spacing in tab emulation and rectangular dragging operations. (The setting
+  of the "Use tab characters in padding and emulated tabs" button in the
+  Tabs... dialog of the Preferences menu.)
+
+$wrap_margin
+$wrap_margin
+  The right margin in the current window for text wrapping and filling.
+
+$wrap_text
+$wrap_text
+  The current wrap text mode. Values are "none", "auto" or "continuous".
+
+
+* comment *
+Subroutines
+
+append_file
+append_file( string, filename )
+  Appends a string to a named file. Returns 1 on successful write, or 0 if
+  unsuccessful.
+
+beep
+beep()
+  Ring the bell.
+
+calltip
+calltip( "text_or_key" [, pos [, mode or position_modifier, ...]] )
+  Pops up a calltip. <pos> is an optional position in the buffer where the
+  tip will be displayed.  Passing -1 for <pos> is guarantees that the tip
+  will appear on-screen somewhere even if the cursor is not.  The upper-left
+  corner of the calltip will appear below where the cursor would appear if
+  it were at this position. <mode> is one of "tipText" (default), "tipKey",
+  or "tagKey". "tipText" displays the text as-is, "tagKey" uses it as the
+  key to look up a tag, then converts the tag to a calltip, and "tipKey"
+  uses it as the key to look up a calltip, then falls back to "tagKey"
+  behavior if that fails.  Finally, you can modify the placement of the
+  calltip relative to the cursor position (or <pos>) with one or more of
+  these optional position modifiers: "center" aligns the center of the
+  calltip with the position. "right" aligns the right edge of the calltip
+  with the position. ("center" and "right" may not both be used.) "above"
+  places the calltip above the position. "strict" does not allow the calltip
+  to move from its position in order to avoid going off-screen or obscuring
+  the cursor.
+  Returns the ID of the calltip if it was found and/or displayed
+  correctly, 0 otherwise. Note: In standard NEdit this holds only for
+  "tipText" mode.  In the other modes, 1 or 0 is returned.
+
+clipboard_to_string
+clipboard_to_string()
+  Returns the contents of the clipboard as a macro string. Returns empty
+  string on error.
+
+dialog
+dialog( message, btn_1_label, btn_2_label, ... )
+  Pop up a dialog for querying and presenting information to the user. First
+  argument is a string to show in the message area of the dialog. Up to eight
+  additional optional arguments represent labels for buttons to appear along
+  the bottom of the dialog. Returns the number of the button pressed (the
+  first button is number 1), or 0 if the user closed the dialog via the window
+  close box.
+
+focus_window
+focus_window( window_name )
+  Sets the window on which subsequent macro commands operate. window_name can
+  be either a fully qualified file name, or one of "last" for the last window
+  created, or "next" for the next window in the chain from the currently
+  focused window (the first window being the one returned from calling
+  focus_window("last"). Returns the name of the newly-focused window, or an
+  empty string if the requested window was not found.
+
+get_character
+get_character( position )
+  Returns the single character at the position indicated by the first argument
+  to the routine from the current window.
+
+get_range
+get_range( start, end )
+  Returns the text between a starting and ending position from the current
+  window.
+
+get_selection
+get_selection()
+  Returns a string containing the text currently selected by the primary
+  selection either from the current window (no keyword), or from anywhere on
+  the screen (keyword "any").
+
+getenv
+getenv( name )
+  Gets the value of an environment variable.
+
+
+filename_dialog
+filename_dialog([title[, mode[, defaultPath[, filter[, defaultName]]]]])
+  Presents a file selection dialog with the given title to the user that
+  prompts for a new or existing file.
+.
+  Options are: title will be the title of the dialog, defaults to "Choose
+  file".  If mode is set to "exist" (default), the "New File Name"TextField
+  of the FSB will be unmanaged.  If "new", the TextField will be managed.
+  defaultPath is the default path to use.  Default (or "") will use the
+  active document's directory. filter is the file glob which determines
+  which files to display.  Is set to "*" if filter is "" and by default.
+  defaultName is the default filename that is filled in automatically.
+  (Note that the default_filename argument does not work on all Motif
+  implementations.)
+.
+  Returns "" if the user cancelled the dialog, otherwise returns the
+  fully-qualified path, including the filename.
+
+find_completions( mode, filename [, stub] )
+  Returns a string containing a newline separated list of either tag or tip
+  names from the loaded tags or tips file given by filename (the full name
+  including the path) that are completions of the optional string stub,
+  where mode is either "tags" or "tips", respectively.  If stub is not
+  given or empty, all the tag or tip names in the file are returned.  If no
+  completions are found (or filename isn't in $loaded_tags_files or
+  $loaded_tips_files), an empty string is returned.
+  (Note: Not part of standard NEdit.)
+
+kill_calltip
+kill_calltip( [calltip_ID] )
+  Kills any calltip that is being displayed in the window in which the macro
+  is running. If there is no displayed calltip this does nothing. If a calltip
+  ID is supplied then the calltip is killed only if its ID is calltip_ID.
+
+length
+length( string )
+  Returns the length of a string
+
+list_dialog
+list_dialog( message, text, btn_1_label, btn_2_label, ... )
+  Pop up a dialog for prompting the user to choose a line from the given text
+  string. The first argument is a message string to be used as a title for the
+  fixed text describing the list. The second string provides the list data:
+  this is a text string in which list entries are separated by newline
+  characters. Up to seven additional optional arguments represent labels for
+  buttons to appear along the bottom of the dialog. Returns the line of text
+  selected by the user as the function value (without any newline separator)
+  or the empty string if none was selected, and number of the button pressed
+  (the first button is number 1), in $list_dialog_button. If the user closes
+  the dialog via the window close box, the function returns the empty string,
+  and $list_dialog_button returns 0.
+
+list_multisel_dialog
+list_multisel_dialog( message, text, btn_1_label, btn_2_label, ... )
+  Pop up a dialog for prompting the user to choose a line from the given text
+  string. The first argument is a message string to be used as a title for the
+  fixed text describing the list. The second string provides the list data:
+  this is a text string in which list entries are separated by newline
+  characters. Up to seven additional optional arguments represent labels for
+  buttons to appear along the bottom of the dialog. Returns the lines of text
+  selected by the user separated by newlines as the function value 
+  or the empty string if none was selected, and number of the button pressed
+  (the first button is number 1), in $list_dialog_button. If the user closes
+  the dialog via the window close box, the function returns the empty string,
+  and $list_dialog_button returns 0.
+
+max
+max( n1, n2, ... )
+  Returns the maximum value of all of its arguments
+
+min
+min( n1, n2, ... )
+  Returns the minimum value of all of its arguments
+
+read_file
+read_file( filename )
+  Reads the contents of a text file into a string. On success, returns 1 in
+  $read_status, and the contents of the file as a string in the subroutine
+  return value. On failure, returns the empty string "" and an 0 $read_status.
+
+replace_in_string
+replace_in_string( string, search_for, replace_with [, type, "copy"] )
+  Replaces all occurrences of a search string in a string with a replacement
+  string. Arguments are 1: string to search in, 2: string to search for, 3:
+  replacement string. There are two optional arguments. One is a search type,
+  either "literal", "case", "word", "caseWord", "regex", or "regexNoCase". The
+  default search type is "literal". If the optional "copy" argument is
+  specified, a copy of the input string is returned when no replacements were
+  performed. By default an empty string ("") will be returned in this case.
+  Returns a new string with all of the replacements done.
+
+replace_range
+replace_range( start, end, string )
+  Replaces all of the text in the current window between two positions.
+
+replace_selection
+replace_selection( string )
+  Replaces the primary-selection selected text in the current window.
+
+replace_substring
+replace_substring( string, start, end, replace_with )
+  Replacing a substring between two positions in a string within another
+  string.
+
+search
+search( search_for, start [, search_type, wrap, direction] )
+  Searches silently in a window without dialogs, beeps, or changes to the
+  selection. Arguments are: 1: string to search for, 2: starting position.
+  Optional arguments may include the strings: "wrap" to make the search wrap
+  around the beginning or end of the string, "backward" or "forward" to change
+  the search direction ("forward" is the default), "literal", "case", "word",
+  "caseWord", "regex", or "regexNoCase" to change the search type (default is
+  "literal"). Returns the starting position of the match, or -1 if nothing
+  matched. Also returns the ending position of the match in $search_end.
+
+search_string
+search_string( string, search_for, start [, search_type, direction] )
+  Built-in macro subroutine for searching a string. Arguments are 1: string to
+  search in, 2: string to search for, 3: starting position. Optional arguments
+  may include the strings: "wrap" to make the search wrap around the beginning
+  or end of the string, "backward" or "forward" to change the search direction
+  ("forward" is the default), "literal", "case", "word", "caseWord", "regex",
+  or "regexNoCase" to change the search type (default is "literal"). Returns
+  the starting position of the match, or -1 if nothing matched. Also returns
+  the ending position of the match in $search_end.
+
+select
+select( start, end )
+  Selects (with the primary selection) text in the current buffer between a
+  starting and ending position.
+
+select_rectangle
+select_rectangle( start, end, left, right )
+  Selects a rectangular area of text between a starting and ending position,
+  and confined horizontally to characters displayed between positions "left",
+  and "right".
+
+set_cursor_pos
+set_cursor_pos( position )
+  Set the cursor position for the current window.
+
+shell_command
+shell_command( command, input_string )
+  Executes a shell command, feeding it input from input_string. On completion,
+  output from the command is returned as the function value, and the command's
+  exit status is returned in the global variable $shell_cmd_status.
+
+split
+split(string, separation_string [, search_type])
+  Splits a string using the separator specified. Optionally the search_type
+  argument can specify how the separation_string is interpreted. The default
+  is "literal". The returned value is an array with keys beginning at 0.
+
+string_dialog
+string_dialog( message, btn_1_label, btn_2_label, ... )
+  Pops up a dialog prompting the user to enter information. The first argument
+  is a string to show in the message area of the dialog. Up to nine additional
+  optional arguments represent labels for buttons to appear along the bottom
+  of the dialog. Returns the string entered by the user as the function value,
+  and number of the button pressed (the first button is number 1), in
+  $string_dialog_button. If the user closes the dialog via the window close
+  box, the function returns the empty string, and $string_dialog_button
+  returns 0.
+
+string_compare
+string_compare(string1, string2 [, consider-case])
+  Compare two strings and return 0 if they are equal, -1 if string1 is less
+  than string2 or 1 if string1 is greater than string2. The values for the
+  optional consider-case argument is either "case" or "nocase". The default is
+  to do a case sensitive comparison.
+
+string_to_clipboard
+string_to_clipboard( string )
+  Copy the contents of a macro string to the clipboard.
+
+substring
+substring( string, start, end )
+  Returns the portion of a string between a starting and ending position.
+
+t_print
+t_print( string1, string2, ... )
+  Writes strings to the terminal (stdout) from which NEdit was started.
+
+tolower
+tolower( string )
+  Return an all lower-case version of string.
+
+toupper
+toupper( string )
+  Return an all upper-case version of string.
+
+valid_number
+valid_number( string )
+  Returns 1 if the string can be converted to a number without error
+  following the same rules that the implicit conversion would. Otherwise 0.
+
+write_file
+write_file( string, filename )
+  Writes a string (parameter 1) to a file named in parameter 2. Returns 1 on
+  successful write, or 0 if unsuccessful.
+
+
+* comment *
+Menu actions.
+
+bg_menu_command
+bg_menu_command(bg-menu-item-name)
+
+
+close
+close( ["prompt" | "save" | "nosave"] )
+
+
+close_pane
+close_pane()
+
+
+control_code_dialog
+control_code_dialog()
+
+
+delete
+delete()
+
+
+execute_command
+execute_command( shell-command )
+
+
+execute_command_dialog
+execute_command_dialog()
+
+
+execute_command_line
+execute_command_line()
+
+
+exit
+exit()
+
+
+fill_paragraph
+fill_paragraph()
+
+
+filter_selection
+filter_selection( shell-command )
+
+
+filter_selection_dialog
+filter_selection_dialog()
+
+
+find
+find( search_for [, direction, type, wrap] )
+  Finds the next occurrence of string from cursor position on and selects it.
+  Cursor position is moved to the start of the match.
+  Search type is either "literal", "case", "word", "caseWord", "regex", or 
+  "regexNoCase".
+
+
+find_again
+find_again( [direction, wrap] )
+
+
+find_definition
+find_definition( [tag-name] )
+
+
+find_dialog
+find_dialog( [direction, type, keep-dialog] )
+
+
+find_selection
+find_selection( [direction, wrap, non-regex-search-type] )
+  Finds the next occurrence of the selection and selects it.
+  Cursor position is moved to the start of the match.
+  Search type is either "literal", "case", "word", "caseWord".
+
+
+goto_line_number
+goto_line_number( [line-number, column-number] )
+
+
+goto_line_number_dialog
+goto_line_number_dialog()
+
+
+goto_mark
+goto_mark( mark-letter )
+  Go to a previously marked position. See mark().
+
+goto_mark_dialog
+goto_mark_dialog()
+  Invoke the dialog to mark the current cursor position.
+
+
+goto_matching
+goto_matching()
+
+
+goto_selected
+goto_selected()
+
+
+include_file
+include_file( filename )
+
+
+include_file_dialog
+include_file_dialog()
+
+
+load_macro_file
+load_macro_file()
+
+
+load_macro_file_dialog
+load_macro_file_dialog()
+
+
+load_tags_file
+load_tags_file( filename )
+
+
+load_tags_file_dialog
+load_tags_file_dialog()
+
+
+lowercase
+lowercase()
+
+
+macro_menu_command
+macro_menu_command( macro-menu-item-name )
+
+
+mark
+mark( mark-letter )
+  Set a mark at the current cursor position. Mark letters are "a"-"z".
+  Inside macros the numbers 0-9 are allowed which do not interfere with
+  the single letters.
+  Notice that you could also make use of rangesets when you need more
+  functionality.
+  NOTICE that mark positions are touched by replace all operations in the
+  window (so do rangesets).
+
+mark_unset
+mark_unset( mark-letter )
+Removes the given mark in the current window. 
+
+
+
+set_command_shell( shell-name )
+  Set the shell the shell_command() function starts. shell-name is the file
+  name of the shell including the full path, e.g., "/bin/sh".  Inside macros
+  the used shell is available through the built-in variable $command_shell.
+  (Note: Not part of standard NEdit.)
+
+
+mark_dialog
+mark_dialog()
+
+
+new
+new( ["tab" | "window" | "prefs" | "opposite"] )
+.
+   "tab": Open a new tab
+   "window": Open a new window
+   "prefs": Follow the user's tab/window preference
+   "opposite": Opposite of user's tab/window preference
+.
+   The default behaviour is "prefs".
+
+
+open
+open( filename )
+
+
+open_dialog
+open_dialog()
+
+
+open_selected
+open_selected()
+
+
+print
+print()
+
+
+print_selection
+print_selection()
+
+
+redo
+redo()
+
+
+repeat_dialog
+repeat_dialog()
+
+
+repeat_macro
+repeat_macro()
+
+replace
+replace( search_for, replace_with, [direction, type, wrap] )
+  Replaces the next occurence of the search string in the window. Direction
+  is "forward" or "backward". Type is either "literal", "case", "word",
+  "caseWord", "regex", or "regexNoCase". Wrap is "wrap" or "nowrap".
+  Default values are set by Prefernces->Defaults->Searching.
+
+replace_again
+replace_again( [direction, wrap] )
+  Repeats the last replace operation in the current window. Direction is
+  "forward" or "backward", wrap is "wrap" or "nowrap".
+
+replace_all
+replace_all(search_for, replace_with, [type])
+  Replaces all occurences of the search string in the current window. Type is
+  either "literal", "case", "word", "caseWord", "regex", or "regexNoCase".
+.
+  WARNING: The rangesets between the position of the first and last replace
+     operation will be destroyed and the marks there are set to position of
+     the first replace operation.
+
+replace_dialog
+replace_dialog( [direction, type, keep-dialog] )
+
+replace_in_selection
+replace_in_selection( search_for, replace_with, [type] )
+  Replaces all occurences of the search string in the selection of current window.
+  Type is   either "literal", "case", "word", "caseWord", "regex", or "regexNoCase".
+.
+  WARNING: The rangesets and the marks in the selection get destroyed.
+
+revert_to_saved
+revert_to_saved()
+
+
+save
+save()
+
+
+save_as
+save_as( filename )
+
+
+save_as_dialog
+save_as_dialog()
+
+
+select_all
+select_all()
+
+
+select_to_matching
+select_to_matching()
+
+
+shell_menu_command
+shell_menu_command( shell-menu-item-name )
+
+
+shift_left
+shift_left()
+
+
+shift_left_by_tab
+shift_left_by_tab()
+
+
+shift_right
+shift_right()
+
+
+shift_right_by_tab
+shift_right_by_tab()
+
+
+
+split_window
+split_window()
+
+
+undo
+undo()
+  Undo the last editing command.
+
+
+unload_tags_file
+unload_tags_file( filename )
+
+
+uppercase
+uppercase()
+  Sets the selection in the current window to all uppercase.
+
+
+
+* comment *
+Preferences actions.
+
+set_auto_indent
+set_auto_indent( "off" | "on" | "smart" )
+  Set auto indent mode for the current window.
+
+set_em_tab_dist
+set_em_tab_dist( em-tab-distance )
+  Set the emulated tab size. An em-tab-distance value of 0 or -1 translates to
+  no emulated tabs. Em-tab-distance must be smaller than 1000.
+
+set_fonts
+set_fonts( font-name, italic-font-name, bold-font-name, bold-italic-font-name )
+  Set all the fonts used for the current window.
+
+set_highlight_syntax
+set_highlight_syntax( [0 | 1] )
+  Set syntax highlighting mode for the current window. A value of 0 turns it
+  off and a value of 1 turns it on. If no parameters are supplied the option
+  is toggled.
+
+set_incremental_backup
+set_incremental_backup( [0 | 1] )
+  Set incremental backup mode for the current window. A value of 0 turns it
+  off and a value of 1 turns it on. If no parameters are supplied the option
+  is toggled.
+
+set_incremental_search_line
+set_incremental_search_line( [0 | 1] )
+  Show or hide the incremental search line for the current window. A value of
+  0 turns it off and a value of 1 turns it on. If no parameters are supplied
+  the option is toggled.
+
+set_language_mode
+set_language_mode( language-mode )
+  Set the language mode for the current window. If the language mode is "" or
+  unrecognized, it will be set to Plain.
+
+set_locked
+set_locked( [0 | 1] )
+  This only affects the locked status of a file, not it's read-only status.
+  Permissions are NOT changed. A value of 0 turns it off and a value of 1
+  turns it on. If no parameters are supplied the option is toggled.
+
+set_make_backup_copy
+set_make_backup_copy( [0 | 1] )
+  Set whether backup copies are made during saves for the current window. A
+  value of 0 turns it off and a value of 1 turns it on. If no parameters are
+  supplied the option is toggled.
+
+set_overtype_mode
+set_overtype_mode( [0 | 1] )
+  Set overtype mode for the current window. A value of 0 turns it off and a
+  value of 1 turns it on. If no parameters are supplied the option is toggled.
+
+set_show_line_numbers
+set_show_line_numbers( [0 | 1] )
+  Show or hide line numbers for the current window. A value of 0 turns it off
+  and a value of 1 turns it on. If no parameters are supplied the option is
+  toggled.
+
+set_show_matching
+set_show_matching( "off" | "delimiter" | "range" )
+  Set show matching (...) mode for the current window.
+
+set_match_syntax_based
+set_match_syntax_based( [0 | 1] )
+  Set whether matching should be syntax based for the current window.
+
+set_statistics_line
+set_statistics_line( [0 | 1] )
+  Show or hide the statistics line for the current window. A value of 0 turns
+  it off and a value of 1 turns it on. If no parameters are supplied the
+  option is toggled.
+
+set_tab_dist
+set_tab_dist( tab-distance )
+  Set the size of hardware tab spacing. Tab-distance must must be a value
+  greater than 0 and no greater than 20.
+
+set_use_tabs
+set_use_tabs( [0 | 1] )
+  Set whether tabs are used for the current window. A value of 0 turns it off
+  and a value of 1 turns it on. If no parameters are supplied the option is
+  toggled.
+
+set_wrap_margin
+set_wrap_margin( wrap-width )
+  Set the wrap width for text wrapping of the current window. A value of 0
+  means to wrap at window width.
+
+set_wrap_text
+set_wrap_text( "none" | "auto" | "continuous" )
+  Set wrap text mode for the current window.
+
+
+* comment *
+Keyboard actions.
+
+backward_character
+backward_character( ["nobell"] )
+  Moves the cursor one character to the left.
+
+backward_paragraph
+backward_paragraph(["nobell"] )
+  Moves the cursor to the beginning of the paragraph, or if the cursor is
+  already at the beginning of a paragraph, moves the cursor to the beginning
+  of the previous paragraph. Paragraphs are defined as regions of text
+  delimited by one or more blank lines.
+
+backward_word
+backward_word( ["nobell"] )
+  Moves the cursor to the beginning of a word, or, if the cursor is already at
+  the beginning of a word, moves the cursor to the beginning of the previous
+  word. Word delimiters are user-settable, and defined by the X resource
+  wordDelimiters.
+
+beginning_of_file
+beginning_of_file( ["scrollbar"] )
+  Moves the cursor to the beginning of the file.
+
+beginning_of_line
+beginning_of_line( ["absolute"] )
+  Moves the cursor to the beginning of the line. If "absolute" is given,
+  always moves to the absolute beginning of line, regardless of the text
+  wrapping mode.
+
+beginning_of_selection
+beginning_of_selection()
+  Moves the cursor to the beginning of the selection without disturbing the
+  selection.
+
+copy_clipboard
+copy_clipboard()
+  Copies the current selection to the clipboard.
+
+copy_primary
+copy_primary()
+  Copies the primary selection to the cursor.
+
+copy_to
+copy_to()
+  If a secondary selection exists, copies the secondary selection to the
+  cursor. If no secondary selection exists, copies the primary selection to
+  the pointer location.
+
+copy_to_or_end_drag
+copy_to_or_end_drag()
+  Completes either a secondary selection operation, or a primary drag. If the
+  user is dragging the mouse to adjust a secondary selection, the selection is
+  copied and either inserted at the cursor location, or, if pending-delete is
+  on and a primary selection exists in the window, replaces the primary
+  selection. If the user is dragging a block of text (primary selection),
+  completes the drag operation and leaves the text at it's current location.
+
+cut_clipboard
+cut_clipboard()
+  Deletes the text in the primary selection and places it in the clipboard.
+
+cut_primary
+cut_primary()
+  Copies the primary selection to the cursor and deletes it at its original
+  location.
+
+delete_selection
+delete_selection()
+  Deletes the contents of the primary selection.
+
+delete_next_character
+delete_next_character( ["nobell"] )
+  If a primary selection exists, deletes its contents. Otherwise, deletes the
+  character following the cursor.
+
+delete_previous_character
+delete_previous_character( ["nobell"] )
+  If a primary selection exists, deletes its contents. Otherwise, deletes the
+  character before the cursor.
+
+delete_next_word
+delete_next_word( ["nobell"] )
+  If a primary selection exists, deletes its contents. Otherwise, deletes the
+  word following the cursor.
+
+delete_previous_word
+delete_previous_word( ["nobell"] )
+  If a primary selection exists, deletes its contents. Otherwise, deletes the
+  word before the cursor.
+
+delete_to_start_of_line
+delete_to_start_of_line( ["nobell", "wrap"] )
+  If a primary selection exists, deletes its contents. Otherwise, deletes the
+  characters between the cursor and the start of the line. If "wrap" is given,
+  deletes to the previous wrap point or beginning of line, whichever is
+  closest.
+
+delete_to_end_of_line
+delete_to_end_of_line( ["nobell", "absolute"] )
+  If a primary selection exists, deletes its contents. Otherwise, deletes the
+  characters between the cursor and the end of the line. If "absolute" is
+  given, always deletes to the absolute end of line, regardless of the text
+  wrapping mode.
+
+deselect_all
+deselect_all()
+  De-selects the primary selection.
+
+end_of_file
+end_of_file( ["scrollbar"] )
+  Moves the cursor to the end of the file.
+
+end_of_line
+end_of_line( ["absolute"] )
+  Moves the cursor to the end of the line. If "absolute" is given, always
+  moves to the absolute end of line, regardless of the text wrapping mode.
+
+end_of_selection
+end_of_selection()
+  Moves the cursor to the end of the selection without disturbing the
+  selection.
+
+exchange
+exchange( ["nobell"] )
+  Exchange the primary and secondary selections.
+
+extend_adjust
+extend_adjust()
+  Attached mouse-movement events to begin a selection between the cursor and
+  the mouse, or extend the primary selection to the mouse position.
+
+extend_end
+extend_end()
+  Completes a primary drag-selection operation.
+
+extend_start
+extend_start()
+  Begins a selection between the cursor and the mouse. A drag-selection
+  operation can be started with either extend_start or grab_focus.
+
+focus_pane
+focus_pane( [relative-pane] | [positive-index] | [negative-index] )
+  Move the focus to the requested pane. Arguments can be specified in the form
+  of a relative-pane ("first", "last", "next", "previous"), a positive-index
+  (numbers greater than 0, 1 is the same as "first") or a negative-index
+  (numbers less than 0, -1 is the same as "last").
+
+forward_character
+forward_character()
+  Moves the cursor one character to the right.
+
+forward_paragraph
+forward_paragraph( ["nobell"] )
+  Moves the cursor to the beginning of the next paragraph. Paragraphs are
+  defined as regions of text delimited by one or more blank lines.
+
+forward_word
+forward_word( ["tail"] ["nobell"] )
+  Moves the cursor to the beginning of the next word. Word delimiters are
+  user-settable, and defined by the X resource wordDelimiters. If the "tail"
+  argument is supplied the cursor will be moved to the end of the current word
+  or the end of the next word, if the cursor is between words.
+
+grab_focus
+grab_focus()
+  Moves the cursor to the mouse pointer location, and prepares for a possible
+  drag-selection operation (bound to extend_adjust), or multi-click operation
+  (a further grab_focus action). If a second invocation of grab focus follows
+  immediately, it selects a whole word, or a third, a whole line.
+
+insert_string
+insert_string( "string" )
+  If pending delete is on and the cursor is inside the selection, replaces the
+  selection with "string". Otherwise, inserts "string" at the cursor location.
+
+key_select
+key_select( "direction" [,"nobell"] )
+  Moves the cursor one character in "direction" ("left", "right", "up", or
+  "down") and extends the selection. Same as
+  forward/backward-character("extend"), or process-up/down("extend"), for
+  compatibility with previous versions.
+
+move
+move-destination()
+  Moves the cursor to the pointer location without disturbing the selection.
+  (This is an unusual way of working. We left it in for compatibility with
+  previous versions, but if you actually use this capability, please send us
+  some mail, otherwise it is likely to disappear in the future.
+
+move_to
+move_to()
+  If a secondary selection exists, deletes the contents of the secondary
+  selection and inserts it at the cursor, or if pending-delete is on and there
+  is a primary selection, replaces the primary selection. If no secondary
+  selection exists, moves the primary selection to the pointer location,
+  deleting it from its original position.
+
+move_to_or_end_drag
+move_to_or_end_drag()
+  Completes either a secondary selection operation, or a primary drag. If the
+  user is dragging the mouse to adjust a secondary selection, the selection is
+  deleted and either inserted at the cursor location, or, if pending-delete is
+  on and a primary selection exists in the window, replaces the primary
+  selection. If the user is dragging a block of text (primary selection),
+  completes the drag operation and deletes the text from it's current
+  location.
+
+newline
+newline()
+  Inserts a newline character. If Auto Indent is on, lines up the indentation
+  of the cursor with the current line.
+
+newline_and_indent
+newline_and_indent()
+  Inserts a newline character and lines up the indentation of the cursor with
+  the current line, regardless of the setting of Auto Indent.
+
+newline_no_indent
+newline_no_indent()
+  Inserts a newline character, without automatic indentation, regardless of
+  the setting of Auto Indent.
+
+next_page
+next_page( ["stutter"] ["column"] ["scrollbar"] ["nobell"] )
+  Moves the cursor and scroll forward one page. The parameter "stutter" moves
+  the cursor to the bottom of the display, unless it is already there,
+  otherwise it will page down. The parameter "column" will maintain the
+  preferred column while moving the cursor.
+
+page_left
+page_left( ["scrollbar"] ["nobell"] )
+  Move the cursor and scroll left one page.
+
+page_right
+page_right( ["scrollbar"] ["nobell"] )
+  Move the cursor and scroll right one page.
+
+paste_clipboard
+paste_clipboard()
+  Insert the contents of the clipboard at the cursor, or if pending delete is
+  on, replace the primary selection with the contents of the clipboard.
+
+previous_page
+previous_page( ["stutter"] ["column"] ["scrollbar"] ["nobell"] )
+  Moves the cursor and scroll backward one page. The parameter "stutter" moves
+  the cursor to the top of the display, unless it is already there, otherwise
+  it will page up. The parameter "column" will maintain the preferred column
+  while moving the cursor.
+
+process_bdrag
+process_bdrag()
+  Same as secondary_or_drag_start for compatibility with previous versions.
+
+process_cancel
+process_cancel()
+  Cancels the current extend_adjust, secondary_adjust, or
+  secondary_or_drag_adjust in progress.
+
+process_down
+process_down( ["nobell", "absolute"] )
+  Moves the cursor down one line. If "absolute" is given, always moves to the
+  next line in the text buffer, regardless of wrapping.
+
+process_return
+process_return()
+  Same as newline for compatibility with previous versions.
+
+process_shift_down
+process_shift_down( ["nobell", "absolute"] )
+  Same as process_down("extend") for compatibility with previous versions.
+
+process_shift_up
+process_shift_up( ["nobell", "absolute"] )
+  Same as process_up("extend") for compatibility with previous versions.
+
+process_tab
+process_tab()
+  If tab emulation is turned on, inserts an emulated tab, otherwise inserts a
+  tab character.
+
+process_up
+process_up( ["nobell", "absolute"] )
+  Moves the cursor up one line. If "absolute" is given, always moves to the
+  previous line in the text buffer, regardless of wrapping.
+
+raise_window
+raise_window([relative-window] | [positive-index] | [negative-index])
+  Raise the current focused window to the front if no argument is supplied.
+  Arguments can be specified in the form of a relative-window ("first",
+  "last", "next", "previous"), a positive-index (numbers greater than 0, 1 is
+  the same as "last") or a negative-index (numbers less than 0, -1 is the same
+  as "first").
+
+scroll_down
+scroll_down(nLines)
+  Scroll the display down (towards the end of the file) by nLines.
+
+scroll_left
+scroll_left( nPixels )
+  Scroll the display left by nPixels.
+
+scroll_right
+scroll_right( nPixels )
+  Scroll the display right by nPixels.
+
+scroll_up
+scroll_up( nLines )
+  Scroll the display up (towards the beginning of the file) by nLines.
+
+scroll_to_line
+scroll_to_line( lineNum )
+  Scroll to position line number lineNum at the top of the pane. The first
+  line of a file is line 1.
+
+secondary_adjust
+secondary_adjust()
+  Attached mouse-movement events to extend the secondary selection to the
+  mouse position.
+
+secondary_or_drag_adjust
+secondary_or_drag_adjust()
+  Attached mouse-movement events to extend the secondary selection, or
+  reposition the primary text being dragged. Takes two optional arguments,
+  "copy", and "overlay". "copy" leaves a copy of the dragged text at the site
+  at which the drag began. "overlay" does the drag in overlay mode, meaning
+  the dragged text is laid on top of the existing text, obscuring and
+  ultimately deleting it when the drag is complete.
+
+secondary_or_drag_start
+secondary_or_drag_start()
+  To be attached to a mouse down event. Begins drag selecting a secondary
+  selection, or dragging the contents of the primary selection, depending on
+  whether the mouse is pressed inside of an existing primary selection.
+
+secondary_start
+secondary_start()
+  To be attached to a mouse down event. Begin drag selecting a secondary
+  selection.
+
+select_all
+select_all()
+  Select the entire file.
+
+self_insert
+self_insert()
+  To be attached to a key-press event, inserts the character equivalent of the
+  key pressed.
+
+
+* comment *
+Rangesets! New API!
+
+$rangeset_list
+$rangeset_list
+  array of active rangeset identifiers, with integer keys starting at 0, in
+  the order the rangesets were defined.
+
+
+rangeset_create
+rangeset_create()
+rangeset_create( n )
+  Creates one or more new range sets. The first form creates a single range
+  set and returns its identifier; if there are no range sets available it
+  returns 0. The second form creates n new range sets, and returns an array of
+  the range set identifiers with keys beginning at 0. If the requested number
+  of range sets is not available it returns an empty array.
+
+rangeset_destroy
+rangeset_destroy( r )
+rangeset_destroy( array )
+  Deletes all information about a range set or range sets. The first form
+  destroys the range set identified by r. The second form should be passed an
+  array of rangeset identifiers with keys beginning at 0 (i.e. the same form
+  of array returned by rangeset_create(n); it destroys all the range sets
+  appearing in the array. If any of the range sets do not exist, the function
+  continues without errors. Does not return a value.
+
+rangeset_add
+rangeset_add( r, [start, end] )
+rangeset_add( r, r0 )
+  Adds to the range set r. The first form adds the range identified by the
+  current primary selection to the range set, unless start and end are
+  defined, in which case the range they define is added. The second form adds
+  all ranges in the range set r0 to the range set r. Returns the index of the
+  newly-added range within the rangeset.
+
+rangeset_subtract
+rangeset_subtract( r, [start, end] )
+rangeset_subtract( r, r0 )
+  Removes from the range set r. The first form removes the range identified by
+  the current primary selection from the range set, unless start and end are
+  defined, in which case the range they define is removed. The second form
+  removes all ranges in the range set r0 from the range set r. Does not return
+  a value.
+
+rangeset_invert
+rangeset_invert( r )
+  Changes the range set r so that it contains all ranges not in r. Does not
+  return a value.
+
+rangeset_get_by_name
+rangeset_get_by_name( name )
+  Returns an array of active rangeset identifiers, with integer keys starting
+  at 0, whose name matches name.
+
+rangeset_info
+rangeset_info( r )
+  Returns an array containing information about the range set r. The array has
+  the following keys: 
+   * defined - whether a range set with identifier r is defined, 
+   * count - the number of ranges in the range set, 
+   * color - the current  background color of the range set, an empty
+             string if the range set has no color,
+   * name - the user supplied name of the range set, an empty string
+            if the range set has no name, and
+   * mode - the name of the modify-response mode of the range set. 
+
+rangeset_range
+rangeset_range( r, [index] )
+  Returns details of a specific range in the range set r. The range is
+  specified by index, which should be between 1 and n (inclusive), where n is
+  the number of ranges in the range set. The return value is an array
+  containing the keys start (the start position of the range) and end (the end
+  position of the range). If index is not supplied, the region returned is the
+  span of the entire range set (the region starting at the start of the first
+  range and ending at the end of the last). If index is outside the correct
+  range of values, the function returns an empty array.
+
+rangeset_includes
+rangeset_includes( r, pos )
+  Returns the index of the range in range set r which includes pos; returns 0
+  if pos is not contained in any of the ranges of r. This can also be used as
+  a simple true/false function which returns true if pos is contained in the
+  range set.
+
+rangeset_set_color
+rangeset_set_color( r, color )
+  Attempts to apply the color as a background color to the ranges of r. If
+  color is at empty string, removes the coloring of r. No check is made
+  regarding the validity of color: if the color is invalid (a bad name, or not
+  supported by the hardware) this has unpredictable effects.
+
+rangeset_set_name
+rangeset_set_name( r, name )
+  Apply the name to the range set r. 
+
+rangeset_set_mode
+rangeset_set_mode( r, type )
+  Changes the behaviour of the range set r when modifications to the text
+  buffer occur. type can be one of the following: "maintain" (the default),
+  "break", "include", "exclude", "ins_del" or "del_ins". (The differences are
+  fairly subtle.)"
+
+
+* comment *
+Highlighting information.
+
+get_pattern_by_name
+get_pattern_by_name( pattern_name )
+  Returns an array containing the pattern attributes for pattern 'pattern_name'.
+  The elements in this array are: 
+    * style -- Highlight style name
+  .
+  If 'pattern_name' is invalid, an empty array is returned. 
+
+
+get_pattern_at_pos
+get_pattern_at_pos( pos )
+  Returns an array containing the pattern attributes of the character at
+  position 'pos'. The elements in this array are:
+      * pattern -- Highlight pattern name
+      * style -- Highlight style name
+      * extent -- The length in the text which uses the same
+                     highlighting pattern. 
+  .
+  The 'extent' value is measured from position 'pos' going right/down
+  (forward  in the file) only.  
+  .
+  If 'position' is invalid, an empty array is returned. 
+
+get_style_by_name
+get_style_by_name( style_name )
+  Returns an array containing the style attributes for style 'style_name'. 
+  The elements in this array are:
+      * bold -- '1' if style is bold, '0' otherwise
+      * italic -- '1' if style is italic, '0' otherwise
+      * color -- Name of the style's color
+      * background -- Name of the background color, if any
+  .
+  The colors use the names specified in the color definitions for the
+  style.  These will either be names matching those the X server
+  recognises, or RGB  (red/green/black) specifications.
+  If 'style_name' is invalid, an empty array is returned.
+
+get_style_at_pos
+get_style_at_pos( pos )
+  Returns an array containing the style attributes of the character at
+  position 'pos'. The elements in this array are: 
+    * style -- Name of the highlight style
+    * bold -- '1' if style is bold, '0' otherwise
+    * italic -- '1' if style is italic, '0' otherwise
+    * color -- Name of the style's color
+    * rgb -- Color's RGB values ('#rrggbb')
+    * background -- Name of the background color, if any
+    * back_rgb -- Background color's RGB values ('#rrggbb')
+    * extent -- The length in the text which uses the same highlight style
+  .
+  The colors use the names specified in the color definitions for the style. 
+  These will either be names matching those the X server recognises, or RGB 
+  specifications. The values for 'rgb' and 'back_rgb' contain the actual color 
+  values allocated by the X server for the window. If the X server cannot 
+  allocate the specified (named) color exactly, the RGB values in these 
+  entries may not match the specified ones. 
+  The 'extent' value is measured from position 'pos' going right/down (forward 
+  in the file) only. 
+  If 'position' is invalid, an empty array is returned.
+

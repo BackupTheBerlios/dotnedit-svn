@@ -1,0 +1,338 @@
+###################################################################################
+# Copyright (C) 2001-2002 Jörg Fischer, joerg.fischer@gmx-topmail.de, 
+#
+# Homepage at http://nedit.gmxhome.de
+#                                                                                 #
+# This is free software; you can redistribute it and/or modify it under the terms #
+# of the GNU General Public License as published by the Free Software Foundation; #
+# either version 2 of the License, or (at your option) any later version.         #
+###################################################################################
+
+# jf_complete_word
+# jf_complete_word_list
+# reverse_string
+# std_wcomplete
+# nm_wcomplete
+
+
+#==========================================================================
+#
+# WORD/CODE-COMPLETION MACROS for NEdit (http://www.nedit.org)
+#
+#==========================================================================
+
+
+#------------------
+# INITIALIZATIONS
+#--------------------
+
+
+# abbrevation for our base path defined in autoload.nm
+$wordcomppath = $jf_path_to["code_word_comp.nm"]
+
+
+
+$CWM_old_start=-1 
+$CWM_list=0  
+
+#==================================================================================
+# Subroutine for doing either word or code completions
+# 
+# takes 4 arguments,
+# i) whether to load top words (1) or not (0),
+# ii) whether to look through the current file (1) or not (0)
+# iii) a list of possible completions separated by newlines
+# iv) regex string of chars that a word can contain (all other chars will be seen as separators)
+# For word completions there is automatically a list of top words loaded
+
+define jf_complete_word {
+# cycling, assume rerun if start is still previous start position
+if ($CWM_old_start==$cursor) {
+    if ($CWM_list == 1) {
+	jf_complete_word_list($CWM_order,$CWM_word_start)
+	return
+	}
+    # else, ie no dialog
+    $CWM_index++
+    if (!($CWM_index in $CWM_order)) {
+	# new turn
+	beep()
+	$CWM_index=0
+	}
+    undo()
+    replace_range($CWM_word_start,$cursor,$CWM_order[$CWM_index])
+    $CWM_old_start=$cursor
+    return
+    }
+
+# new completion - not a cycle    
+wordcomp=$1
+thru_file=$2
+completions=$3
+# patterns for searching root of completion
+pattern="[" $4 "]"
+neg_pattern="(?n[^" $4 "])"
+
+stack=$empty_array
+
+$CWM_order=$empty_array
+$CWM_index=0
+i=-1
+
+# getting the word root
+cpos=$cursor
+beginning_of_line()
+b=$cursor
+set_cursor_pos(cpos)
+# we need to reverse the string in order to do a forward search, since this
+# type of search with greedy quantifier doesn't work in backward mode
+# Of course we could also invert the search pattern, ie search for the first char
+# not in the pattern. This fails however for the start of the file.
+text=reverse_string(get_range(b,cpos))
+pos=search_string(text,pattern "+",0,"regex")
+if (pos==-1) {
+    #dialog("Error")
+    beep()
+    return
+    }
+
+# if the char before the cursor wasn't the end of a word root
+if (pos != 0) return
+
+root=reverse_string(substring(text,0,$search_end))
+start=$cursor-length(root)
+
+# ESCAPE SPECIAL SIGNS in word root (which is literal) for regex search
+# first escape backslashes ()
+# workaround for the bug in replace_in_string - string deleted, when no replacement
+if (jf_require("utilities.nm") == "") {
+    root = jf_quote_literal_as_regex(root)
+}
+# Top Words
+# get language file (German or English)
+file = $file_path $file_name
+$jfKeyboard[""] = 0
+if ("mode" in $jfKeyboard) {
+    if (!(file in  $jfKeyboard["mode"]))
+         $jfKeyboard["mode"][file] = "en"
+
+    if ($jfKeyboard["mode"][file] == "de") {
+        word_comp="topwords_de.txt"
+    }
+    else {
+         word_comp="topwords_en.txt"
+    }
+}
+else {
+    word_comp="topwords_en.txt"
+}
+# if the root contains a " and we are in LaTeX mode, always get topwords_de_tex.txt    
+if ($language_mode=="LaTeX" && search_string(root,"\"",0)!=-1) {
+        word_comp="topwords_de_tex.txt"
+        }
+
+
+# finding all completions -> in the current file
+if (thru_file == 1) {
+    root_cu = neg_pattern root pattern "+"
+    # for speed don't search in buffer but in string
+    cur_file = get_range(0, $text_length)
+    #found = search(root_cu,0,"regex")
+    found = search_string(cur_file, root_cu, 0, "regex")
+    while(found != -1) {
+        #item=get_range((++found),$search_end)
+        item = substring(cur_file, (++found), $search_end)
+        # order completions for cycling
+        if(!(item in stack))
+	    {
+	    stack[item]=(++i)
+	    }
+        #found=search(root_cu,$search_end,"regex")
+        found = search_string(cur_file, root_cu, $search_end, "regex")
+        }
+    }
+
+
+# -> now in an external wordlist
+
+# if in word completion mode, append topword list to completions
+if (wordcomp==1) {
+    external=read_file($wordcomppath word_comp)
+    completions=external "\n" completions
+    }
+
+# in external word list we get a whole line that starts with root
+root_ex= "\n" root ".+"
+if (completions!="") {
+    found=search_string(completions,root_ex,0,"regex")
+    while (found!=-1) {
+	item=substring(completions,(++found),$search_end)
+	# order completions in the order they are found
+	if(!(item in stack)) {
+	    stack[item]=(++i)
+	    }
+	found=search_string(completions,root_ex,$search_end,"regex")
+	}
+    }
+
+# nothing found -> cancel
+if (i==-1) {
+    beep()
+    return
+    }
+
+if ($CWM_list==1) {
+    # order the completions
+    for (aKey in stack) {
+       order[stack[aKey]]=aKey
+       }
+    # list the words for selection
+    jf_complete_word_list(order,start)	  
+    }
+    else {
+    # store in global array for cycling
+    for (aKey in stack) {
+	$CWM_order[stack[aKey]]=aKey
+	}
+    # insert first completion
+    replace_range(start,$cursor,$CWM_order[$CWM_index])
+    $CWM_word_start=start
+    $CWM_old_start=$cursor
+    }
+
+$CWM_list=0
+}
+
+#==================================================================================
+
+define jf_complete_word_list {
+order=$1
+start=$2
+num=order[]-1
+$CWM_list=0
+# list found items
+
+text=""
+for (i=0;i<=num;i++)
+    {
+    # put a number in front of item for easy selection, at least for the first ten
+    text= text i " " order[i] "\n"
+    }
+
+# if no items found return
+if (text=="")
+    {
+    return
+    }
+
+str=list_dialog("Complete:", text, "OK", "Cancel")
+if ($list_dialog_button==0 || $list_dialog_button==2 || str=="")
+    {
+    # cancel
+    return
+    }
+    else
+       {
+       # strip off the leading number for completion
+       pos=search_string(str," ",0)
+       str=substring(str,$search_end,length(str))
+       replace_range(start,$cursor,str)
+       }
+}
+#==================================================================================
+# reverse string subroutine ( poor man's version )
+# $1 is input string, return is reversed string
+# needed for doing a CORRECT REGEX BACKWARD SEARCH WITH GREEDY QUANTIFIERS
+# (if there is no fixed start, ie "^\s*" works while "\s*" does not)
+# make sure your string isn't too long!
+define reverse_string {
+b = ""
+len = length($1)
+for(i = 1; i <= len; i++) {
+    a = substring($1, len - i, len - i + 1)
+    b = b a
+    }
+return(b)
+}    
+
+#==================================================================================
+
+# Menu entries   
+# complete word is not invoked directly. instead a global variable is set to
+# indicate that we are in list mode
+
+
+# for default, i.e. @*
+define std_wcomplete {
+# 1. parameter = 1 -> load top words (!=1 don't search in file)
+# 2. parameter = 1 -> look through current file
+# 3. parameter = \n separated list of possible completions to search in
+# 4. parameter = regex string of chars that a word can contain (all other chars will be seen as separators)
+# if cycling do nothing
+if ($CWM_old_start==$cursor) {
+    jf_complete_word(0)
+    }
+    else {
+    # only standard word completions (internally topwords are load)
+    word_chars="\\läÄüÜöÖß"
+    jf_complete_word(1,1,"",word_chars)
+    }
+}
+
+# for LaTeX see LaTeX-mode
+
+# for NEdit Macro
+define nm_wcomplete {
+# if cycling do nothing
+if ($CWM_old_start==$cursor) {
+    jf_complete_word(0)
+    }
+    else {
+    word_chars="\\läÄüÜöÖ"
+    com_chars="\\l\\$_"
+    # check whether word or code completion
+    cpos=$cursor
+    beginning_of_line()
+    start=$cursor
+    set_cursor_pos(cpos)
+    test=get_range(start,cpos)
+    found=search_string(test,"#",0)
+    if (found!=-1) {
+        # word completion in comment
+        jf_complete_word(1,1,"",word_chars)
+        }
+        else {
+          # code completion
+          comp=read_file($wordcomppath "ne_cmd.txt")
+          jf_complete_word(0,1,comp,com_chars)
+          }
+    } 
+
+}
+
+
+# OLD NOT IMPLEMENTED
+# for SGML, XML
+# if cycling do nothing
+# if ($CWM_old_start==$cursor) {
+#     complete_word(0)
+#     }
+#     else
+#         {
+#         # check whether word or code completion
+#         f1=search("<",$cursor,"backward")
+#         f2=search(">",$cursor,"backward")
+#         if (f2<f1)
+#             {
+#             # code completion, because inside a tag
+#             # get tag name and then possible completions
+#             
+#             }
+#             else
+#                 {
+#                 # word completion
+#                 # get top words, german or english - 
+#                 top=read_file("")
+#                 complete_word(1,top)
+#                 }
+#             

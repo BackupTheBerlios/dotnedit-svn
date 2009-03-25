@@ -1,0 +1,18 @@
+define jf_get_full_word {
+cpos = $cursor
+if (jf_contains_whitespace(get_character(cpos)) != -1) {
+    if (jf_contains_whitespace(get_character(cpos - 1)) == -1) {
+        cpos--
+        }
+        else {
+        return("")
+        }
+    }
+end = search("(?n\\s|$)", cpos, "regex")
+test = search("(?n\\s|^)", cpos, "backward", "regex")
+return(get_range($search_end, end))
+}
+
+define jf_contains_whitespace {
+return(search_string($1, "(?n\\s)", 0, "regex"))
+}

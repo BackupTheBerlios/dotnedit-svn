@@ -1,0 +1,42 @@
+# Goe to the next mark from cursor position in the current window.
+define quickNextMark {
+  pos = $text_length
+  wrapPos = $cursor
+  found = 0
+  for (label in $marks) {
+      if ($marks[label] >= $cursor) {
+          pos = min(pos, $marks[label])
+          found = 1
+      }
+      else {
+          wrapPos = min(wrapPos, $marks[label])
+      }
+  }
+  if (found) {
+      set_cursor_pos(pos)
+  }
+  else {
+      set_cursor_pos(wrapPos)
+  }
+}
+
+define quickPreviousMark {
+  pos = 0
+  wrapPos = $cursor
+  found = 0
+  for (label in $marks) {
+      if ($marks[label] <= $cursor) {
+          pos = max(pos, $marks[label])
+          found = 1
+      }
+      else {
+          wrapPos = max(wrapPos, $marks[label])
+      }
+  }
+  if (found) {
+      set_cursor_pos(pos)
+  }
+  else {
+      set_cursor_pos(wrapPos)
+  }
+}

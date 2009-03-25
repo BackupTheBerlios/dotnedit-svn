@@ -1,0 +1,70 @@
+# nm_eval takes a string as argument, which then is executed as macro
+
+define nm_eval {
+ tmp_file = ".tmp_nm_eval"
+ write_file($1, tmp_file)
+ load_macro_file(tmp_file)
+ shell_command("rm -f " tmp_file, "")
+}
+
+
+# This macro loads the current edited file as macro file.
+# It is useful if you write user defined macro functions. Then you can
+# quickly load or re-load the macro functions for testing.
+
+define jf_macro_load {
+
+ cur_file = $file_path $file_name
+ t = read_file(cur_file)
+ if ($read_status != 0) {
+     # file exists on disk, ie it is not untitled window
+     if ($modified == 1) save()
+     load_macro_file(cur_file)
+ }
+}
+
+# This macro allows you to run arbitrary macros located in an NEdit editing window.
+# You can also run a selected region of the window as a macro.
+
+
+define jf_macro_run {
+  start_window = $file_path $file_name
+  list         = ""
+
+  filename = focus_window("last")
+  while(filename != "") {
+      if ($language_mode == "NEdit Macro") {
+          if (list != "") {
+              list = filename "\n" list
+           }
+           else {
+              list = filename
+           }
+      }
+      filename = focus_window("next")
+  }
+
+  macro_window = list_dialog("Select macro window to be executed: ", list, "OK", "Cancel")
+
+  if (macro_window == "" || $list_dialog_button == 2) {
+      beep()
+      return
+  }
+
+  # focus to the window where the macro is located
+  focus_window(macro_window)
+  if ($selection_start != -1) {
+      macro = get_selection() "\n"  # macro must end with newline
+  }
+  else {
+      macro = get_range(0,$text_length) "\n"
+  }
+  # back to the original window
+  focus_window(start_window)
+
+  # -- run the macro
+  nm_eval(macro)
+  
+}
+
+

@@ -1,0 +1,15 @@
+COMMENTS
+Any text which begins with an explicit markup start but
+doesn't use the syntax of any of the constructs above.
+
+.. This text will not be shown 
+   (but, for instance, in HTML might be 
+   rendered as an HTML comment)
+
+An "empty comment", i.e., ".." with blank lines before 
+and after, doesn't consume following blocks. 
+
+.. 
+
+    So this block is not "lost", despite its indentation. 
+

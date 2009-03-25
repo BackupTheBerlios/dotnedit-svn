@@ -1,0 +1,25 @@
+# quick and short help
+
+# needs global variables to store the calltip_ID and current page
+# $help_call
+# $help_index
+
+path=$data "ltx_tips/"
+help_files="help"
+help_files_ex="tips"
+nr_files=3
+
+# is a help calltip shown (or if it is the last help page, show the first one anyway)
+if ($calltip_ID==$help_call && $help_index < nr_files)
+    {
+    # show next help page 
+    $help_index = $help_index + 1
+    }
+    else
+        {
+        $help_index = 1
+        }
+
+file = path help_files $help_index "." help_files_ex    
+help_text = read_file(file)
+$help_call = calltip(help_text)    

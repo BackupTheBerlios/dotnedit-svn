@@ -1,0 +1,1373 @@
+# rst_build_section_levels
+# rst_show_cur_decostyles
+# rst_toc
+# rst_adjust_deco
+# rst_get_deco_style
+# rstToggleOverline
+# rst_change_deco
+# rst_make_title
+# rst_up_down_level
+# rst_next_title
+# rst_straighten_list
+# rst_endof_bulist
+# rst_underline_dialog
+# rst_smartindent_ret
+# rst_tabbing
+# rst_shift_backspace
+# jf_repeat
+# jf_pos2column
+# rstMakeList
+
+
+$FALSE = 0
+$TRUE = 1
+
+# add all syntactically correct chars
+title_pats = "={3,}|\\-{3,}|`{3,}|:{3,}|\\.{3,}|'{3,}|\"{3,}|~{3,}|\\^{3,}|_{3,}|"\
+             "\\*{3,}|\\+{3,}|#{3,}|!{3,}|\\${3,}|%{3,}|&{3,}|\\({3,}|\\){3,}|,{3,}|"\
+             "/{3,}|;{3,}|\\<{3,}|\\>{3,}|\\?{3,}|@{3,}|\\[{3,}|\\{3,}|\\]{3,}|"\
+             "\\{{3,}|\\|{3,}|\\}{3,}"
+
+$rstTitlePats =  "(?:^(" title_pats ")\\n[^.+/].*[^.:]\\n\\1$)|"\
+               "(?:^\\s*\\n[^. +/].*[^.:]\\n(?:" title_pats ")$)"
+
+
+$rstPrefDeco = $empty_array
+pref_deco = "=2 -2 =1 -1 ~1 ^1 '1 .1 \"1 +1 *1 :1 `1 _1 #2  #1"
+tmp = split(pref_deco, " ")
+for (i = 0; i < tmp[]; i++) {
+    level = i + 1
+    $rstPrefDeco[level] = tmp[i]
+}
+
+$rstPrefIndent = " "
+
+#==================================================================================
+# rst_build_section_levels() searches the current window for section titles
+# and relates the section decorations (over- and underlining) to the section
+# levels by creating two global variables $rstDecoToLevel and $rstLevelToDeco.
+#
+# The function returns 0 if there is no document title, returns 1 if there is
+# a document title,  returns 2 if there is also a subtitle.
+# Notice: returns - 1, if no sections at all are found.
+#==================================================================================
+define rst_build_section_levels {
+ # key is deco style, contains level
+ $rstDecoToLevel = $empty_array
+
+ # key is level from 1 to max_level, contains deco style
+ $rstLevelToDeco = $empty_array
+
+
+ level = 0
+ counter[1] = 1
+ counter[2] = 1
+
+ found = search($rstTitlePats, 0, "regex")
+
+ if (found == -1) return -1
+
+ while (found != -1) {
+     next = $search_end
+     #dialog(get_range(found, next))
+     deco = rst_get_deco_style(found, next)
+
+     # Is it already a section level?
+     if (!(deco in $rstDecoToLevel)) {
+         # we have a new level
+         level += 1
+         $rstDecoToLevel[deco] = level
+         $rstLevelToDeco[level] = deco
+     }
+     else {
+        # counter for document title and subtitle
+        if ($rstDecoToLevel[deco] == 1) counter[1] += 1
+        if ($rstDecoToLevel[deco] == 2) counter[2] += 1
+     }
+
+     found = search($rstTitlePats, next, "regex")
+ }
+
+ if (counter[1] > 1) return 0
+ if (counter[2] > 1) return 1
+ 
+ return 2
+}
+
+
+#==================================================================================
+# rst_show_cur_decostyles() pops up a dialog box showing the hierachy of
+# section decorations of the current window.
+#==================================================================================
+define rst_show_cur_decostyles {
+ n = 10
+ titles = rst_build_section_levels()
+ if (titles != -1) {
+    display = ""
+    for (level = 1; level <= $rstLevelToDeco[]; level++) {
+        deco = substring($rstLevelToDeco[level], 0, 1)
+        if (substring($rstLevelToDeco[level], 1, 2) == 2)
+            twoline = $TRUE
+        else
+            twoline = $FALSE
+        
+        underline = jf_repeat(deco, n) 
+        tmp = " Level "level"\n" underline
+        if (twoline) 
+            tmp = underline "\n" tmp
+
+        display = display tmp "\n"
+    }
+    dialog(display)
+ }
+ else
+    dialog("No titles")
+}
+
+#==================================================================================
+# rst_toc() provides the whole TOC support of the ResText mode. It builds
+# the table of contents and displays a list_dialog to go to a chosen
+# section or to insert a, or to update an existing, toc
+#==================================================================================
+define rst_toc {
+ sub_ind = "  "
+
+ # update the sectioning and decoration information, 
+ # then found in $rstDecoToLevel and $rstLevelToDeco
+ # doc_titles = -1, no sections at all; = 0, no doctitle; 
+ #            = 1, doctitle but no subtitle; = 2 both doc- and subtitle
+ doc_titles = rst_build_section_levels()
+
+ if (doc_titles == -1) {
+    # there is no title/section yet, hence TOC empty
+    dialog("No sections yet")
+    return
+ }
+ 
+ # exclude Document Title and Subtitle from the TOC
+ level_max = $rstLevelToDeco[] - doc_titles
+ indent_max = jf_repeat(" ", level_max) 
+ # level counters for numbering, key is level
+ # initialize
+ rst_level_counters = $empty_array
+ for (level = 1; level <= level_max; level++) {
+    rst_level_counters[level] = 0
+ }
+ 
+ current_level = 0
+ previous_level = 0
+ errors = 0
+ display = ""
+ found = search($rstTitlePats, 0, "regex")
+ rst_level_counters = $empty_array
+ rst_level_counters[1] = 0
+ while (found != -1) {
+    next = $search_end
+    txt = get_range(found, next)
+    lines = split(txt, "\n")
+    title = lines[1]
+    deco_style = rst_get_deco_style(found, next)
+
+    # skipping Document Title and Subtitle
+    current_level = $rstDecoToLevel[deco_style] - doc_titles
+    if (current_level >= 1) {
+        
+        # Check first for syntax error of sectioning
+        if (current_level > previous_level + 1) {
+            
+            # insert a note for each of the missing levels in the TOC
+            for (missing_level = previous_level + 1; missing_level < current_level; missing_level++) {
+                rst_level_counters[missing_level] += 1
+                for (level = missing_level + 1; level <= level_max; level++) {
+                    rst_level_counters[level] = 0
+                }
+                nr_tmp = ""
+                for (level = 1; level <= missing_level; level++) {
+                    nr_tmp = nr_tmp rst_level_counters[level] "."
+                }
+                nr_string = substring(nr_tmp, 0, length(nr_tmp) - 1)
+                positions[nr_string] = found
+
+                # indent_max must be determined, follows from level_max
+                pre_ind = substring(indent_max, 0, missing_level - 1)
+
+                display = display pre_ind nr_string sub_ind "***>ERROR**MISSING**LEVEL<***.\n"
+                errors++
+            }
+        }
+        rst_level_counters[current_level] += 1
+
+        # level_max must be determined
+        for (level = current_level + 1; level <= level_max; level++) {
+            rst_level_counters[level] = 0
+        }
+        nr_tmp = ""
+        for (level = 1; level <= current_level; level++) {
+            nr_tmp = nr_tmp rst_level_counters[level] "."
+        }
+        nr_string = substring(nr_tmp, 0, length(nr_tmp) - 1)
+        
+        # store positions to jump to the respective sections
+        # using the section number (like 1.3.2)
+        positions[nr_string] = found
+
+        # indent_max must be determined, follows from level_max
+        pre_ind = substring(indent_max, 0, current_level - 1)
+
+        display = display pre_ind nr_string sub_ind title "\n"
+        
+        previous_level = current_level
+    }
+    # next
+    found = search($rstTitlePats, next, "regex")
+ }
+
+ # Either display a list_dialog with the possibility to choose, and jump to, a section
+ # Or insert the TOC = display at current cursor position
+ warning = "WARNING: There are "errors" errors! See ***>"
+ 
+ message = "Either choose an entry to go to, or let the whole TOC\n"\
+           "be inserted at cursor position.\n\n"\
+           "Notice: If there is a TOC in the document already,\n"\
+           "           it will be replaced with an update." 
+ if (errors) {
+    message = warning"\n\n"message
+ }
+ 
+ # remove trailing \n
+ display = substring(display, 0, length(display) - 1)
+ 
+ tmp = list_dialog(message, display, "Go to", "Insert (Update) TOC", "Cancel")
+ 
+ # Goto chosen section.
+ # The unique numbering is used to identify the position of the section.
+ if (tmp != "" && $list_dialog_button == 1) {
+     start = search_string(tmp, "(?:\\d{1,2}\\.?)+", 0, "regex")
+     nr_string = substring(tmp, start, $search_end)
+     if (nr_string in positions)
+         set_cursor_pos(positions[nr_string])
+     else
+         dialog("rst_toc: "nr_string" not in positions")
+ }
+
+ # Insert (or update) the TOC
+ # We use a *rangeset* to remember a previously inserted TOC.
+ if ($list_dialog_button == 2) {
+    # commenting and indenting the TOC
+    display = replace_in_string(display, "^", "   ", "regex", "copy")
+    display = ".. \n"display
+
+    # Check for existing TOC to update
+    rs_name = "ResText-TOC"
+    toc = rangeset_get_by_name(rs_name)
+    if (toc[] == 0) {
+        # No TOC there, insert a TOC
+        b = dialog("There is no TOC detected.  If it should be there,\n"\
+                    "please select it before proceeding!", "Proceed", "Cancel")
+        if (b == 1) {
+            start = $cursor
+            end = start + 1
+            if ($selection_start != -1) {
+                start = $selection_start
+                end = $selection_end
+            }
+            replace_range(start, end, display)
+            end = start + length(display)
+            # create rangeset for TOC with name in rs_name
+            r = rangeset_create()
+            rangeset_set_name(r, rs_name)
+            rangeset_add(r, start,end)
+        }
+    }
+    else {
+        if (toc[] == 1) {
+            # try to update an existing TOC
+            r = toc[0]
+            info = rangeset_info(r)
+            # the TOC rangeset should contain exactly one range
+            if (info["count"] == 1) {
+                range = rangeset_range(r, 1)
+                replace_range(range["start"], range["end"], display)
+                range["end"] = range["start"] + length(display)
+                rangeset_add(r, range["start"], range["end"])
+            }
+            else {
+                dialog("Existing TOC position lost. Try again.")
+                rangeset_destroy(toc)
+            }
+        }
+        else {
+            dialog("Existing TOC position lost. Try again.")
+            rangeset_destroy(toc)
+        }
+    }
+ return
+ }
+}
+
+#==================================================================================
+# rst_adjust_deco(["up"|"down"|"preferred"])
+# operates on the current selection or the whole file and moves all the
+# sections therein one level up or down
+# "preferred" is the default
+# needs $rstPrefDeco
+# depends on rst_change_deco, rst_get_deco_style
+define rst_adjust_deco {
+ mode = "preferred"
+ if ($n_args > 0) {
+    mode = $1
+    if (mode != "preferred" && mode != "up" && mode != "down") {
+        beep()
+        dialog("rst_adjust_deco: Argument must be \"up\", \"down\"\nor \"preferred\"")
+        return
+    }
+ }
+ 
+ start = 0
+ end = $text_length
+ if ($selection_start != -1 && $selection_left == -1) {
+    start = $selection_start
+    end = $selection_end
+ }
+ deselect_all()
+ t = rst_build_section_levels()
+ next = 0
+ found = search($rstTitlePats, start, "regex")
+ while (found != -1 && found < end) {
+    next = $search_end
+    deco_style = rst_get_deco_style(found, next)
+    if (deco_style in $rstDecoToLevel) {
+        level = $rstDecoToLevel[deco_style]
+    
+    # mode is ensured to be one of "preferred", "up", or "down"
+    if (mode == "preferred" )
+        deco_style_new = $rstPrefDeco[level]
+    
+    # "up" means level nr one down until 1 is reached
+    if (mode == "up") {
+        level = max(1, level - 1)
+        deco_style_new = $rstLevelToDeco[level]
+    }
+    
+    # "down" means level nr one up
+    if (mode == "down") {
+        level += 1
+        if (level <= $rstLevelToDeco[]) {
+            deco_style_new = $rstLevelToDeco[level]
+        }
+        else {
+            # We exceeded the current sectioning depth.
+            # If there is still a deco style from the preferred ones,
+            # choose it, else give up.
+            if (level <= $rstPrefDeco[])
+                deco_style_new = $rstPrefDeco[level]
+            else
+                deco_style_new = deco_style
+        }
+    }
+    
+    offset = rst_change_deco(found, next, deco_style_new)
+    }
+    # next
+    found = search($rstTitlePats, next + offset, "regex")
+ }
+
+}
+
+# must match the title
+# $1 start pos
+# expects correct deco style !!!
+define rst_get_deco_style {
+start = $1
+end = $2
+    deco = get_range(end - 1, end)
+
+    # check for overline decos
+    first = get_range(start, start + 1)
+    if (first == deco) {
+        # overlines
+        deco_style = deco "2"
+    }
+    else {
+        deco_style = deco "1"
+    }
+return deco_style
+
+}
+
+
+define rstToggleOverline {
+  start = search($rstTitlePats, $cursor, "regex", "backward")
+  end = $search_end
+
+  # Abort if search failed
+  if (start == -1 || $cursor > end) {
+      dialog(start"\n"end"\ncursor: "$cursor)
+      beep()
+      return
+  }
+
+  oldDecoStyle = rst_get_deco_style(start, end)
+  type = substring(oldDecoStyle, 1, 2)
+  if (type == 1) {
+      type = 2
+  }
+  else if (type == 2) {
+      type = 1
+  }
+  else {
+      dialog("rstToggleOverline: Error in deco style")
+      return
+  }
+  newDecoStyle = replace_substring(oldDecoStyle, 1, 2, type)
+  rst_change_deco(start, end, newDecoStyle)
+
+}
+
+# Takes start and end of section title (including correct! decos) and new 
+# deco_style
+# expects line 1 = blank or overline, line 2 section name, and possibly 
+# line 3 for underline
+define rst_change_deco {
+ start = $1
+ end = $2
+ deco_style = $3
+ deco = substring(deco_style, 0, 1)
+ 
+ if (substring(deco_style, 1, 2) == 1) {
+     with_overline = $FALSE
+     without_overline = $TRUE
+ }
+ else {
+     with_overline = $TRUE
+     without_overline = $FALSE
+ }
+ 
+ txt = get_range(start, end)
+# dialog(txt)
+ lines = split(txt, "\n")
+ nr_lines = lines[] 
+
+ # Is first line empty ?  If not it is deco.
+ t = search_string(lines[0], "\\S", 0, "regex")
+ if (t == -1) {
+     non_empty_overline = $FALSE
+     empty_overline = $TRUE
+ }
+ else {
+     non_empty_overline = $TRUE
+     empty_overline = $FALSE
+ }
+    
+# dialog(nr_lines)
+  
+ if (nr_lines < 2 || nr_lines > 3) {
+    beep()
+    dialog("rst_change_deco: Wrong number of section title lines")
+    return ""
+ }
+
+ underline_length = length(lines[1])
+
+ # Adjusting indentation of title line --always lines[1]--
+ if (with_overline) {
+    # from underline style to overline style
+    # adjust title line with preferred indent
+    lines[1] = replace_in_string(lines[1], "^\\s*", $rstPrefIndent, "regex", "copy")
+    underline_length = length(lines[1]) + length($rstPrefIndent)
+ }
+ if (non_empty_overline && without_overline) {
+    # from overline style to underline style
+    # remove possible indentation from title name
+    lines[1] = replace_in_string(lines[1], "^\\s+", "", "regex", "copy")
+    underline_length = length(lines[1])
+ }
+ 
+ # Building new underlining (always there, even if there was no underline before)
+ lines[2] = jf_repeat(deco, underline_length)
+ 
+ # Building overline
+ if (with_overline) {
+    lines[0] = lines[2]
+ }
+ else {
+    lines[0] = ""
+ }
+
+ # Build new new section title with deco
+ title_new = ""
+ for (i = 0; i < lines[]; i++) {
+    title_new = title_new lines[i] "\n"
+ }
+
+ offset = $cursor - start 
+ off = min(length(title_new), offset)
+
+ replace_range(start, end + 1, title_new)
+ set_cursor_pos(start + off)
+ offset = end - start - length(title_new) + 1 
+ return offset
+}
+
+
+# rst_make_title(up_or_down [, with_overline])
+# Takes up_or_down = $FALSE (0) means  down, = $TRUE (anything but 0) means up
+# 
+define rst_make_title {
+up_or_down = $1
+
+t_line_pats = "[^=\\-.+/\\^*!\\$\\]\\}\\)?@].*[^.:]"
+
+deco_pats = "(?:=+|\\-+|~+|\\^+|\\++|_+|\\*+|\"+|#+|:+|\\.+|`+|'+|!+|\\$+|%+|&+|"\
+            "\\(+|\\)+|,+|/+|;+|\\<+|\\>+|\\?+|@+|\\[+|\\+|\\]+|\\{+|\\|+|\\}+)"
+
+
+# possible title/section line
+# notice, if there is a overline decoration, then it is not checked if a blank line precedes
+three_line_pats = "^(?:\\s*|\\s*\n"deco_pats")\n"t_line_pats"(?:\n"deco_pats"$)?"
+
+start = search(three_line_pats, $cursor, "regex", "backward")
+end = $search_end
+
+# Abort if search failed
+if (start == -1 || $cursor > end) {
+    dialog(start"\n"end"\ncursor: "$cursor)
+    beep()
+    return
+}
+
+txt = get_range(start, end)
+lines = split(txt, "\n")
+
+# Because I couldn't find a better three_line_pats regex, I found possibly
+# 4 lines, namely blank line, overline, title name, underline
+# Therefore, skip the first (blank) line in this case
+if (lines[] == 4) {
+    # adjust the start position, too
+    start = start + length(lines[0]) + 1
+    lines[0] = lines[1]
+    lines[1] = lines[2]
+    lines[2] = lines[3]
+    delete lines[3]
+}
+
+# At this point we have lines[0], lines[1] and possibly lines[2]
+# lines[1] is always the section name
+# lines[0] is either a blank line or a (overline) decoration
+# if there are 3 lines, then lines[2] is the underline decoration
+
+# Is first line empty ?  If not it is deco.
+t = search_string(lines[0], "\\S", 0, "regex")
+if (t == -1) {
+    non_empty_overline = $FALSE
+    empty_overline = $TRUE
+}
+else {
+    non_empty_overline = $TRUE
+    empty_overline = $FALSE
+}
+
+full_underline = $FALSE
+
+if (lines[] == 3) {
+    # must consider indent of section name in case of an overline
+    len = length(lines[1])
+    if (non_empty_overline) 
+        len += length($rstPrefIndent)
+    if ( length(lines[2]) == len )
+        full_underline = $TRUE
+}
+
+# full underline decoration  OR
+#                                          empty overline and empty underline
+# => get full decoration, required for pro/demoting
+
+if (full_underline || (empty_overline && lines[] == 2)) {
+    #***************
+    # here we need hierachy of section levels, and previous and next level
+    # possibly also current level (for full underline)
+    if (full_underline) {
+        # determine deco style, this gets wrong if overline style != underline style
+        deco_style = rst_get_deco_style(start, end)
+    }
+    else {
+        deco_style = ""
+    }
+    rst_up_down_level(start, end, deco_style, up_or_down)
+    return
+}
+
+# From here on we don't have a full_underline, ie we don't have a correct title, yet.
+# Therefore, we correct it by extending the decoration.
+# We also shorten the decoration, if it is too long, although this would
+# be a correct decoration.  So, this is merely cosmetics.
+if (lines[] == 2) {
+    # We must have a non-empty overline, otherwise the preceding 'if' was
+    # executed which exits the function!
+    
+    # If no underline, we take the deco from the non-empty overline.
+    deco = substring(lines[0], 0, 1)
+    
+}
+else {
+    # otherwise lines[] must equal 3,
+    if (lines[] != 3) {
+        beep()
+        dialog("rst_make_title: Error 1!")
+        return
+    }
+    # We don't have an underline of equal length, so we take the deco from 
+    # there to adjust the length.
+    deco = substring(lines[2], 0 , 1)
+}
+
+# At this point we can change the indentation of the title line!
+# We must know if overline style or not
+
+if (non_empty_overline) {
+    # overline style
+    # set title to prefered indent
+    lines[1] = replace_in_string(lines[1], "^\\s*", $rstPrefIndent, "regex", "copy")
+    underline_length = length(lines[1]) + length($rstPrefIndent)
+}
+else {
+    # no overline style, hence no indent allowed
+    lines[1] = replace_in_string(lines[1], "^\\s+", "", "regex", "copy")
+    underline_length = length(lines[1])
+}
+
+# Extending (or building) the underline and possibly overline
+lines[2] = jf_repeat(deco, underline_length)
+
+if (non_empty_overline) {
+    lines[0] = lines[2]
+}
+
+# Build the output and do the replacement.
+title_new = ""
+for (i = 0; i < lines[]; i++) {
+    title_new = title_new lines[i] "\n"
+}
+
+offset = $cursor - start 
+replace_range(start, end + 1, title_new)
+off = min(length(title_new), offset)
+set_cursor_pos(start + off)
+}
+
+
+#********** missing is promoting demoting many sections, but see rst_adjust_deco
+define rst_up_down_level {
+ start = $1
+ end = $2
+ deco_style = $3
+ up_or_down = $4
+ 
+ doc_titles = rst_build_section_levels()
+ 
+ #****** Special case if no titles yet
+ if (doc_titles != -1) {
+     
+     level_max = $rstLevelToDeco[]
+     
+     # determine previous and next levels
+     prev_title = rst_next_title(start - 1, "backward")
+     if (prev_title["start"] != -1) {
+         deco_style_prev = rst_get_deco_style(prev_title["start"], prev_title["end"])
+         prev_level = $rstDecoToLevel[deco_style_prev]
+     }
+     else {
+        # no previous level, set it to level_max - 1, such that 
+        # prev_level + 1 = level_max
+        prev_level = level_max - 1
+     }
+
+     next_title = rst_next_title(end + 1, "forward")
+     if (next_title["start"] != -1) {
+         deco_style_next = rst_get_deco_style(next_title["start"], next_title["end"])
+         next_level = $rstDecoToLevel[deco_style_next]
+     }
+     else {
+        # no next level, set it to 2, so next_level - 1 = 1
+        next_level = 2
+     }
+
+#    dialog(level_max"\n"prev_level"\n"next_level)
+     if (up_or_down) {
+
+         # UP, means level nr goes down from level_max + 1(sic!) to 1 = level_min
+
+         if (deco_style == "") {
+             # empty style means no title yet, ie no current_level
+             if (prev_level == level_max) {
+                # try to extend level by one
+                # we do this by looping over the preferred decos to avoid
+                # picking up a deco already in use, which wouldn't be an extension
+                failed = $TRUE
+                for (level = level_max + 1; level in $rstPrefDeco; level++) {
+                    deco_style_new = $rstPrefDeco[level]
+                    if (!(deco_style_new in $rstDecoToLevel)) {
+                        failed = $FALSE
+                        break
+                    }
+                }
+                if (failed) {
+                    deco_style_new = $rstPrefDeco[$rstPrefDeco[]]
+                }
+             }
+             else {
+                # prev_level != level_max
+                 deco_style_new = $rstLevelToDeco[prev_level + 1]
+             }
+          }
+          else {
+              current_level = $rstDecoToLevel[deco_style]
+              if (current_level >= next_level - 1 && current_level > 1) {
+                 deco_style_new = $rstLevelToDeco[current_level - 1]
+              }
+              else {
+                 if (prev_level == level_max) {
+                    # try to extend level by one
+                    failed = $TRUE
+                    for (level = level_max + 1; level in $rstPrefDeco; level++) {
+                        deco_style_new = $rstPrefDeco[level]
+                        if (!(deco_style_new in $rstDecoToLevel)) {
+                            failed = $FALSE
+                            break
+                        }
+                    }
+                    if (failed) {
+                        deco_style_new = $rstPrefDeco[$rstPrefDeco[]]
+                    }
+                 }
+                 else {
+                    # prev_level != level_max
+                     deco_style_new = $rstLevelToDeco[prev_level + 1]
+                 }
+             }
+                 
+          }
+     }
+     else {
+         # down, means level nr goes up from lowest level nr to level_max + 1
+         if (deco_style == "") {        
+            level = max(1, next_level - 1)
+            # Notice: next_level - 1 is always below level_max = $rstLevelToDeco
+            deco_style_new = $rstLevelToDeco[level]
+         }
+         else {
+            current_level = $rstDecoToLevel[deco_style]
+            if (current_level < prev_level + 1 || current_level == 1) {
+                if (current_level < level_max) { 
+                   deco_style_new = $rstLevelToDeco[current_level + 1]
+                }
+                else {
+                    # try to extend level by one
+                    failed = $TRUE
+                    for (level = level_max + 1; level in $rstPrefDeco; level++) {
+                        deco_style_new = $rstPrefDeco[level]
+                        if (!(deco_style_new in $rstDecoToLevel)) {
+                            failed = $FALSE
+                            break
+                        }
+                    }
+                    if (failed) {
+                        deco_style_new = $rstPrefDeco[$rstPrefDeco[]]
+                    }
+                }
+            }
+            else {
+                deco_style_new = $rstLevelToDeco[max(next_level - 1,1)]
+            }
+        }
+     }
+ }
+ else {
+    # no titles, set to first preferred style
+    deco_style_new = $rstPrefDeco[1]
+ }
+ rst_change_deco(start, end, deco_style_new)
+}
+
+# rst_next_title(pos, [direction])
+# directions is "forward" (default) or "backward"
+# returns an array with keys "start" and "end" containing the respective
+# positions of the title
+define rst_next_title {
+
+ pos = $cursor
+ direction = "forward"
+ if ($n_args > 0) {
+     pos = $1
+ }
+ if ($n_args > 1) {
+    direction = $2
+ }
+
+
+ start = search($rstTitlePats, pos, "regex", direction)
+ 
+ result["start"] = start
+ result["end"] = $search_end
+
+ return result
+
+}
+
+# puts all the 1st level items to "-", 2nd level to "*" and 3rd level
+# to "+".  There are no more than 3 levels supported so the nth level
+# where n > 3 is also put to "+".
+# depends on rst_endof_bulist(pos)
+define rst_straighten_list {
+ 
+ bullet_pref[1] = "-"
+ bullet_pref[2] = "*"
+ bullet_pref[3] = "+"
+ 
+ indent_level[3] = -1
+ 
+ indent = 0
+ 
+ # Operate on the whole text, unless there is a selection
+ region_start = 0
+ region_end = $text_length
+ if ($selection_start != -1) {
+    region_start = $selection_start
+    region_end = $selection_end
+ }
+ bullets = "[*+\\-]" 
+ bullet_lists = "^\\s*"bullets"\\s"
+ 
+ # find the start of the bullet list
+ end_preceding_par = search("\n(?:\\s*\n)+"bullet_lists, region_start, "regex")
+ second_level = $search_end
+ 
+ # stop if no bullets found in the region
+ if (end_preceding_par == -1 || end_preceding_par > region_end)
+    return
+ 
+ # We also directly found indent level 2, which by reST must be after all
+ # the blanks after the first bullet
+ indent_level[2] = jf_pos2column(second_level)
+ 
+ # indent of level 1 is in front of the bullet
+ pos = search(bullets, second_level, "regex", "backward")
+ indent_level[1] = jf_pos2column(pos)
+ 
+ # Use the chance to replace it directly
+ level = 1
+ replace_range(pos, pos + 1, bullet_pref[level])
+ 
+ # determine the list end we need to check for embedded lists
+ end_of_list = rst_endof_bulist(end_preceding_par)
+ 
+ # replace the remaining bullets of the current list
+ next = search(bullet_lists, second_level, "regex")
+ 
+ while (next != -1 && next < region_end) {
+    
+    # just remember it to possibly determine the third level
+    for_third_level = $search_end
+
+    # determine level of next list item
+    pos = search(bullets, next, "regex")
+    indent = jf_pos2column(pos)
+    
+    if (indent == indent_level[1]) {
+        level = 1
+    } 
+    else if (indent == indent_level[2]) {
+        level = 2
+    }
+    else if (indent >= indent_level[3] && level >= 2) {
+        # we don't handle more than 3 levels, since NEdit isn't utf-8
+        level = 3
+        # possibly determine 3rd level
+        if (indent_level[3] < 0) {
+            indent_level[3] = jf_pos2column(for_third_level)
+        }
+    }
+    else {
+        beep()
+        dialog("rst_straighten_list: Error in list identation at position:\n"\
+                pos"\n\nAborting.")
+        return
+    }
+    replace_range(pos, pos + 1, bullet_pref[level])
+    next = search(bullet_lists, pos + 1, "regex")
+ }
+
+
+}
+
+# Determines the end of a bullet list given the lst line of the paragraph
+# preceding the bullet list.  NOTICE:  This cannot be a blank line!
+# This line is given by a position on it.
+# The list ends before a text block with indent equal or below the indent
+# of the preceding paragraph.
+# depends on jf_pos2column(pos)
+define rst_endof_bulist {
+ end_preceding_par = search("$", $1, "regex")
+
+ # Skip the bullet list items and blank lines.  The extra \s in the 
+ # alternation is required to ensure that all the blanks in front of 
+ # the bullets are matched!
+ bulist_end_pats = "^\\s*(?![*+\\-]\\s|\\s|$)"
+ if (end_preceding_par >= 1) {
+     start_line = search("^", end_preceding_par, "regex", "backward")
+ }
+ else {
+     start_line = 0
+ }
+ # get the indent of the preceding paragraph.
+ # We can assume that the line isn't blank.
+ next = search("\\S", start_line, "regex")
+ preceding_indent = jf_pos2column(next)
+ 
+ endof_bulist = $text_length
+ next = search(bulist_end_pats, end_preceding_par, "regex")
+ while (1) {
+
+     if (next == -1)
+        break
+
+     indent = jf_pos2column($search_end)
+     if (indent <= preceding_indent) {
+        endof_bulist = next
+        break
+     }
+     
+     next = search(bulist_end_pats, $search_end + 1, "regex")
+ }
+
+ return endof_bulist
+}
+
+# ------------------------------------------------------------------
+# Presents a dialog of decoration styles and underlines or over- and 
+# underlines the current line with the chosen decoration.
+#
+# Depends on: jf_repeat
+# ------------------------------------------------------------------
+define rst_underline_dialog {
+ len = 25
+ indent = " "
+ pref_deco = "#=-~^'.+*\":_`"
+ 
+ tmp = pref_deco
+ list = ""
+
+ # build list of decorations to display
+ while (tmp != "") {
+    deco = substring(tmp, 0, 1)
+    tmp = substring(tmp, 1)
+    deco_line = jf_repeat(deco, len) "\n"
+    list = list deco_line
+ }
+ 
+ deco = list_dialog("Choose", list, "Underline", "Over/Under", "Cancel")
+ 
+ # Cancel
+ if (deco == "" || $list_dialog_button == 3) {
+    beep()
+    return
+ }
+ 
+ start = search("^", $cursor, "regex", "backward")
+ end = search("$", $cursor, "regex")
+ len = end - start
+ deco_new = substring(deco, 0, 1)
+
+ # Underline
+ if ($list_dialog_button == 1) {
+    deco_new = jf_repeat(deco_new, len) "\n"
+    set_cursor_pos(end + 1)
+    insert_string(deco_new)
+    return
+ }
+ 
+ # Over- and Underline
+ if ($list_dialog_button == 2) {
+    deco_new = jf_repeat(deco_new, len + 2*length(indent)) "\n"
+    title = indent get_range(start, end) "\n"
+    title = deco_new title deco_new
+    replace_range(start - 1, end + 1, title)
+    return
+ }
+
+}
+
+define rst_smartindent_ret {
+
+ # If we hit the Return key, we do a standard auto-indent.
+ if ($column < $wrap_margin) 
+     return -1
+
+ cpos = $cursor
+ 
+ # We include the Explicit Markup Start (i.e., ".. "), because it's a special case of
+ # a list.
+ liststart_pats = "^\\s*(?:\\.\\.|[*+\\-]|\\(?(?:#|[a-zA-Z]|\\d+|[ivxlmIVXML]+)(?:\\.|\\)))\\s+"
+ listitem_pats = liststart_pats".+"
+ 
+ start = search(listitem_pats, $cursor, "regex", "backward")
+ if ($search_end == $cursor) {
+     # We are on the first line of a list item, and run over the wrap margin:
+     # so we continue this list item 
+     search(liststart_pats, start, "regex")
+     # get indent -> tabs: arrgh
+     set_cursor_pos($search_end)
+     indent = $column
+     set_cursor_pos(cpos)
+     return indent
+ }
+ else {
+     return -1
+ }
+
+}
+
+# to be bound to the Tab key, language mode specificly
+# doesn't work with tabs!
+define rst_tabbing {
+ liststart_pats = "^\\s*(?:[*+\\-]|\\(?(?:#|[a-zA-Z]|\\d+|[ivxlmIVXML]+)(?:\\.|\\)))\\s+"
+ # we get the current indent in case there are only blanks from the line
+ # start up to the cursor position
+ start = search("^\\s+", $cursor, "regex", "backward")
+ if ($cursor == $search_end) {
+    # works even if there are tabs
+    current_indent = $column
+    next = search(liststart_pats"|^\\s*", start - 1, "regex", "backward")
+
+    # maybe we should limit the iteration for large files to a dozen or so
+    while (next != -1) {
+        indent = jf_pos2column($search_end)
+        if (indent > current_indent) {
+            gap = indent - current_indent
+            # if gap isn't too big
+            if (gap < $tab_dist) {
+                blanks = jf_repeat(" ", gap)
+                insert_string(blanks)
+            } 
+            else
+                process_tab()
+            
+            return
+        }
+    next = search(liststart_pats"|^\\s*", next - 1, "regex", "backward")
+    }
+ }
+ # if we reach here, we have no indent bigger than the current indent
+ # so we do a normal (emulated) tab
+ process_tab()
+}
+
+# to be bound to the Tab key, language mode specificly
+# requires smart-indent on
+define rst_shift_backspace {
+ liststart_pats = "^\\s*(?:[*+\\-]|\\(?(?:#|[a-zA-Z]|\\d+|[ivxlmIVXML]+)(?:\\.|\\)))(?=\\s)"
+ # we get the current indent in case there are only blanks from the line
+ # start up to the cursor position
+ start = search("^\\s+", $cursor, "regex", "backward")
+ if ($cursor == $search_end) {
+    # works even if there are tabs
+    current_indent = $column
+    next = search(liststart_pats"|^\\s*", start - 1, "regex", "backward")
+    
+    # maybe we should limit the iteration for large files to a dozen or so
+    while (next != -1) {
+        search("^\\s*", next, "regex")
+        indent = jf_pos2column($search_end)
+#        dialog(next"\n"indent"\n"$search_end)
+        if (indent < current_indent) {
+            gap = current_indent - indent
+            replace_range($cursor - gap, $cursor, "")
+            return
+        }
+        next = search(liststart_pats"|^\\s*", next - 1, "regex", "backward")
+    }
+ }
+ # if we reach here, we have no indent smaller than the current indent
+ # so we do a normal backspace
+ delete_previous_character()
+}
+
+
+
+# ==============================================================================
+# repeat(str, n): returns a string built by repeating str n times. It uses
+#       string doubling to reduce concatenation operations.
+# ==============================================================================
+
+# THIS IS ALSO CONTAINED IN smart_wrapping.nm !!
+define jf_repeat {
+ str = $1
+ len = $2
+
+ res = ""
+ while (len > 0) {
+     if (len % 2)
+         res = res str
+     len /= 2
+     if (len > 0)
+         str = str str
+ }
+ return res
+}
+
+
+#==================================================================================
+# returns the column number of the given position in the current window
+# the column number is used to get the indent level respecting tabs
+# from Tony, slimmed down version for my needs
+# correction: must be if(pos >= posNum) vs. if (pos > posNum) !
+#==================================================================================
+define jf_pos2column   {
+  posNum = $1
+  tabSize = $tab_dist
+
+
+  if (posNum > $text_length)
+    posNum = $text_length
+
+  col = 0
+
+  # find previous start of line
+  pos = search("^", posNum, "regex", "backward")
+  end = pos
+  while (end < posNum)
+    {
+    # include "$" to search to stop searching too far beyond area of interest
+    # note that the end-of-line will always be at or beyond posNum
+    pos = search("\t+|$", end, "regex")
+
+    # search will never fail: it will always find $ (since posNum <= length)
+    if (pos >= posNum)                   # we searched too far, so we're done
+      return col + posNum - end
+    col += pos - end                    # add normal chars from last end to tab
+    end = $search_end                   # end of tab sequence
+    if (end > posNum)                   # is posNum in the sequence?
+      end = posNum                      # yes - so consider only to posNum
+    col += tabSize * (end - pos)        # account for tab sequence
+    col -= col % tabSize                # and adjust end column to tab boundary
+    }
+
+  return col
+}
+
+# Make a bullet or numbered list out of the selection, or transform the
+# selection from one type of a list to another.
+# Note: Not for nested lists!
+# Menu entry should require selection!
+define rstMakeList {
+  if ($selection_start == -1) {
+      dialog("Requires Selection.")
+      return
+  }
+  smallLettersStr = "a b c d e f g h i j k l m n o p q r s t u v w x y z"
+  romanNumeralsUnitStr = "i ii iii iv v vi vii viii ix"
+  romanNumeralsTenStr  = "x xx xxx xl l lx lxx lxxx xc"
+  romanNumeralsUnit    = $empty_array
+  romanNumeralsTen     = $empty_array
+  blankLine = "^\\s*\n"
+  optionList = "* * * ...\n- - - ...\n+ + + ...\n1 2 3 ...\n# # #\ni ii iii\nI II III\na b c ...\nA B C ..."
+
+  
+  option = list_dialog("Create a new list or transform a list to a new style.\n"\
+                       "========================================\n"\
+                       "Choose a style. 'Start with' let's you set the first\n"\
+                       "label for enumerated lists.\n\n"\
+                       "(Note: Indent level of blocks must be equal.\n"\
+                       "         Don't use this macro for nested lists.)",\
+                        optionList, "Ok", ")", "( )", "Start with")
+  if (option != "" && $list_dialog_button != 0) {
+      labelType = split(option, " ")
+      if (labelType[0] == "*") {
+          label = "*"
+          type = "bullet"
+      }
+      else if (labelType[0] == "-") {
+          label = "-"
+          type = "bullet"
+      }
+      else if (labelType[0] == "+") {
+          label = "+"
+          type = "bullet"
+      }
+      else if (labelType[0] == "1") {
+          type = "number"
+      }
+      else if (labelType[0] == "#") {
+          type = "auto"
+          label = "#"
+      }
+      else if (labelType[0] == "i") {
+          type = "romanNumeral"
+      }
+      else if (labelType[0] == "I") {
+          type = "RomanNumeral"
+      }
+      else if (labelType[0] == "a") {
+          type = "smallLetter"
+      }
+      else if (labelType[0] == "A") {
+          type = "capLetter"
+      }
+      else {
+          # Error
+          dialog("Error in option!")
+          return
+      }
+      
+      prefix = ""
+      suffix = ""
+      if (type != "bullet") {
+          suffix = "."
+          if ($list_dialog_button == 2) {
+              suffix = ")"
+          }
+          if ($list_dialog_button == 3) {
+              prefix = "("
+              suffix = ")"
+          }
+      }
+      if (type == "auto") {
+          label = prefix label suffix
+      }
+      
+      index = 1
+
+      # Start with (a different index)
+      if (type != "bullet" && type != "auto" && $list_dialog_button == 4) {
+          nbr = string_dialog("Give in a positive integer > 0.\n"\
+                  "For instance, 3 for c or iii, depending on your preceding choice.",\
+                   "Ok", ")", "( )")
+          if (nbr != "" && $string_dialog_button != 0) {
+              if ($string_dialog_button == 2) {
+                  suffix = ")"
+              }
+              if ($string_dialog_button == 3) {
+                  prefix = "("
+                  suffix = ")"
+              }
+              if (valid_number(nbr)) {
+                  index = nbr
+              }
+              else {
+                  b = dialog("Not a valid number (1, 2, 3, ...)\nReset to 1, continue?", "Ok")
+                  if (b == 0)
+                      return
+              }
+          }
+      }
+
+      eachLine = 0
+      lenLabelOld = -1
+
+      # Removing old list labels.
+      # remove bullets, this is easy
+      replace_in_selection("^(\\s*)[*+\\-](\\s)", "\\1 \\2", "regex")
+
+      start = $selection_start
+      end = $selection_end
+
+      # remove enumerations, this is more difficult
+      found = search("^\\s*\\(?(?:#|[a-zA-Z]|\\d+|[ivxlmIVXML]+)(?:\\.|\\))\\s", start, "regex")
+      sEnd = $search_end
+      while (found != -1 && sEnd < end) {
+          indent = sEnd - found
+          if (indent != -1) {
+              blanks = jf_repeat(" ", indent)
+              indentOld = indent
+          }
+          if (indent != indentOld) {
+              dialog("Indent Error while removing old labels. Aborting.")
+              return
+          }
+          replace_range(found, sEnd, blanks)
+          found = search("^\\s*\\(?(?:#|[a-zA-Z]|\\d+|[ivxlmIVXML]+)(?:\\.|\\))\\s", sEnd, "regex")
+          sEnd = $search_end
+      }
+      # In case the replace_range disturbed the start of the selection
+      select(start, end)
+
+      while (start < end) {
+          # Determine label, if it is an enumerated list.
+          if (type == "number") {
+              label = prefix index suffix
+              index += 1
+          }
+          else if (type != "bullet" && type != "auto") {
+              if (type == "smallLetter" || type == "capLetter") {
+                  if (!(0 in smallLetters)) {
+                      smallLetters = split(smallLettersStr, " ")
+                  }
+                  label = smallLetters[index - 1]
+                  if (index < smallLetters[]) {
+                      index += 1
+                  }
+              }
+              else if (type == "romanNumeral" || type == "RomanNumeral") {
+                  if (index > 99) {
+                      index = 99
+                  }
+                  if (!(0 in romanNumeralsUnit && 0 in romanNumeralsTen)) {
+                      romanNumeralsUnit = split(romanNumeralsUnitStr, " ")
+                      romanNumeralsTen = split(romanNumeralsTenStr, " ")
+                  }
+                  label =  romanNumeralsUnit[(index % 10) - 1]
+                  ten = index/10 - 1
+                  if (ten > 0) {
+                      label = romanNumeralsTen[ten] label
+                  }
+                  index += 1
+              }
+              if (type == "capLetter" || type == "RomanNumeral") {
+                  label = toupper(label)
+              }
+              label = prefix label suffix
+          }
+          lenLabel = length(label)
+          if (lenLabel != lenLabelOld) {
+              lenLabelOld = lenLabel
+              blanks = jf_repeat(" ", lenLabel)
+          }
+
+          # We need to determine the indenation.
+          indent = search("\\S", start, "regex") - start
+          if (indent < 0 || indent > $wrap_margin) {
+              dialog("Indent Error")
+              return
+          }
+      
+          # If the space isn't sufficient to put the label,
+          # we need to shift the list to the right some more.
+          if (indent <= lenLabel) {
+              shift_right_by_tab()
+              end = $selection_end
+              indent = search("\\S", start, "regex") - start
+          }
+
+          found = search("^\\s*"blanks" (?=\\S)", start, "regex")
+          if (found != -1 && found < end) {
+              found = $search_end
+              replace_range(found - 1 - lenLabel, found - 1, label)
+          }
+          else {
+              break
+          }
+          if (!eachLine) {
+              found = search(blankLine, found + 1, "regex")
+              if (found != -1) {
+                  start = $search_end
+              }
+              else {
+                  break
+              }
+          }
+          else {
+              start = found
+          }
+      }
+  }
+}

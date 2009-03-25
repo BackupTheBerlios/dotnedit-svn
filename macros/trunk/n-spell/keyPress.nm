@@ -1,0 +1,154 @@
+#==================================================================================
+#
+# void nspell_keyPress(int pos, string char)
+#   The macro to run for each keypress (including newlines), when continuous checking
+#   is enabled. Requires NEchoesd to run.
+#   Detects if cursor has just left modified word(s); if so checks and
+#   updates them.
+#   'pos' is the insertion point.
+#   'char' is the character being entered.
+#   Returns: No return value.
+#
+define nspell_keyPress {
+    file = $file_path $file_name
+    pos = $1
+    char = $2
+
+    $NSPELL_globals[""] = 0
+    
+    if (!("use_daemon" in $NSPELL_globals))
+        return
+        
+    if ($NSPELL_globals["use_daemon"] == $FALSE) 
+        return
+    
+    if (!(file in $NSPELL_globals["continuous"])) 
+        return
+    
+    if (!$NSPELL_globals["continuous"][file]) 
+        return
+    
+    currentLanguage = nspellGetLanguage()
+    if (currentLanguage == "")
+        return
+    if (!(currentLanguage in $NSPELL_globals["daemEnabled"]))
+        return
+
+    if (!$NSPELL_globals["daemEnabled"][currentLanguage]) 
+        return
+
+    errMsg = jf_require("n-spell.nm")
+    if (errMsg != "") {
+        calltip(errMsg)
+        return
+    }
+    # Check if we are in a part of the text that should not be spell-checked
+    if (nspell_skip(pos) == $TRUE) return
+
+    oldPos = $nspell_oldPos
+    letter = nspell_isLetter(char)
+
+    # Deal quickly with all run-on typing cases (the most common type):
+    if (pos-oldPos == 1) {
+        # Abort: if in process of typing a word:
+        if (letter){
+            $nspell_oldPos = pos
+            return
+        }
+        # Abort: if just extending whitespace/nonword span:
+        prev = get_range(oldPos, pos)
+        if (!nspell_isLetter(prev)){
+            $nspell_oldPos = pos
+            return            
+        }
+        # ==> We must have just finished a word. Check it:
+        nspell_findWord(oldPos)
+        word = get_range($nspell_wordStart, pos)
+        isCorrect = nspell_checkWord(word)
+        nspell_updateTag($nspell_wordStart, pos, isCorrect)
+        $nspell_oldPos = pos+1
+        return
+    }
+
+    # ==> We must have moved more than one char since last typing occurred.
+
+    # Need boundaries of old word for further tests:
+    word = nspell_findWord(oldPos)
+
+    # Abort: if still adding to same word as before
+    if (letter){
+        if ((pos >= $nspell_wordStart) && (pos <= $nspell_wordEnd)){
+            $nspell_oldPos = pos
+            return
+        }
+    }
+
+    # ==> We most probably did leave a known edited word.
+    # Deal with old word (if there is one):
+    if (word != ""){
+        isCorrect = nspell_checkWord(word)
+        nspell_updateTag($nspell_wordStart, $nspell_wordEnd, isCorrect)
+#        if ($nspell_wordEnd < pos) pos += delta 
+    }
+    $nspell_oldPos = pos
+
+    # ==> All old word cases are DONE.
+    # 'pos' and $nspell_OldPos both point to the position where 'char'
+    # is currently expected to be inserted
+
+    # Remove any tag when we start editing a new word:
+    nspell_findWord(pos)
+    if (letter){
+        # Inserting text. Remove tag (if any) during editing of a word:
+#        $nspell_oldPos += nspell_updateTag($nspell_wordStart, $TRUE)
+        nspell_updateTag($nspell_wordStart, $nspell_wordEnd, $TRUE)
+        return
+    } else {
+        # Inserting whitespace. Just extending a span?
+        prev = get_range(pos-1, pos)
+        if (!nspell_isLetter(prev)) return
+        # No, it came straing after a letter. Check preceding word:
+        word = get_range($nspell_wordStart, pos)
+        # for cygwin we need a short time delay, otherwise we'll hang
+        if ($NE_globals["op_system"] == "mswindows") {
+            for (i = 0; i < $nspell_wait; i++) {}
+        }
+        isCorrect = nspell_checkWord(word)
+#        pos += nspell_updateTag($nspell_wordStart, isCorrect)
+        nspell_updateTag($nspell_wordStart, pos, isCorrect)
+        # Did this whitespace split a word in two?
+        next = get_range(pos, pos+1)
+        if (!nspell_isLetter(next)) return
+        # Yes. Make sure right half is checked when we leave it:
+        $nspell_oldPos = pos + 1
+    }
+}
+
+# string nspellGetLanguage()
+define nspellGetLanguage {
+  language = ""
+  languages = split($NSPELL_globals["languages"], "\n")
+  for (i = 0; i < languages[]; i++) {
+      r = rangeset_get_by_name($NSPELL_globals["prefix"]languages[i])
+      if (r[] > 1) {
+          calltip("nspellGetLanguage: More than one rangeset with name:\n"\
+                        $NSPELL_globals["prefix"]languages[i]"\n"\
+                    "This shouldn't happen!")
+          return ""
+      }
+      if (r[] == 1) {
+          if (language == "") {
+              language = languages[i]
+          }
+          else {
+              # Internal Error, shouldn't happen.
+              calltip("nspellGetLanguage: Two languages defined:\n"\
+                        language"  AND  "languages[i]"\n"\
+                        "This shouldn't happen!")
+              return ""
+          }
+      }
+  }
+  return language
+}
+

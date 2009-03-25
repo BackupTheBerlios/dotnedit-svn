@@ -1,0 +1,113 @@
+# Both of the functions depend on the built-ins $marks and
+# mark_unset() !!!
+#
+# findDefPushStack
+# findDefReturn
+
+# Tries to find the definition of the tag, but before doing so,
+# it remembers the current location by setting a mark and pushes
+# the information on a $tagStack.  This is an array indexed by a
+# positive number starting at 1 and containing arrays consisting
+# of a single key:value entry, where the key is the current file
+# name and the value is the mark label.  The stack index is also
+# stored in the $tagStack array with key "index". (So, only a
+# single global array is used.)
+define findDefPushStack {
+  # avoid macro error on undefined var
+  $tagStack[""] = 0 
+  
+  # we use the stack also to store its own index
+  if ("index" in $tagStack) {
+      # here we increment the index
+      $tagStack["index"]++
+  }
+  else {
+      # initialize $tagStack
+      $tagStack["index"] = 1
+  }
+  stackIndex = $tagStack["index"]
+
+  # grab caller info before finding tag
+  thisFile = $file_path $file_name
+  
+  # find a free mark label
+  tmp = "0 1 2 3 4 5 6 7 8 9 a b c d e f g h "\
+        "i j k l m n o p q r s t u v w x y z"
+
+  markLabel = split(tmp, " ")
+  nLabels = markLabel[]
+  index = -1
+  for (i = 0; i < nLabels; i++) {
+      if (!(markLabel[i] in $marks)) {
+          index = i
+          break
+      }
+  }
+  if (index >= 0) {
+      label = markLabel[index]
+      if (!(stackIndex in $tagStack)) {
+          $tagStack[stackIndex] = $empty_array
+      }
+
+      # remember the caller position with bookmark
+      mark(label)
+
+      # push tag stack
+      $tagStack[stackIndex][thisFile] = label
+  }
+  else {
+      # no more mark labels available (shouldn't happen often)
+      # keep stack index constant (we increased it already)
+      $tagStack["index"] = max(0, $tagStack["index"] - 1)
+  }
+
+  # find tag definition
+  find_definition()
+}
+
+# This is the sister of findDefPushStack.
+# The function pops the old location off the $tagStack,
+# and moves the cursor to there.
+define findDefReturn {
+
+  # avoid macro error on undefined var
+  $tagStack[""] = 0
+  if (!("index" in $tagStack)) {
+      $tagStack["index"] = 0
+  }
+
+  # pop if tagstack not empty
+  file = ""
+  stackIndex = $tagStack["index"]
+  if (stackIndex > 0) {
+      for (key in $tagStack[stackIndex]) {
+          # there is only one file:label pair for each index
+          # we need to get the file which is the key of the array
+          file = key
+      }   
+      if (file == "") {
+          dialog("findDefReturn: Internal Error.")
+          return
+      }
+      label = $tagStack[stackIndex][file]
+      # pop the stack
+      $tagStack["index"]--
+      delete $tagStack[stackIndex]
+      test = focus_window(file)
+      if (test != "") {
+          # We go only to label, if focus_window() worked.
+          # Otherwise the file was closed, and it is also
+          # ok that we popped it off the stack already.
+          goto_mark(label)
+    	  raise_window()
+	  mark_unset(label)
+       }
+       else {
+          # The window was closed.  Try to go back further.
+          findDefReturn()
+       }
+  }
+  else {
+      beep()
+  }
+}

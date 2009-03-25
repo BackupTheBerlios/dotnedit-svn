@@ -1,0 +1,330 @@
+#==================================================================================
+# simple spell checker handling
+# 
+# ALGORITHM
+# 
+# In stead of simply sending the whole file to the spell-checker and relying on a
+# filter mechanism hard-coded in the spell-checker itself, we filter off the syntax
+# stuff from the file *before* sending it to the spell-checker.
+# 
+# The filter only consists of a sequence of regular expressions / patterns, that 
+# get erased from the file with a replace_all, that's all.
+# 
+# The advantage of filtering before is
+# 1. speed
+# 2. easier adaption of the patterns without recompiling
+# 3. same loop for different languages (LaTeX, HTML, XML, ...)
+# 
+# The rest of the algorithm is getting the results from the spell-checker and
+# finding the mis-spelled words in the text.
+#
+#==================================================================================
+
+#==================================================================================
+# subroutine? spell_check
+define spell_check {
+wordlist=""
+if ($Switch_keys=="en") {
+    l="english "
+    }
+    else {
+    l="de "
+    }
+    
+#spellchecker="aspell --language-tag=english --sug-mode=fast -a"#or "ispell -a"  #aspell has better suggestions, but is slower
+options="--language-tag=" l "--sug-mode=fast -a"
+error_signs="[\\&#\\?]"
+sep=":"
+suggest=$empty_array
+file=$data $file_name ".check"
+
+# subroutine for filtering the file, language dependent of course
+# spell_filter -> see end of file
+if ($selection_start!=-1) {
+    text= get_selection()
+    }
+    else {
+    text= get_range(0,$text_length)
+    }
+if (text=="") {
+    dialog("Error: No text to check","OK")
+    return
+    }    
+
+wordlist= spell_filter(text,$language_mode)
+write_file(wordlist,"wordlist.txt")
+if (wordlist=="") {
+    dialog("Error: No wordlist returned","OK")
+    return
+    }
+
+# have wordlist, call spell checker
+# send spellchecker in terse mode for long input texts
+if (length(wordlist) > 1500) {
+    wordlist= "! " wordlist
+}
+
+if ($op_system == "mswindows") {
+    result= filtering_on_cygwin($spellchecker options, wordlist)
+}
+else {
+    result= shell_command($spellchecker options, wordlist)
+}
+
+write_file(result, $data "result.check")
+
+# analyze resulting string, i.e., build the suggest array
+found = search_string(result, error_signs" \\l+", 0, "regex")
+#dialog("found : " found,"OK")
+while (found != -1) {
+  word = substring(result,found,$search_end)
+  word = substring(word,2,length(word))
+#    dialog("word : " word,"ok")
+  eol = search_string(result, "$", found, "regex")
+  if (!(word in suggest)) {
+     # get suggestion list, it is after the colon if there are suggestions !!!
+     line = substring(result, found, eol)
+     colon = search_string(line, ":", 0)
+     if (colon != -1) {
+         # found colon
+         suggest[word] = substring(line, colon+2, length(line))
+         }
+         else {
+         suggest[word] = "No suggestions!"
+         }
+     #    dialog(suggest[word],"ok")
+  }
+  found = search_string(result, error_signs" \\l+", eol, "regex")
+}
+
+# order the mis-spelled words, so that we can have an "undo last" button
+# (following a user request)
+i = 0
+ordered_suggest = $empty_array
+for (aKey in suggest) {
+    i = i + 1
+    ordered_suggest[i] = $empty_array
+    ordered_suggest[i][aKey] = suggest[aKey]
+    }
+
+# going through the file for checking words
+for (j = 1; j <= ordered_suggest[]; j++) {
+  # get the suggestions for the mis-spelled word
+  for (aKey in ordered_suggest[j]) {
+    sug2word = split(ordered_suggest[j][aKey],", ")
+    text = ""
+    for (i=0;i<sug2word[];i++) {
+        text=text sug2word[i] "\n"
+        }
+
+    # Unfortunately, we don't have a do <body> until <condition>  construct
+    through=1
+    # we set through=0 at the end of the while loop to get the do-until effect
+    while(through==1 || $list_dialog_button==2 || $list_dialog_button==4)
+        {
+        find(aKey, $cursor + 1, "wrap", "caseWord")
+        # get a few words before and after the mis-spelled word
+        # after the find command, there should be a selection
+        if ($selection_start!=-1) {
+	    hint1=get_range($selection_start - 16, $selection_start)
+	    hint2=get_range($selection_end, $selection_end + 16)
+	    }
+            else {
+	     # no selection -> error
+	     dialog("Mis-spelled word not found?","OK")
+	     break
+	     }
+
+        suggestion= list_dialog("Correct: " hint1 aKey "(!)" hint2,text,\
+        "Correct_all","Correct","Skip_all","Skip","Manual","-> Dict", "Undo")
+        # exit, if list_dialog is closed with ESC or window close
+        if ($list_dialog_button==0) {
+            dialog("Cancelation","OK")
+	    return
+	    }
+        # correct_all
+        if ($list_dialog_button == 1) {
+	    if (suggestion != "") {
+	        replace_all(aKey,suggestion,"caseWord")
+	        }
+	        else {
+	        dialog("Forget selection!","OK")
+	        }
+
+	     }
+        # correct this one only
+        if ($list_dialog_button == 2) {
+	    if (suggestion != "") {
+	      replace_selection(suggestion)
+              # next one
+              j = j -1
+	      }
+	      else {
+	       b = dialog("You forgot to select a suggestion!"\
+                    "So no correction can be done.\n Do you want to try again?",\
+                     "Yes", "No")
+               if (b == 1) {
+                 j = j - 1
+               }
+	      }
+        }
+        # skip this one only
+        if ($list_dialog_button==4) {
+          j = j + 1
+        }
+        # manual correction, the button must be pressed after the correction and the 
+        # corrected word must be selected
+        if ($list_dialog_button==5) {
+	  manual_correction = get_selection()
+	  if (manual_correction != "") {
+	      replace_all(aKey, manual_correction, "caseWord")
+	      }
+	      else {
+		b = dialog("You forgot to select your correction, so no changes can\n"\
+                   "be done for other occurrences of this mistake! If you want\n"\
+                   "to correct all  ", "OK", "Dismiss")
+		  }
+
+
+        }
+        # insert the matched word in dictionary and (skip all)
+        if ($list_dialog_button==6) {
+	    # requires that the word is selected
+	    new_word= get_selection()
+	    new_word= "*" new_word "\n#\n"
+	    t= shell_command($spellchecker options,new_word)
+	    }
+
+        if ($list_dialog_button == 7) {
+            if (j > 1) {
+                j = j - 2
+                undo()
+            }
+            else {
+                dialog("This should be the 1. mis-spelled word.\nSo, there is "\
+                    "nothing to undo.")
+            }
+        }
+        # in order to skip all, we do nothing
+        through=0
+        }
+  }
+}
+dialog("Ready","ok")
+
+} # end of spell_check
+
+#==================================================================================
+# subroutine spell_filter
+#
+# purpose is to strip off syntax stuff from the file to get a list of words that
+# are to be checked
+# stripping off is done by a sequence of regular expressions (patterns)
+# parameters: 1. text string to filter, 2. $language_mode, 3. german
+# returns: the filtered text string
+#
+# For adaption to your needs, simply change the patterns or add new ones
+#
+#==================================================================================
+define spell_filter {
+text=$1
+language=$2
+remove_pattern= $empty_array
+
+# initialize language dependent patterns 
+# LaTeX removal patterns
+if (language == "LaTeX") {
+    # remove special signs,  ok
+    remove_pattern[0]= "\\\\\\$|\\\\\\&"
+    # remove comments, labels, references  ok 
+    remove_pattern[1]= "%.*$"
+    remove_pattern[2]="(?:\\\\label|\\\\ref|\\\\eqref|\\\\bibitem)\\{.*?\\}"
+    # remove citations
+    remove_pattern[3]="\\\\cite\\l*(?:\\[.*?\\])?\\{.*?\\}"
+    # remove inline maths,  ok
+    remove_pattern[4]= "(?n(?:\\$|\\\\\\().*?(?:\\$|\\\\\\)))"
+    # remove verbatim environment,  ok
+    remove_pattern[5]= "(?n\\\\begin\\{(verbatim\\*?)\\}.*?\\\\end\\{\\1\\})"
+    # remove inline verbatim,  ok
+    remove_pattern[6]= "\\\\verb\\*?([^\\l\\s\\*]).*?\\1"
+    # remove maths,  ok
+    remove_pattern[7]= "(?n\\\\\\[.*?\\\\\\])"
+    remove_pattern[8]="(?n\\\\begin\\{(math|equation|align|aligned|gather|"\
+                         "gathered|multiline|alignat)\\*?\\}.*?\\\\end\\{\\1\\*?\\})"
+    # remove \begin something and \end something,  ok
+    remove_pattern[9]="\\\\begin.*[\\}\\]\\)]|\\\\end.*[\\}\\]\\)]"
+    # remove the rest of the commands and possibly left plus signs,  ok
+    remove_pattern[10]= "\\\\\\w*|\\{|\\}|\\^|~|\\&"
+    }
+
+# HTML removal patterns
+if (language == "SGML HTML") {
+    remove_pattern[0]= "(?n\\<\\-\\-.*?\\-\\-\\>)"
+    remove_pattern[1]= "(?n\\<(code)\\>.*?\\</\\1\\>)"
+    remove_pattern[2]= "(?n\\<.*?\\>)"
+    remove_pattern[3]= "\\&.+?;"
+    }
+
+# You can add here
+# if (language == ...)
+#    {
+#     remove_pattern[i]="..." and so on
+#    }
+
+
+# if no patterns for this language, return
+if (remove_pattern[]==0) {
+    # nothing to filter
+    return(text)
+    }
+    
+
+# special routines before filtering, language dependent
+if (language=="LaTeX")
+    {
+    # get the start and the end of the text that is to be filtered
+    # we are considering only things between \begin{document} and \end{document}
+    found=search_string(text,"\\begin{document}",0)
+    if (found!=-1)
+        {
+	text= substring(text,$search_end,length(text))
+	}
+    found=search_string(text,"\\end{document}",0)
+    if (found!=-1)
+        {
+	text= substring(text,0,found)
+	}
+    save_text=""
+    # rescue text in \text and \mbox (and \intertext?)
+    # because they are usually in mathematical environments that will get stripped off
+    found=search_string(text,"(?n\\\\text\\{.*?\\}|\\\\mbox\\{.*?\\})",0,"regex")
+    while (found!=-1)
+        {
+	end = $search_end
+	extract= substring(text,found,$search_end)
+	start= search_string(extract,"{",0)
+	extract= substring(extract,start+1,length(extract)-1)
+	save_text= save_text extract "\n"
+	found=search_string(text,"(?n\\\\text\\{.*?\\}|\\\\mbox\\{.*?\\})",end,"regex")
+	}
+    text=text save_text
+    }
+
+# end of language specific stuff
+
+# strip off syntax from the text
+for (i=0;i< remove_pattern[];i++)
+    {
+    newtext=replace_in_string(text, remove_pattern[i]," ","regex")
+    if (newtext!="")
+        {
+	text=newtext
+	}
+    }
+# end of syntax removal
+# new()
+# focus_window("last")
+# insert_string(text)
+return(text)
+}
+

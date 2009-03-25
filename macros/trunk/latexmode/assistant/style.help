@@ -1,0 +1,14 @@
+.$ new     { <img src=new> <font size=1>} {</font>}
+.$ note    {<i><img src=warning> } {</i>}
+.$ example {<font color=#A06040><pre>} {</pre></font>}
+.$ head    {<font color=#300000><b>} {</b></font>}
+.$ format  {<font color=navy><pre>} {</pre></font><br>}
+.$ param   {<tt><b>} {</b></tt>}
+.$ param2  {<tt>} {</tt>}
+.$ paramEX {<tt><b><i><font color=teal>} {</font></i></b></tt>}
+.$ _       {<kbd><b>} {</b></kbd>}
+.$ key     {<font color=navy>} {</font>}
+; added by me
+.$ old     { <img src=old>}
+.$ tex     {<font face="new century schoolbook" color="#252525">} {</font>}
+.$ texex   {<font face="new century schoolbook" color="#252525"><pre>} {</pre></font>}

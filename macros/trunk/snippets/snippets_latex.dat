@@ -1,0 +1,17 @@
+
+opsys
+Let $(\opsys,e)$ be an operator system
+
+\alpha_{-\frac{1}{2}}
+combinationx
+\sum_{i=1}^{m}\alpha_{i}^{*}x_i\alpha_i
+a=
+\sum_iT_i^{^\sharp}\otimes\xi_i
+mconvex set
+Let $K=(K_n)_{{n\in\N}}$ be an \m convex subset of a vector space $V$.
+1bisn
+\mconv(x_1,\dots,x_n)
+TEMP2
+need various data-files that are put in a separate folder named `nedata' in the home directory.
+If you want to change this name, open the file `autoload.nm' in your home directory and set the global variable \texttt{\$data} appropriately.
+

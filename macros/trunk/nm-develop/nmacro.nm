@@ -1,0 +1,16 @@
+
+found = search("^\\s*define\\s+\\w+\\s*\\{?$", 0, "regex")
+routines = ""
+while (found != -1) {
+    next = $search_end
+    tmp = get_range(found, next)
+    tmp = replace_in_string(tmp, "^\\s*define\\s+", "", "regex")
+    end = search_string(tmp, "\\s|$", 0, "regex")
+    routine = substring(tmp, 0, end) "\n"
+    routines = routines routine
+    
+    # next
+    found = search("^\\s*define\\s+\\w+\\s*\\{?$", next, "regex")
+}
+
+insert_string(routines)

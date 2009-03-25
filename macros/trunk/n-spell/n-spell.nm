@@ -1,0 +1,2054 @@
+# nspell_external_tools
+# nspell_initialise
+# nspell_step_through
+# nspell_suggest
+# nspell_autoCorrect
+# nspell_ignoreOrAddWord
+# nspell_rescan
+# nspell_removeTags
+# nspell_changeColor
+# nspell_doublon
+# nspell_next_error
+# nspell_skip
+# nspell_validateWord
+# nspell_isLetter
+# nspell_updateTag
+# nspell_reTagAll
+# color_all_misspelled
+# nspell_correct_all
+# nspell_wordChecking
+# nspell_non_continuous_check
+# nspell_filter
+# nspell_addIgnoredWord
+# nspell_addToDictionary
+# nspell_addToFileDictionary
+# nspell_ensureDaemon   ->   cont
+# nspell_checkDaemon    ->   cont
+# nspell_startDaemon    ->   cont
+# nspell_killDaemon     ->   cont
+# insideMath
+# insideMbox
+# insideTextMath
+
+#==================================================================================
+#  N-spell: NEdit spell-checker handling 
+#  by Jörg Fischer (jf505@users.sf.net)
+#  v1.0--BETA--  June 2005
+#
+#  including continuous (or on-the-fly) spell-checking modelled after
+#  NEchoes (NEdit Continuous Highlighting Of Erroneous Spelling) by
+#  Joachim Lous (jlous at users sf net).
+#  
+#  This is free software; you can redistribute it and/or modify it under the      
+#  terms of the GNU General Public License as published by the Free Software      
+#  Foundation; either version 2 of the License, or (at your option) any later     
+#  version.                                                                       
+#                                                                                 
+#  This software is distributed in the hope that it will be useful, but WITHOUT   
+#  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or          
+#  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License          
+#  for more details.                                                              
+#                                                                                 
+#  You should have received a copy of the GNU General Public License along with   
+#  software; if not, write to the Free Software Foundation, Inc., 59 Temple       
+#  Place, Suite 330, Boston, MA  02111-1307 USA                                   
+#==================================================================================
+
+
+
+$TRUE = 1
+$FALSE = 0
+
+$NE_globals[""] = 0
+
+# If nobody else determined the OS, we try it here.
+if (!("op_system" in  $NE_globals)) {
+     nedit_v = shell_command("nedit -V", "")
+     if (search_string(nedit_v, "Built on: Win\\w*", 0, "regex") != -1) {
+        $NE_globals["op_system"] = "mswindows"
+     }
+     else {
+        $NE_globals["op_system"] = "unix"
+     }
+     # Second attempt, just to be sure
+     # cygcheck.exe is part of the Cygwin base package and as such
+     # it is always installed
+     test = shell_command("which cygcheck.exe", "")
+     if (search_string(test, "/cygdrive/", 0) == 0) {
+        $NE_globals["op_system"] = "mswindows"
+     }
+}
+
+# Variable to turn off the use of NEchoesd, for instance if it doesn't work reliable 
+# like on Cygwin or if you have no FIFOs or no Perl
+$NSPELL_globals["use_daemon"] = 1
+
+# To detach the shell, required to spawn the daemon, hence to have continuous checking.
+# for tcsh it is " >& /dev/null &"
+$NSPELL_globals["spawn"] = " >& /dev/null &"
+
+$nspell_wait = 50000
+$nspell_daemon_pid = $empty_array
+
+# Environment (must coincide with the paths in NEchoesd!)
+$NSPELL_globals["HOME"] = $jf_path_to["/NEDIT_HOME/"]
+
+n_spell_file = $jf_path_to["n-spell.nm"] "n-spell.nm"
+
+# compatibilty functions only required for Cygwin
+if ($NE_globals["op_system"] == "mswindows") {
+    errMsg = jf_require("cygspecial.nm")
+    if (errMsg != "")
+        calltip(errMsg)
+}
+
+#->
+# This part gets executed only at first run.
+# -----------------------------------------------
+if (0) {
+ # Determine whether nedit's shell points to tcsh or sh
+ shell = shell_command("set", "")
+ tcsh = search_string(shell, "<t?csh>", 0, "regex")
+
+ # Handle Cygwin case
+ if ($NE_globals["op_system"] == "mswindows") {
+  if (tcsh == -1) {
+      # If we are on Cygwin (presumably), we must require tcsh for continuous checking
+      if ($NE_globals["op_system"] == "mswindows") {
+      $NSPELL_globals["use_daemon"] = $FALSE
+      calltip("NEdit's default shell doesn't seem to be tcsh.\n"\
+              "Continuous spell-checking will be disabled,\n\n"\
+              "because continuous checking without tcsh doesn't work on Cygwin.\n\n"\
+              "Btw: your operating system is assumed to be\n"\
+              $NE_globals["op_system"]"\n"\
+              "If you shouldn't be under Cygwin and see \"mswindows\" above,\n"\
+              "set the variable $NE_globals["op_system"] =\"unix\" in n-spell.nm")
+      }
+  }
+  else {
+      # We have tcsh under Cygwin, go on
+      $NSPELL_globals["spawn"] = " >& /dev/null &"
+      nspell_external_tools()
+      if ($NSPELL_globals["use_daemon"] == $TRUE) {
+      # for continuous spell-checking we need at least cygwin 1.5.17
+      cygcheck = shell_command("cygcheck -c cygwin", "")
+      start = search_string(cygcheck, "<\\d+\\.\\d+\\.\\d+", 0, "regex")
+      if (start == -1) {
+          # can't find version, continuous checking disabled
+          dialog("I think we run under Cygwin. Result of `cygcheck -c cygwin':\n"\
+              cygcheck"\n\nContinuous checking disabled.")
+          $NSPELL_globals["use_daemon"] = $FALSE
+      }
+      else {
+          version = substring(cygcheck, start, $search_end)
+          sub_versions = split(version, ".")
+          if (sub_versions[0] < 1) { #disable
+              dialog("Your Cygwin version is "version"\n"\
+                  "which is too old. You need at least 1.5.17 or later.\n"\
+                  "Continuous checking disabled. But you can still do \n"\
+                  "non-continuous checking.")
+              $NSPELL_globals["use_daemon"] = $FALSE
+          }
+          else {
+              if (sub_versions[1] < 5) { #disable
+                  dialog("Your Cygwin version is "version"\n"\
+                      "which is too old. You need at least 1.5.17 or later.\n"\
+                      "Continuous checking disabled. But you can still do \n"\
+                      "non-continuous checking.")
+                  $NSPELL_globals["use_daemon"] = $FALSE
+              }
+              else {
+                  if (sub_versions[1] == 5) {
+                      if (sub_versions[2] < 17) { #disable
+                          dialog("Your Cygwin version is "version"\n"\
+                              "which is too old. You need at least 1.5.17 or later.\n"\
+                              "Continuous checking disabled. But you can still do \n"\
+                              "non-continuous checking.")
+                          $NSPELL_globals["use_daemon"] = $FALSE
+                      }
+                  }
+              }
+          }
+      }
+      } # if $NSPELL_globals["use_daemon"] was already false, we needn't do anything
+  }
+ }
+ else {
+ # Handle Unix case
+ if (tcsh == -1) {
+  # Assume sh and set $NSPELL_globals["spawn"] accordingly
+  $NSPELL_globals["spawn"] = " < /dev/null > /dev/null 2>&1 &"
+ }
+ else{
+  $NSPELL_globals["spawn"] = " >& /dev/null &"
+ }
+ nspell_external_tools()
+ }
+ # At this point we have set $NE_globals["op_system"] to either "mswindows" or "unix".
+ # We also have checked if it is possible to have $NSPELL_globals["use_daemon"] = $TRUE.
+ # We perform this check only at the very first time we start.
+ # So now we comment the code between #-> and #<- and set $NE_globals["op_system"] and 
+ # $NSPELL_globals["use_daemon"] according to our findings.
+ # $n_spell_file must be set in autoload.nm, cf. the installation instructions
+ n_spell = read_file(n_spell_file)
+ f = search_string(n_spell, "^\\$NE_globals\\[\"op_system\"\\] = .+$", 0, "regex")
+ n_spell = replace_substring(n_spell, f, $search_end, "$NE_globals["op_system"] = \""$NE_globals["op_system"]"\"")
+ f = search_string(n_spell, "^\\$NSPELL_globals\\[\"use_daemon\"\\] = .+$", 0, "regex")
+ n_spell = replace_substring(n_spell, f, $search_end, "$NSPELL_globals["use_daemon"] = "$NSPELL_globals["use_daemon"])
+ f = search_string(n_spell, "^\\$NSPELL_globals\\[\"spawn\"\\] = .+$", 0, "regex")
+ n_spell = replace_substring(n_spell, f, $search_end, "$NSPELL_globals\\[\"spawn\"\\] = \""$NSPELL_globals["spawn"]"\"")
+ start = search_string(n_spell, "^if \\(1\\)", 0, "regex")
+ if (start != -1) {
+    n_spell = replace_substring(n_spell, start, $search_end, "if (0)")
+ }
+ write_file(n_spell, n_spell_file)
+}
+# Helper function to check if all required tools are in the PATH
+define nspell_external_tools {
+# We need aspell in any case.
+# For continuous spell-checking we need perl, ps and NEchoesd in addition.
+result = shell_command("which aspell perl ps NEchoesd", "")
+# skip last newline
+result = substring(result, 0, length(result) - 1)
+result_line = split(result, "\n")
+# if found the start is /
+if (substring(result_line[0], 0, 1) != "/") {
+dialog("Aspell wasn't found in your PATH.\n"result_line[0]"\n"\
+  "Please read the documentation about N-spell's requirements.")
+$NSPELL_globals["use_daemon"] = $FALSE
+}
+else {
+$NSPELL_globals["use_daemon"] = $TRUE
+for (i = 1; i < result_line[]; i++) {
+  if (substring(result_line[i], 0, 1) != "/") {
+      dialog("N-spell can't do continuous spell-checking, because\n\n"\
+              result_line[i]"\n\n"\
+              "Continuous checking will be disabled. You can still do \n"\
+              "non-continuous checking.")
+      $NSPELL_globals["use_daemon"] = $FALSE
+  }
+}
+}
+}
+
+#<-
+
+
+######################################################################
+# User-editable settings:
+
+# $NSPELL_globals["languages"]
+#   List of available languages. Newline-separated, no spaces.
+#   Each language tag must match the beginning (one or more parts) of the
+#   prefix to one of the *-aspell.pwli files in pspell's package directory.
+#   This location can be found by running  "pspell-config pkgdatadir"
+#   (normally it's /usr/local/share/pspell). 
+# example: $NSPELL_globals["languages"] = "en-american\nen-british"
+$NSPELL_globals["languages"] = "de\nen\nes\nfr"
+
+# 10.000 most common words, language dependent
+$nspell_correct_wordlists = $empty_array
+$nspell_correct_words = $empty_array
+
+# Environment (must coincide with the paths in NEchoesd!)
+$NSPELL_globals["HOME"] = $jf_path_to["/NEDIT_HOME/"]
+basepath = $jf_path_to["n-spell.nm"]
+
+# you can give here personal dictionaries, indexed with $NSPELL_globals["languages"]
+$nspell_correct_wordlists["en"] = basepath "top10000en.txt"
+$nspell_correct_wordlists["de"] = basepath "top10000de.txt"
+$nspell_correct_wordlists["fr"] = basepath "top10000fr.txt"
+$nspell_correct_wordlists["es"] = basepath "demo_es.txt"
+
+# We should read the preceding files only if we need them
+$nspell_correct_words["en"] = ""
+$nspell_correct_words["de"] = ""
+$nspell_correct_words["fr"] = ""
+$nspell_correct_words["es"] = ""
+
+# International characters, independent from locale settings
+$nspell_int_chars["en"] = "'"
+$nspell_int_chars["de"] = "äüöÄÜÖß"
+# Sorry if I should have forgotten anything - I don't speak French or Spanish.
+$nspell_int_chars["fr"] = "àáâçèéêîòóôùúûëï'"
+$nspell_int_chars["es"] = "ñáéíóú"
+
+# $nspell_defaultLanguage
+#   The standard langauge to use at startup. Should be one of the
+#   tags in $NSPELL_globals["languages"] (see above).
+# example: $nspell_defaultLanguage = "en-american"
+$nspell_defaultLanguage = "en"
+
+# $nspell_defaultContinuous
+#   Whether to have continuous checking turned on at startup.
+#   Value should be $TRUE or $FALSE
+# example: $nspell_defaultContinuous = $TRUE
+$nspell_defaultContinuous = $TRUE
+
+
+# $nspell_defaultColor
+#   The backlight color for marking misspelled words, and words repeated twice
+#   in a row row (doublons)
+$nspell_defaultColor = "yellow"
+$nspell_doublonColor = "orange"
+
+# For programming languages like C(++), Java, JavaScript, ...
+# continuous checking in comments
+$nspell_check_in_comments = $TRUE
+
+
+# for local file dependent dictionary
+$nspell_dict_prefix = "dict_"
+$nspell_dict_suffix = ".txt"
+
+######################################################################
+# Other Static initialisation:
+
+# Name for rangeset to backlight spelling errors
+$NSPELL_globals["prefix"] = "NspelL_"
+
+# We require keyPress.nm, because of the nspellGetLanguage()
+# subroutine, which had to be placed in keyPress.nm.
+# Usually, keyPress.nm should load n-spell.nm, so it is already
+# loaded, but who knows. 
+errMsg = jf_require("keyPress.nm")
+if (errMsg != "") {
+    calltip("n-spell.nm:\n"errMsg)
+}
+
+
+# whether daemon is enabled for language
+$NSPELL_globals["daemEnabled"] = $empty_array
+# $NSPELL_globals["daemEnabled"] = $FALSE
+
+# whether continuous checking in file
+$NSPELL_globals["continuous"] = $empty_array
+
+# Global array to store all misspelled words together with their suggestions
+# language dependent
+$nspell_suggest = $empty_array
+
+$no_suggestions = "No suggestions!"
+
+
+$nspell_nocont_checker = "aspell" # --language-tag=en[_US] --sug-mode=fast -a"
+#aspell --language-tag=en --sug-mode=fast -a
+$spell_options = $empty_array
+$spell_options["aspell"] = $empty_array
+$spell_options["aspell"]["language"] = " --language-tag="
+$spell_options["aspell"]["sug-mode"] = " --sug-mode=fast"
+$spell_options["aspell"]["filter"] = " --mode="
+
+# Ispell not yet supported
+# $spell_options["ispell"] = $empty_array
+
+
+# Append file-dependent dictionary
+# dict_file = read_file($file_path "dict_"$file_name".txt")
+# $nspell_correct_words[language]
+
+
+######################################################################
+# Nechoes Top-level functions (the ones to bind to user events):
+
+
+# void nspell_initialise([language])
+#   Does the initialisation tasks that must be done after the nechoes
+#   macros are loaded (in smart indent initialisation section)
+#   Returns: $FALSE if failed, else $TRUE.
+#
+$nspell_init_is_running = $FALSE
+define nspell_initialise {
+# avoid to call initializing repeatedly from the Smart-indent init macro
+if ($nspell_init_is_running == $TRUE) {
+    return
+}
+#t_print("1->")
+if ($n_args > 0) {
+ newLanguage = $1
+}
+else {
+    newLanguage = $nspell_defaultLanguage
+}
+file = $file_path $file_name
+$nspell_oldPos = $cursor
+# possibly file dependent dictionary
+file_dep_dict = $file_path $nspell_dict_prefix $file_name $nspell_dict_suffix
+
+# create rangeset to backlight spelling-errors, there will only be one
+# so if we switch the language we use the same rangeset but change its
+# name to reflect the new language
+oldLanguage = nspellGetLanguage()
+if (oldLanguage != "") {
+    # it is ensured, that there is exactly one rangeset with this name
+    # this will be used for the newLanguage
+    r = rangeset_get_by_name($NSPELL_globals["prefix"]oldLanguage)
+    rId = r[0]
+}
+else {
+    # here we have no rangesets created by n-spell
+    # but we check the assumption again
+    before = rangeset_get_by_name($NSPELL_globals["prefix"]newLanguage)
+    if (before[] >= 1) {
+        # this shouldn't happen normally
+        beep()
+        calltip(\
+            "\n" \
+            "Error initialising Spelling-mode: \n" \
+            "There are already several rangesets called "\
+             $NSPELL_globals["prefix"] newLanguage"\n"\
+            "\n" \
+            "\n" \
+            "Spell-checking will be disabled. \n" )
+        $NSPELL_globals["daemEnabled"][newLanguage] = $FALSE
+        $NSPELL_globals["continuous"][file] = $FALSE
+        return $FALSE
+    }
+    rId = rangeset_create()
+    if (rId == 0) {
+        beep()
+        calltip("nspell_intitialise: Can't create new rangeset. Aborting.\n"\
+                "Spell-checking will be disabled.")
+        $NSPELL_globals["daemEnabled"][newLanguage] = $FALSE
+        $NSPELL_globals["continuous"][file] = $FALSE
+        return $FALSE
+    }
+}
+rangeset_set_name(rId, $NSPELL_globals["prefix"] newLanguage)
+rangeset_set_mode(rId, "break")
+rangeset_set_color(rId, $nspell_defaultColor)
+
+if (!(newLanguage in $nspell_suggest)) {
+    $nspell_suggest[newLanguage] = $empty_array
+}
+
+# Initalise daemon
+if ($NSPELL_globals["use_daemon"] == $TRUE) {
+    success = nspell_ensureDaemon(newLanguage)
+    if (!success){
+        beep()
+        calltip("\nError initialising Spelling-mode: \n" \
+            "NEchoesd could not be started with language \""newLanguage"\". \n" \
+            "\n" \
+            "Continuous spell-checking will be disabled. \n" )
+        $NSPELL_globals["continuous"][file] = $FALSE
+        return $TRUE
+    }
+    # FIFOs
+    $nspell_in = $NSPELL_globals["HOME"]".NEchoes_in_"newLanguage
+    $nspell_out = $NSPELL_globals["HOME"]".NEchoes_out_"newLanguage
+
+    # We need smart-indent for continuous spell-checking
+    if ($nspell_defaultContinuous == $TRUE) {
+        $nspell_init_is_running = $TRUE
+        # For the non-language-mode `Plain', we try to switch to Spelling, which is
+        # a language-mode and hence supports smart-indent
+        if ($language_mode == "Plain") {
+            set_language_mode("Spelling")
+	    set_auto_indent("smart")
+        }    
+	if ($language_mode == "Plain") {
+                dialog("Couldn't switch from mode `Plain' to `Spelling'.\n"\
+                        "Something must be wrong with N-spell's installation,\n"\
+                        "cf. the installation instructions.")
+        }
+        if ($auto_indent != "smart") {
+            dialog("Smart-Indent is not turned on for continuous spell-checking\n"\
+                "in language-mode "$language_mode"\n"\
+                "Make sure to give nspell_keyPress($1, \"\\n\") as Newline Macro and\n"\
+                "nspell_keyPress($1, $2) as Type-in Macro under Preferences ->\n"\
+                "Default Settings -> Auto Indent -> Programm Smart Indent...\n"\
+		"For now continuous checking is disabled.")
+            $NSPELL_globals["continuous"][file] = $FALSE
+            $NSPELL_globals["daemEnabled"][newLanguage] = $TRUE
+            $nspell_init_is_running = $FALSE
+            return $TRUE
+        }
+    }
+    $NSPELL_globals["continuous"][file] = $nspell_defaultContinuous
+    $NSPELL_globals["daemEnabled"][newLanguage] = $TRUE
+    # Load wordlists for continuous spell-checking to gain speed
+    if ($NSPELL_globals["continuous"][file] == $TRUE) {
+        if (newLanguage in $nspell_correct_wordlists) {
+            $nspell_correct_words[newLanguage] = read_file($nspell_correct_wordlists[newLanguage])
+        }
+        else {
+            $nspell_correct_words[newLanguage] = "\n"
+        }
+    }
+    # try to load file dependent dictionary
+    $nspell_correct_wordlists[newLanguage] = read_file(file_dep_dict)
+    if ($NSPELL_globals["continuous"][file] == $TRUE) {
+        state = "on"
+    }
+    else {
+        state = "off"
+    }
+    calltip("N-spell initialised.\nContinuous checking available and turned "state".\n"\
+        "Language is "newLanguage)
+    $nspell_init_is_running = $FALSE
+    return $TRUE
+}
+else {
+    $NSPELL_globals["daemEnabled"][newLanguage] = $TRUE
+    $NSPELL_globals["continuous"][file] = $FALSE
+    calltip("N-spell initialised.\nNo continuous checking done.\n"\
+        "Language is "newLanguage)
+    return $TRUE
+}
+
+}
+
+#==================================================================================
+
+
+#==================================================================================
+# void nspell_step_through()
+#   Steps through all misspelled words in the array $nspell_suggest[currentLanguage],
+#   finding them in the current text and presenting a dialog to the user with possible
+#   corrections.
+#
+define nspell_step_through {
+  # Remember number of correction to possibly undo in case of a mistake
+  howmany = $empty_array
+
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+      nspell_rescan()
+      currentLanguage = nspellGetLanguage()
+      if (currentLanguage == "") {
+          dialog("Can't initialize! Giving up.")
+          return
+      }
+  }
+
+  if (!(currentLanguage in $nspell_suggest)) {
+      nspell_rescan()
+  }
+  if ($nspell_suggest[currentLanguage][] == 0) {
+      nspell_rescan()
+  }
+
+  # ORDER the misspelled words, so that we can have an "undo last" button
+  # (following a user request)
+  i = 0
+  ordered_suggest = $empty_array
+
+  for (word in $nspell_suggest[currentLanguage]) {
+      i = i + 1
+      ordered_suggest[i] = $empty_array
+      ordered_suggest[i][word] = $nspell_suggest[currentLanguage][word]
+      }
+
+  # Going through the file for checking words
+  for (j = 1; j <= ordered_suggest[]; j++) {
+    # get the suggestions for the misspelled word
+    for (word in ordered_suggest[j]) {
+      # Unfortunately, we don't have a do <body> until <condition>  construct
+      through = 1
+      # we set through=0 at the end of the while loop to get the do-until effect
+      while(through==1 || $list_dialog_button==2 || $list_dialog_button==4)
+          {
+          find(word, $cursor + 1, "wrap", "caseWord")
+          # get a few words before and after the mis-spelled word
+          # after the find command, there should be a selection
+          if ($selection_start != -1) {
+              hint1 = get_range($selection_start - 16, $selection_start)
+              hint2 = get_range($selection_end, $selection_end + 16)
+              }
+              else {
+               # no selection -> error
+               dialog("Misspelled word not found?","OK")
+               howmany[j] = 0
+               break
+               }
+
+          suggestion = list_dialog("Correct: " hint1 word "(!)" hint2,\
+                       ordered_suggest[j][word], "Correct_all", "Correct",\
+                       "Ignore_all","Skip","Manual","-> Dict", "Undo")
+          # exit, if list_dialog is closed with ESC or window close
+          if ($list_dialog_button==0) {
+              dialog("Cancelation","OK")
+              return
+              }
+          # correct_all
+          if ($list_dialog_button == 1) {
+              if (suggestion != "") {
+                  howmany[j] = nspell_correct_all(word, suggestion, 0, $text_length)
+  #                dialog(howmany[j]"\nj = "j)
+                  }
+                  else {
+                  dialog("Forget selection!","OK")
+                  howmany[j] = 0
+                  }
+
+               }
+          # correct this one only
+          if ($list_dialog_button == 2) {
+              if (suggestion != "") {
+                replace_selection(suggestion)
+                if (j in howmany) {
+                  howmany[j] += 1
+                }
+                else {
+                  howmany[j] = 1
+                }
+                # next one
+                j = j -1
+                }
+                else {
+                 b = dialog("You forgot to select a suggestion!"\
+                      "So no correction can be done.\n Do you want to try again?",\
+                       "Yes", "No")
+                 if (b == 1) {
+                   j = j - 1
+                 }
+                }
+          }
+          # skip all 
+          if ($list_dialog_button == 3) {
+              if (nspell_validateWord(word)) {
+                  nspell_addIgnoredWord(word)
+                  nspell_reTagAll(word, $TRUE)
+              }
+          howmany[j] = 0
+          }
+          # skip this one only
+          if ($list_dialog_button == 4) {
+              nspell_updateTag($selection_start, $selection_end, $TRUE)
+            howmany[j] = 0
+            j = j - 1
+          }
+          # manual correction, the button must be pressed after the correction and the 
+          # corrected word must be selected
+          if ($list_dialog_button==5) {
+            manual_correction = get_selection()
+            if (manual_correction != "") {
+                howmany[j] = nspell_correct_all(word, manual_correction, 0, $text_length)
+                }
+                else {
+                  b = dialog("You forgot to select your correction, so no changes can\n"\
+                     "be done for other occurrences of this mistake! If you want\n"\
+                     "to correct all  ", "OK", "Dismiss")
+                howmany[j] = 1  
+                }
+
+
+          }
+          # insert the matched word in dictionary and (skip all)
+          if ($list_dialog_button == 6) {
+              # requires that the word is selected
+              new_word = get_selection()
+              if (nspell_validateWord(new_word)) {
+                  nspell_addToDictionary(new_word)
+                  nspell_reTagAll(new_word, $TRUE)
+              }
+              howmany[j] = 0
+              }
+          # undo last changes
+          if ($list_dialog_button == 7) {
+              if (j > 1) {
+                  howmany[j] = 1
+                  # dialog(howmany[j-1]"\nj = "j"\nj-1 = "j-1)
+                  for (i = 1; i <= howmany[j - 1]; i++) {
+                      undo()
+                  }
+                  j = j - 2
+              }
+              else {
+                  dialog("This should be the 1. mis-spelled word.\nSo, there is "\
+                      "nothing to undo.")
+                      howmany[j] = 0
+              }
+          }
+          through = 0
+          }
+    }
+  }
+  dialog("Ready","ok")
+
+} # end of nspell_step_through
+
+
+
+
+
+
+
+
+
+
+# void nspell_suggest(int pos)
+#   Gets and displays Spelling's suggestions for correcting a word, optionally
+#   applies user-selected alternative
+#   Updates tagging of word.
+#   'pos' is a position in the buffer in or by the word to examine.
+#   Returns: no return value. Updates $nspell_oldPos.
+#
+define nspell_suggest {
+  pos = $1
+  word = nspell_findWord(pos)
+  result = nspell_wordChecking(word)
+  if (result == 0) {
+      return
+  }
+
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+      dialog("nspell_suggest: Error - no currentLanguage")
+      return
+  }
+  if (!(currentLanguage in $nspell_suggest)) {
+      dialog("nspell_suggest: Internal Error.\n"\
+             "Current language "currentLanguage" not in $nspell_suggest")
+      return
+  }
+  # Word is checked in all cases now, so if it is not in $nspell_suggest, 
+  # it must be correct
+  if (word in $nspell_suggest[currentLanguage]) {
+      if ($nspell_suggest[currentLanguage][word] == $no_suggestions){
+          dialog( "No suggestions found to correct \n" \
+              "\""word"\" " )
+          return
+      }
+      selection = list_dialog( \
+          "Suggested corrections for \""word"\": \n(select one)", \
+          $nspell_suggest[currentLanguage][word], \
+          "Replace All", "Replace", "Cancel" \
+      )
+      if ($list_dialog_button != 1 && $list_dialog_button !=2) return
+      if (selection == "") return
+      # replace single word
+      if ($list_dialog_button == 2) {
+          replace_range($nspell_wordStart, $nspell_wordEnd, selection)
+          if ($nspell_wordStart < $nspell_oldPos){
+              $nspell_oldPos += length(selection) - length(word)
+          }
+      }
+      # replace all
+      if ($list_dialog_button == 1) {
+          nspell_correct_all(word, selection, 0, $text_length)
+          $nspell_oldPos = $cursor
+      }
+  }
+  else { # hav already correct word
+      calltip("\""word"\" is already correctly spelled.")
+      nspell_reTagAll(word, $TRUE)
+  }
+}
+
+
+# void nspell_autoCorrect(int pos)
+#   Silently applies the first suggested correction from Aspell.
+#   If called in succession on the same word, it runs through all suggestions.
+#   Updates tagging of word.
+#   'pos' is a position in the buffer in or by the word to examine.
+#   Returns: no return value. Updates $nspell_oldPos.
+#
+define nspell_autoCorrect {
+  pos = $1
+  # dummy value, since the variables array must exist before the initialisation
+  $autoCorrect_vars[""] = 0
+  # initialise persistent variables
+  if (!("previousWord" in $autoCorrect_vars)) {
+      $autoCorrect_vars["previousWord"] = ""
+      $autoCorrect_vars["prevWordStart"] = ""
+      $autoCorrect_vars["correctionEnd"] = 0
+      $autoCorrect_vars["previous"] = 0
+  }
+
+  word = nspell_findWord(pos)
+  if ($autoCorrect_vars["previous"] > 0) {
+      if ($autoCorrect_vars["prevWordStart"] == $nspell_wordStart) {
+          word = $autoCorrect_vars["previousWord"]
+      }
+      else {
+          $autoCorrect_vars["previousWord"] = word
+          $autoCorrect_vars["prevWordStart"] = $nspell_wordStart
+          $autoCorrect_vars["correctionEnd"] = $nspell_wordEnd
+      }
+  }
+  if ($autoCorrect_vars["previous"] == 0) {
+     $autoCorrect_vars["previousWord"] = word
+     $autoCorrect_vars["correctionEnd"]  = $nspell_wordEnd
+  }
+  # dialog(word"\n"$autoCorrect_vars["previous"])
+
+  #dialog(word)
+  result = nspell_wordChecking(word)
+  if (result == 0) {
+      return
+  }
+
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+      dialog("nspell_autoCorrect: Error - no currentLanguage")
+      return
+  }
+  if (!(currentLanguage in $nspell_suggest)) {
+      dialog("nspell_autoCorrect: Internal Error.\n"\
+             "Current language "currentLanguage" not in $nspell_suggest")
+      return
+  }
+  # Word is checked in all cases now, so if it is not in $nspell_suggest, it must be correct
+  if (word in $nspell_suggest[currentLanguage]) {
+      temp = $nspell_suggest[currentLanguage][word]
+      if (temp == $no_suggestions) {
+          dialog( "No suggestions found to correct \n" \
+              "\""word"\" " )
+          return
+      }
+      if (substring(temp, length(temp) - 1, length(temp)) == "\n") {
+          temp = substring(temp, 0, length(temp) - 1)
+      }
+      a = split($nspell_suggest[currentLanguage][word], "\n")
+      #dialog(a[]"\n"a[0]"\n"a[18])
+      if ($autoCorrect_vars["previous"] > 0) {
+          if ($autoCorrect_vars["prevWordStart"] == $nspell_wordStart) {
+              if ($autoCorrect_vars["previous"] in a) {
+                  correction = a[$autoCorrect_vars["previous"]]
+                  $autoCorrect_vars["previous"] += 1
+              }
+              else {
+                  beep()
+                  $autoCorrect_vars["previous"] = 0
+              }
+          }
+          else {
+              $autoCorrect_vars["previous"] = 0
+          }
+      }
+      if ($autoCorrect_vars["previous"] == 0) {
+          $autoCorrect_vars["prevWordStart"] = $nspell_wordStart
+          correction = a[0]
+          $autoCorrect_vars["previous"] = 1
+      }
+      replace_range($nspell_wordStart, $autoCorrect_vars["correctionEnd"], correction)
+      $autoCorrect_vars["correctionEnd"] = $nspell_wordStart + length(correction)
+      if ($nspell_wordStart < $nspell_oldPos){
+          $nspell_oldPos += length(correction) - length(word)
+      } 
+  }
+  else { # correct word
+      calltip("\""word"\" is already correctly spelled.")
+      nspell_reTagAll(word, $TRUE)
+  }
+}
+
+# void nspell_ignoreWord(int pos)
+#   Adds a word in the buffer to the list of words temporarily ignored
+#   by Spelling.
+#   Updates tagging of all instances of the word in the focused buffer.
+#   'pos' is a position in the buffer in or by the word to add.
+#   Returns: no return value. Updates $nspell_oldPos.
+#
+define nspell_ignoreOrAddWord {
+  pos = $1
+  word = nspell_findWord(pos)
+  result = nspell_wordChecking(word)
+  if (result == 0) {
+      return
+  }
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+      dialog("nspell_ignoreOrAddWord: Error - no currentLanguage")
+      return
+  }
+  if (!(currentLanguage in $nspell_suggest)) {
+      dialog("nspell_ignoreOrAddWord: Internal Error.\n"\
+             "Current language "currentLanguage" not in $nspell_suggest")
+      return
+  }
+  # Word is checked in all cases now, so if it is not in $nspell_suggest,
+  # it must be correct.
+  if (word in $nspell_suggest[currentLanguage]) {
+      userChoice = dialog("What to do with the word \n"\
+          "\""word"\"?\n",\
+          "Ignore", "->Local Dict.", "->Global Dict.", "Cancel")
+      if (userChoice == 1){ # user chose "Ignore"
+          nspell_addIgnoredWord(word)
+          nspell_reTagAll(word, $TRUE)
+      }
+      if (userChoice == 2) { # user chose "Add to Local Dictionary"
+          nspell_addToFileDictionary(word)
+          nspell_reTagAll(word, $TRUE)
+      }
+      if (userChoice == 3) { # user chose "Add to Local Dictionary"
+          nspell_addToDictionary(word)
+          nspell_reTagAll(word, $TRUE)
+      }
+
+  }
+  else {
+      calltip("\""word"\" is already correctly spelled.")
+      nspell_reTagAll(word, $TRUE)
+  }
+}
+
+
+# void nspell_rescan() : Use color_all_misspelled + nspell_non_continuous_check
+#   Rechecks and retags the text in the current selection/document.
+#   This is done by invoking the spell_checker() via shell_command() by 
+#   nspell_non_continuous_check(), since a word by word check via NEchoesd would
+#   not be efficient, especially if text isn't really small
+#   Returns: no return value. 
+#
+define nspell_rescan {
+if ($selection_start == -1){
+    scanStart = 0
+    scanEnd = $text_length
+} else {
+    scanStart = $selection_start
+    scanEnd = $selection_end
+}
+
+# for larger texts it is clearly faster not to use a word by word check
+nspell_non_continuous_check(scanStart, scanEnd)
+# array of misspelled words is built now, color them in the buffer
+color_all_misspelled(scanStart, scanEnd)
+
+}
+
+
+#  void nspell_removeTags()
+#   Removes all tags from current document. Does not disable further checking.
+#   Returns: no return value. 
+#
+define nspell_removeTags {
+
+  r = rangeset_get_by_name("nspell_doublons")
+  if (r[] == 1) {
+      rangeset_destroy(r[0])
+  }
+
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage != "") {
+      r = rangeset_get_by_name($NSPELL_globals["prefix"] currentLanguage)
+
+      # if r[] > 1, we also destroy the other rangesets, sorry
+      for (i = 0; i < r[]; i++) {
+          if (i == 0)
+              rangeset_subtract(r[0], r[0])
+          else
+              rangeset_destroy(r[i])
+      }
+  }
+}
+
+# void nspell_selectLanguage()
+#   Lets user select dictionary to use
+#   Returns: no return value. 
+define nspell_selectLanguage { #!! doesn't necessarily need daemon!
+  currentLanguage = nspellGetLanguage()
+
+  if (currentLanguage != "") {
+      newLanguage = list_dialog("Select language: \n" \
+                                "(Current language is  \""currentLanguage"\")",\
+                                 $NSPELL_globals["languages"], "Apply", "Cancel")
+
+      if ($list_dialog_button != 1) 
+          return
+
+      if (newLanguage == "") 
+          return
+
+      success = nspell_initialise(newLanguage)
+      if (!success){
+          dialog("Select Language: Failed \n" \
+              "Could not start NEchoesd with language \""newLanguage"\".")
+      }
+  }
+  else {
+      nspell_initialise()
+  }
+}
+
+# void nspell_changeColor(void)
+#   Changes or removes backlight color for misspelled words.
+#
+define nspell_changeColor {
+  language = nspellGetLanguage()
+  if (language == "") {
+      beep()
+      dialog("N-spell not initialized in this file\nInitialize first.")
+      return
+  }
+
+  rgb_colors =\
+  "yellow\nOrange\nCoral1\nOrchid1\nSkyBlue1\nSpringGreen2\n#f0f050\nGold1\nLightPink1\n"\
+  "Plum1\nCadetBlue2\nPaleGreen1\nkhaki1\nLightSalmon1\nPaleVioletRed1\n#D8A9FF\n"\
+  "aquamarine2\nDarkOliveGreen1\nwhite\ngrey40"
+  color = list_dialog("Choose color for "language":", rgb_colors,\
+       "OK", "Turn off backlighting", "Cancel")
+  if ($list_dialog_button != 1 && $list_dialog_button != 2) {
+      beep()
+      return
+  }
+  if ($list_dialog_button == 1 && color == "") {
+      beep()
+      dialog("Forgot to select color")
+      return
+  }
+  if ($list_dialog_button == 2) {
+      # Only in case there is a selection but user clicks on Turn off
+      color = ""
+  }
+
+  # it is ensured by the call to nspellGetLanguage() returning a non-empty string
+  # that there is exactly one rangeset with the subsequent name
+  r = rangeset_get_by_name($NSPELL_globals["prefix"] language)
+  rangeset_set_color(r[0], color)
+}
+
+
+
+# void nspell_toggleContinuous()
+#   Enables/disables continuous spell-checking. Starts NEchoesd if necessary;
+#   warns if that fails.
+#   Returns: no return value.
+#   Sets $NSPELL_globals["daemEnabled"][currentLanguage] to $TRUE if successful, 
+#   otherwise to $FALSE 
+#
+define nspell_toggleContinuous{ #!! needs daemon !!
+  file = $file_path $file_name
+  currentLanguage = nspellGetLanguage()
+
+  if (file in $NSPELL_globals["continuous"] && currentLanguage != "") {
+      if ($NSPELL_globals["continuous"][file]){
+          # Turn off: 
+          $NSPELL_globals["continuous"][file] = $FALSE
+          calltip("Continuous checking disabled.")
+          return
+      }
+
+      running = nspell_ensureDaemon(currentLanguage)
+      if (running) {
+          # Turn on:
+          $NSPELL_globals["daemEnabled"][currentLanguage] = $TRUE
+          $NSPELL_globals["continuous"][file] = $TRUE
+          calltip("Continuous checking enabled.")
+          return
+      }
+
+      # Failure:
+      $NSPELL_globals["daemEnabled"][currentLanguage] = $FALSE
+      $NSPELL_globals["continuous"][file] = $FALSE
+      beep()
+      dialog("Enable continuous checking: failed\n\n" \
+          "NEchoesd could not be started with langauge '"currentLanguage"'.\n")
+  }
+  else {
+      nspell_initialise()
+  }
+}
+
+# Show doublons, ie, the next word word is a doublon
+define nspell_doublon {
+doublon_pat = "(?n<([\\läüöÄÜÖßàáâçèéêîòóôùúûëï'ñí]+)\\s+\\1>)"
+test = rangeset_get_by_name("nspell_doublons")
+if (test[] > 1) {
+    return
+}
+if (test[] == 1) {
+    rId = test[0]
+}
+if (test[] == 0) {
+    rId = rangeset_create()
+    rangeset_set_name(rId, "nspell_doublons")
+    rangeset_set_color(rId, $nspell_doublonColor)
+    rangeset_set_mode(rId, "break")
+}
+text = get_range(0, $text_length)
+start = search_string(text, doublon_pat, 0, "regex")
+while (start != -1) {
+    end = $search_end
+    doublon = substring(text, start, end)
+    # backlight second word, starts after whitespaces
+    f = search_string(doublon, "\\s+", 0, "regex")
+    rangeset_add(rId, start + $search_end, end)
+    start = search_string(text, doublon_pat, end, "regex")
+}
+
+}
+
+define nspell_next_error {
+# We create a temporary rangeset to collect all ranges in a single rangesets.
+# Then we can easily find the next error position.
+temp = rangeset_create()
+if (temp == 0) {
+    dialog("No more rangesets available")
+    return
+}
+# get all rangesets for file
+r = rangeset_get_by_name("nspell_doublons")
+if (0 in r) {
+    rangeset_add(temp, r[0])
+}
+languages = split($NSPELL_globals["languages"], "\n")
+for (i = 0; i < languages[]; i++) {
+    r = rangeset_get_by_name($NSPELL_globals["prefix"] languages[i])
+    if (0 in r) {
+        rangeset_add(temp, r[0])
+    }
+}
+a = rangeset_info(temp)
+previous = 0
+next = 0
+for (i = 1; i <= a["count"]; i++) {
+    r = rangeset_range(temp, i)
+    if (r["end"] < $cursor) {
+        previous = i
+    }
+    else {
+     next = i
+     if (r["end"] == $cursor) {
+        if (next == a["count"]) next = 1
+            else next++
+     }
+     break
+     }
+}
+if (next == 0) next++
+r = rangeset_range(temp, next)
+if ("end" in r) set_cursor_pos(r["end"])
+rangeset_destroy(temp)
+}
+
+######################################################################
+#  NEchoes underlying utility macros:
+
+
+# boolean nspell_skip(pos)
+#   checks if part of the text should be skipped from spell-checking
+#   gets only called by nspell_keyPress()
+#   returns $TRUE (= yes, skipt it) or $FALSE (=no, check it)
+#
+define nspell_skip {
+pos = $1
+if ($language_mode == "Spelling" || $language_mode == "Mail") {
+    return $FALSE
+}
+if ($language_mode == "XML" || $language_mode == "SGML HTML") {
+    hit = search("\\<|\\>", pos, "regex", "backward")
+    if (hit != -1) {
+        c = get_range(hit, $search_end)
+        if (c == "<") return $TRUE
+    }
+    hit = search("&\\l+", pos, "regex", "backward")
+    if (pos <= $search_end) {
+        return $TRUE
+    }
+    return $FALSE
+}
+if ($language_mode == "LaTeX") {
+    hit = search("\\\\\\l+", pos, "regex", "backward")
+    if (pos <= $search_end) {
+        return $TRUE
+    }
+    hit = search("\\\\(?:(?:begin|end)\\s*|(?:cite[a-z*]*|label|ref|eqref|usepackage|documentclass)\\s*(\\[[^\\]]*\\])?)\\{?[^\\}]*", pos, "regex", "backward")
+    if (pos <= $search_end) {
+        return $TRUE
+    }
+    if (insideMath(pos)) {
+        return $TRUE
+    }
+    return $FALSE
+}
+if ($nspell_check_in_comments == $TRUE) {
+languages = "C\nC++\nJava\nCSS\nJavaScript\n"
+hit = search_string(languages, $language_mode"\n", 0)
+if (hit != -1) {
+    hit = search("/\\*|\\*/", pos, "regex", "backward")
+    if (hit != -1) {
+        c = get_range(hit, hit + 1)
+        if (c == "/") return $FALSE
+    }
+    hit = search("//|\n", pos, "regex", "backward")
+    if (hit != -1) {
+        c = get_range(hit, hit + 1)
+        if (c == "/") return $FALSE
+    }
+    return $TRUE
+}
+languages = "Perl\nSh Ksh Bash\nNEdit Macro\nMakefile\nAwk\nCsh\nPython\nTcl\n"
+hit = search_string(languages, $language_mode"\n", 0)
+if (hit != -1) {
+    hit = search("#|\n", pos, "regex", "backward")
+    if (hit != -1) {
+        c = get_range(hit, hit + 1)
+        if (c == "#") return $FALSE
+    }
+    return $TRUE
+}
+# If we didn't find one of the languages above, we don't skip
+return $FALSE
+} # end of $nspell_check_in_comments == $TRUE
+
+return $FALSE
+}
+
+
+# string nspell_findWord(int pos)
+#   Identifies the boundaries of any contiguous word surrounding or
+#   adjoining a specified buffer position.
+#   'pos' is the buffer position to search from.
+#   Returns:  Returns the word, or an empty string if nothing is found.
+#   Also returns the word boundaries in '$noechoes_wordStart' and
+#   '$nspell_wordEnd'. If nothing is found, both boundaries
+#   are equal to pos.
+#  
+define nspell_findWord { 
+  pos = $1
+
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+      dialog("nspell_findWord: Error - no currentLanguage")
+      return
+  }
+  # international characters independent from Locale settings.
+  letters = "a-zA-Z"$nspell_int_chars[currentLanguage]
+  start = 1 + search("(?:[^"letters"]|\\n)", pos-1, "regex","backward")
+  end = search("([^"letters"]|\\n)", pos, "regex")
+  if (end == -1) end = $text_length
+  $nspell_wordStart = start
+  $nspell_wordEnd = end
+  return get_range(start, end)
+}
+
+
+# boolean nspell_validateWord(string src)
+#   Checks if a string is eligible for spell-checking.
+#   'src' is the string to check.
+#   Returns: $FALSE for an ineligible word (containing a linebreak or
+#   no letters), otherwise $TRUE
+#
+define nspell_validateWord {
+src = $1
+currentLanguage = nspellGetLanguage()
+if (currentLanguage == "") {
+    calltip("nspell_validateWord: Couldn't validate word. No language.")
+    return $FALSE
+}
+letters = "a-zA-Z"$nspell_int_chars[currentLanguage]
+
+if (src == "") return $FALSE   
+hit = search_string(src, "["letters"]", 0, "regex")
+if (hit == -1) return $FALSE
+hit = search_string(src, "([^"letters"]|\\n)", 0, "regex")
+if (hit != -1) return $FALSE
+return $TRUE
+}
+
+
+# boolean nspell_isLetter(string char)
+#   Returns: true if 'char' is a letter, otherwise false
+#
+define nspell_isLetter {
+char = $1    
+
+currentLanguage = nspellGetLanguage()
+if (currentLanguage == "") {
+    calltip("nspell_isLetter: Couldn't test character. No language.")
+    return $FALSE
+}
+
+letters = "[a-zA-Z"$nspell_int_chars[currentLanguage]"]"
+
+# ' should be handled in letters
+#     if (char == "'") return $TRUE
+hit = search_string(char, letters, 0, "regex")
+if (hit == 0){
+    return $TRUE
+} else {
+    return $FALSE
+}
+}
+
+
+# void nspell_updateTag(start, end, boolean isCorrect)
+#   Sets or unsets the backlight on the range between start and end in the buffer. 
+#   Does not check if there is actually a word there.
+#   'isCorrect' is whether the word is correct (true => no backlight).
+#
+define nspell_updateTag {
+file = $file_path $file_name
+word_begin = $1
+word_end = $2
+isCorrect = $3
+
+currentLanguage = nspellGetLanguage()
+if (currentLanguage != "") {
+    r = rangeset_get_by_name($NSPELL_globals["prefix"] currentLanguage)
+    tagged = $FALSE
+    if (rangeset_includes(r[0], word_begin) != 0) 
+        tagged = $TRUE 
+    
+    if (isCorrect) {
+        if (tagged) {
+            rangeset_subtract(r[0], word_begin, word_end)
+        }
+    } 
+    else {
+        if (!tagged) {
+            rangeset_add(r[0], word_begin, word_end)
+        }
+    }
+}
+else {
+    beep()
+    dialog("Error in nspell_updateTag:\nCan't get language. Aborting.")
+    return
+}
+
+}
+
+
+# int nspell_reTagAll(word, iscorrect)
+#   Sets or unsets the backlight on all instances of a word in the current document.
+#   'word' is the word i question.
+#   'iscorrect' is $TRUE or $FALSE if word is correct or not, respectively
+#   Returns: no return value. Updates $nspell_oldPos
+#
+define nspell_reTagAll {
+    word = $1
+    iscorrect = $2
+# search in macro string for speed, what about DOS line endigns
+text = get_range(0, $text_length)
+#     hit = search("<"word">", 0, "regex")
+    hit = search_string(text, word, 0, "caseWord")
+    while (hit != -1){
+        nspell_updateTag(hit, $search_end, iscorrect)
+#        hit = search("<"word">", $search_end+delta, "regex")   
+        hit = search_string(text, word, $search_end, "caseWord")
+    }
+}
+
+
+#==================================================================================
+# void color_all_misspelled(start, end)
+# color_all_misspelled words, that is, those in $nspell_suggest[currentLanguage],
+# between start and end or in buffer or selection
+#
+define color_all_misspelled {
+  start = $1
+  end = $2
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage != "") {
+  r = rangeset_get_by_name($NSPELL_globals["prefix"] currentLanguage)
+
+  # Perform searches in macro string for efficiency (buffer searches are slower)
+  text = get_range(start, end)
+  # DOS has two bytes to mark line ending?
+  for (misspelled_word in $nspell_suggest[currentLanguage]) {
+      found = search_string(text, misspelled_word, 0, "caseWord")
+      while (found != -1) {
+          rangeset_add(r[0], start + found, start + $search_end)
+          found = search_string(text, misspelled_word, $search_end, "caseWord")
+      }
+  }
+  }
+  else {
+      beep()
+      dialog("color_all_misspelled:\nCan't get current language. Abort!")
+      return
+  }
+}
+
+#==================================================================================
+# int nspell_correct_all(word, correction, start, end)
+# to avoid replace_all over buffer range, which is quicker, but destroys all rangesets
+# and marks (due to implementation of replace_all)
+# returns number of corrections
+#
+define nspell_correct_all {
+misspelled_word = $1
+corrected = $2
+shift = $3
+end = $4
+delta = length(corrected) - length(misspelled_word)
+# Perform searches in macro string for efficiency (buffer searches are slower)
+text = get_range(shift, end)
+# DOS has two bytes to mark line ending?
+i = 0
+# shift = 0
+found = search_string(text, misspelled_word, 0, "caseWord")
+while (found != -1) {
+    replace_range(found + shift, $search_end + shift, corrected)
+    i++
+    shift += delta
+    found = search_string(text, misspelled_word, $search_end, "caseWord")
+}
+return(i)
+}
+
+#==================================================================================
+# void nspell_wordChecking(word)
+#   looks if word is already in $nspell_suggest and hence misspelled. If not it
+#   calls a checking routine, dependent on whether NEchoesd can be used or not.
+#   After the check, either the word is correct, or it was put into $nspell_suggest
+#   by the called checking routine.
+#   returns 0 on failure, or if correct word, and else 1 if word is now in $nspell_suggest
+#
+define nspell_wordChecking {
+word = $1
+if (word == "") {
+    calltip( \
+        "Suggest Correction:  No word to correct. \n" \
+        "\n" \
+        "You must first place the text cursor in or by \n" \
+        "the word you want to examine." )
+    return 0
+}
+if (nspell_validateWord(word) == $FALSE) {
+    calltip( \
+        "Suggest Correction: \n" \
+        "\n" \
+        "\""word"\" contains illegal characters. \n" \
+        "No action taken. " )
+    return 0
+}
+
+currentLanguage = nspellGetLanguage()
+if (currentLanguage != "") {
+  if (!(word in $nspell_suggest[currentLanguage])) { # need to check it
+      if ($NSPELL_globals["use_daemon"] == $TRUE) {
+          success = $TRUE
+          if (!$NSPELL_globals["daemEnabled"][currentLanguage]) { 
+              success = nspell_ensureDaemon(currentLanguage)
+          }    
+          if(success){ # ==> daemon is running, can call checkWord
+              $NSPELL_globals["daemEnabled"][currentLanguage] = $TRUE
+  #             dialog("hi")
+              isCorrect = nspell_checkWord(word)
+              if (isCorrect){
+                  calltip("\""word"\" is already correctly spelled.")
+                  nspell_reTagAll(word, $TRUE)
+                  return 0
+              }
+              else {
+                  # misspelled w/o being spelled before -> backlight it
+                  nspell_reTagAll(word, $FALSE)
+                  return 1
+              } 
+          } 
+          else { # daemon not running and couldn't start it (word not checked, yet)
+              calltip("Could not start NEchoesd for language \""currentLanguage"\".\n"\
+                  "Disabling use of NEchoesd. No continuous checking possible.\n"\
+                  "Using non-automatic checking via shell_command.")
+              $NSPELL_globals["continuous"][$file_path $file_name] = $FALSE
+              $NSPELL_globals["daemEnabled"][currentLanguage] = $FALSE
+              nspell_non_continuous_check($nspell_wordStart, $nspell_wordEnd)
+          }
+      }
+      else { # no use of daemon
+          nspell_non_continuous_check($nspell_wordStart, $nspell_wordEnd)
+      }
+  return 1
+  }
+}
+# was already found as misspelled
+return 1
+
+}
+
+#==================================================================================
+# void nspell_non_continuous_check(start, end)
+#   spell-checks the range of text between start and end by invoking the spell-checker
+#   via shell_command(). All misspelled words together with their suggestions for
+#   correction are put into the global array $nspell_suggest
+#
+define nspell_non_continuous_check {
+  file = $file_path $file_name
+  start = $1
+  end = $2
+  wordlist=""
+  error_signs="[\\&#\\?]"
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+  #    dialog("hi")
+      nspell_initialise()
+      currentLanguage = nspellGetLanguage()
+      if (currentLanguage == "") {
+          beep()
+          dialog("Can't initialise. Aborting.")
+          return
+      }
+  }
+  letters = "a-zA-Z"$nspell_int_chars[currentLanguage]
+  #dialog("ho")
+  sep=":"
+
+  # file=$data $file_name ".check"
+
+  # subroutine for filtering the file, language dependent of course
+  # spell_filter -> see end of file
+  text = get_range(start, end)
+  if (text=="") {
+      dialog("Error: No text to check","OK")
+      return
+      }    
+
+  wordlist = nspell_filter(text,$language_mode)
+  # write_file(wordlist,"wordlist.txt")
+  if (wordlist=="") {
+      dialog("Error: No wordlist returned","OK")
+      return
+      }
+
+  # have wordlist, call spell checker
+  # send spellchecker in terse mode for long input texts
+  if (length(wordlist) > 1500) {
+      wordlist= "! " wordlist
+  }
+
+  # Build command to invoke spell-checker
+  cmd = $nspell_nocont_checker
+  cmd = cmd $spell_options[$nspell_nocont_checker]["language"] currentLanguage
+  cmd = cmd $spell_options[$nspell_nocont_checker]["sug-mode"]
+  if ($language_mode == "XML" || $language_mode == "SGML HTML") {
+      cmd = cmd $spell_options[$nspell_nocont_checker]["filter"] "sgml"
+  }
+  if ($language_mode == "Mail") {
+      cmd = cmd $spell_options[$nspell_nocont_checker]["filter"] "email"
+  }
+
+  # Add Pipe option
+  cmd = cmd " -a"
+  #dialog(cmd)
+  if ($NE_globals["op_system"] == "mswindows") {
+      jf_require("cygspecial.nm")
+      result = filtering_on_cygwin(cmd, wordlist)
+  }
+  else {
+      result = shell_command(cmd, wordlist)
+  }
+
+  #write_file(result, $data "result.check")
+
+  # ANALYZE resulting string, i.e., build the suggest array
+  found = search_string(result, error_signs" ["letters"]+", 0, "regex")
+  #dialog("found : " found,"OK")
+  while (found != -1) {
+    word = substring(result,found,$search_end)
+    word = substring(word,2,length(word))
+  #    dialog("word : " word,"ok")
+    eol = search_string(result, "$", found, "regex")
+  #!! currentLanguage in $nspell_suggest?
+    if (!(word in $nspell_suggest[currentLanguage])) {
+       # get suggestion list, it is after the colon if there are suggestions !!!
+       line = substring(result, found, eol)
+       colon = search_string(line, ":", 0)
+       if (colon != -1) {
+           # found colon
+           $nspell_suggest[currentLanguage][word] = \
+                  replace_in_string(substring(line, colon+2, length(line)), ", ", "\n", "copy")
+           }
+           else {
+           $nspell_suggest[currentLanguage][word] = $no_suggestions
+           }
+       #    dialog(suggest[word],"ok")
+    }
+    found = search_string(result, error_signs" ["letters"]+", eol, "regex")
+  }
+}
+
+
+
+
+#==================================================================================
+# subroutine spell_filter
+#
+# purpose is to strip off syntax stuff from the file to get a list of words that
+# are to be checked
+# stripping off is done by a sequence of regular expressions (patterns)
+# parameters: 1. text string to filter, 2. $language_mode, 3. german
+# returns: the filtered text string
+#
+# For adaption to your needs, simply change the patterns or add new ones
+#
+#==================================================================================
+define nspell_filter {
+text = $1
+language_mode = $2
+remove_pattern = $empty_array
+
+# initialize language_mode dependent patterns 
+# LaTeX removal patterns
+if (language_mode == "LaTeX") {
+    # remove special signs,  ok
+    remove_pattern[0]= "\\\\\\$|\\\\\\&"
+    # remove comments, labels, references  ok 
+    remove_pattern[1]= "%.*$"
+    remove_pattern[2]="(?:\\\\label|\\\\ref|\\\\eqref|\\\\bibitem)\\{.*?\\}"
+    # remove citations
+    remove_pattern[3]="\\\\cite\\l*(?:\\[.*?\\])?\\{.*?\\}"
+    # remove inline maths,  ok
+    remove_pattern[4]= "(?n(?:\\$|\\\\\\().*?(?:\\$|\\\\\\)))"
+    # remove verbatim environment,  ok
+    remove_pattern[5]= "(?n\\\\begin\\{(verbatim\\*?)\\}.*?\\\\end\\{\\1\\})"
+    # remove inline verbatim,  ok
+    remove_pattern[6]= "\\\\verb\\*?([^\\l\\s\\*]).*?\\1"
+    # remove maths,  ok
+    remove_pattern[7]= "(?n\\\\\\[.*?\\\\\\])"
+    remove_pattern[8]="(?n\\\\begin\\{(math|equation|align|aligned|gather|"\
+                         "gathered|multiline|alignat)\\*?\\}.*?\\\\end\\{\\1\\*?\\})"
+    # remove \begin something and \end something,  ok
+    remove_pattern[9]="\\\\begin.*[\\}\\]\\)]|\\\\end.*[\\}\\]\\)]"
+    # remove the rest of the commands and possibly left plus signs,  ok
+    remove_pattern[10]= "\\\\\\w*|\\{|\\}|\\^|~|\\&"
+    }
+
+# HTML removal patterns - let spell-checker do this
+# if (language_mode == "SGML HTML") {
+#     remove_pattern[0]= "(?n\\<\\-\\-.*?\\-\\-\\>)"
+#     remove_pattern[1]= "(?n\\<(code)\\>.*?\\</\\1\\>)"
+#     remove_pattern[2]= "(?n\\<.*?\\>)"
+#     remove_pattern[3]= "\\&.+?;"
+#     }
+
+if (language_mode == "Mail") {
+    # remove quoted things
+    remove_pattern[0] = "^\\s*\\>.*$"
+}
+
+# You can add here
+# if (language_mode == ...)
+#    {
+#     remove_pattern[i]="..." and so on
+#    }
+
+
+# if no patterns for this language_mode, return
+if (remove_pattern[] == 0) {
+    # nothing to filter
+    return(text)
+    }
+    
+
+# special routines before filtering, language_mode dependent
+if (language_mode == "LaTeX")
+    {
+    # get the start and the end of the text that is to be filtered
+    # we are considering only things between \begin{document} and \end{document}
+    found=search_string(text,"\\begin{document}",0)
+    if (found != -1)
+        {
+        text = substring(text, $search_end, length(text))
+        }
+    found = search_string(text, "\\end{document}", 0)
+    if (found != -1)
+        {
+        text= substring(text, 0, found)
+        }
+    save_text = ""
+    # rescue text in \text and \mbox (and \intertext?)
+    # because they are usually in mathematical environments that will get stripped off
+    found=search_string(text,"(?n\\\\text\\{.*?\\}|\\\\mbox\\{.*?\\})",0,"regex")
+    while (found!=-1)
+        {
+        end = $search_end
+        extract= substring(text,found,$search_end)
+        start= search_string(extract,"{",0)
+        extract= substring(extract,start+1,length(extract)-1)
+        save_text= save_text extract "\n"
+        found=search_string(text,"(?n\\\\text\\{.*?\\}|\\\\mbox\\{.*?\\})",end,"regex")
+        }
+    text=text save_text
+    }
+
+# end of language_mode specific stuff
+
+# strip off syntax from the text
+for (i = 0; i< remove_pattern[]; i++) {
+    text = replace_in_string(text, remove_pattern[i], " ", "regex", "copy")
+    }
+return(text)
+}
+
+
+######################################################################
+#  Low-level: external comms functions:
+
+
+# boolean nspell_checkWord(string src)
+#   Checks spelling of a single word. If word is misspelled, gets suggestions from
+#   spell-checker and puts them into $nspell_suggest.
+#   'src' is the string to check.
+#   Returns: $FALSE for a verified incorrect word, otherwise $TRUE
+#   (including if string did not qualify for spell-checking).
+#
+define nspell_checkWord { 
+  # Needs daemon, but gets called from nspell_keyPress() w/o checking for daemon.
+  # So, if daemon or aspell dies while typing, we hang forever.
+  # There is no solution for this problem with the current approach, because we can't 
+  # check for the daemon inside the type-in macro hook. (shell_command() can't be 
+  # used there.)
+  file = $file_path $file_name
+  word = $1
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+      calltip("nspell_checkWord: Error - no currentLanguage")
+      return
+  }
+  if (search_string($nspell_correct_words[currentLanguage], word, 0, "caseWord") != -1) {
+      return $TRUE
+  }
+  if (word in $nspell_suggest[currentLanguage]) {
+      return $FALSE
+  }
+
+  # Ignore strings that may confuse the spell-checker:
+  if (nspell_validateWord(word) == $FALSE) return $TRUE
+
+  # ==> valid candidate. Talk to spell-checker:
+  # Needs daemon! otherwise we return correct word
+  if ($NSPELL_globals["use_daemon"] == $FALSE) return $TRUE
+  if (!$NSPELL_globals["daemEnabled"][currentLanguage]) return $TRUE
+
+  write_file(word"\n", $nspell_in)
+  # Here we will hang if daemon was killed.
+  # nspell_checkDaemon() won't work, since it needs to run shell_command().
+  reply = read_file($nspell_out)
+  result = substring(reply, 0, 1)
+  # if (result == "*") return $TRUE
+  # if (result == "+") return $TRUE
+  # if (result == "-") return $TRUE
+  if (result == "&" || result == "#" || result == "?") { # is mispelled word
+      hit = search_string(reply, ":", 0)
+      if (hit == -1) {
+          suggestions = $no_suggestions
+      }
+      else {
+          suggestions = substring(reply, hit+2, length(reply))
+          end = search_string(suggestions, "\n", 0)
+          if (end != -1) {
+              suggestions = substring(suggestions, 0, end)
+          }
+  #         calltip(suggestions)
+          suggestions = replace_in_string(suggestions, ", ", "\n", "copy")
+      }
+      # word isn't in $nspell_suggest[currentLanguage] yet, remember it
+      $nspell_suggest[currentLanguage][word] = suggestions
+      return $FALSE
+  }
+  else {
+      # remember word, so that spellchecker needn't be called again for it
+      $nspell_correct_words[currentLanguage] = $nspell_correct_words[currentLanguage] word"\n"
+      return $TRUE
+  }
+}
+
+
+
+# void nspell_addIgnoredWord(string word)
+#   Adds a single word to Spelling's list of temporarily ignored words.
+#   'word' is the string to check. It should be a single contiguous
+#   string of letters (check with nspell_validateWord before calling).
+#   Returns: no return value.
+#
+define nspell_addIgnoredWord {
+  word = $1
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage == "") {
+      dialog("nspell_addIgnoredWord: Error - no currentLanguage")
+      return
+  }
+  if (currentLanguage in $nspell_correct_words) {
+      $nspell_correct_words[currentLanguage] = \
+          $nspell_correct_words[currentLanguage] word "\n"
+
+      delete $nspell_suggest[currentLanguage][word]
+  }
+}
+
+# void nspell_addToDictionary(string word, boolean case)
+#   Adds and saves a single word to the personal Spelling dictionary.
+#   'word' is the string to check. It should be a single contiguous
+#   string of letters (check with nspell_validateWord before calling).
+#   Any capitalisation will be considered mandatory part of spelling.
+#   Returns: no return value.
+#
+define nspell_addToDictionary {
+  word = $1
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage != "") {
+      cmd = $nspell_nocont_checker
+      cmd = cmd $spell_options[$nspell_nocont_checker]["language"] currentLanguage " -a"
+      shell_command(cmd, "*"word"\n#\n")
+      delete $nspell_suggest[currentLanguage][word]
+      $nspell_correct_words[currentLanguage] = \
+          $nspell_correct_words[currentLanguage] word "\n"
+  }
+  else {
+      dialog("No language set, yet.\nInitialise N-spell first.")
+  }
+}
+
+
+define nspell_addToFileDictionary {
+  word = $1
+  file_dict = $file_path $nspell_dict_prefix $file_name $nspell_dict_suffix
+  currentLanguage = nspellGetLanguage()
+  if (currentLanguage != "") {
+      append_file(word"\n", file_dict)
+      delete $nspell_suggest[currentLanguage][word]
+      $nspell_correct_words[currentLanguage] = \
+          $nspell_correct_words[currentLanguage] word "\n"
+  }
+  else {
+      dialog("No language set, yet.\nInitialise N-spell first.")
+  }
+}
+
+
+# boolean nspell_ensureDaemon(string language){
+#   Makes sure user has an instance of NEchoesd for the specified language,
+#   starting one if necessary.
+#   'language' is the aspell-tag for the dictionary to use. 
+#   Returns: $TRUE on success (daemon is running on return),
+#   otherwise $FALSE.
+#
+define nspell_ensureDaemon {
+    language = $1
+
+    running = nspell_checkDaemon(language)
+    if (!running) nspell_startDaemon(language)
+    return nspell_checkDaemon(language)
+}
+
+
+# boolean nspell_checkDaemon(string language)
+#   Checks if this user has NEchoesd running for the specified language.
+#   'language' is the aspell-tag for the dictionary required. 
+#   Returns: $TRUE if daemon is running, otherwise $FALSE.
+#
+define nspell_checkDaemon {
+language = $1
+reply = ""
+# Cygwin needs special treatment, no good ps implementation
+if ($NE_globals["op_system"] == "mswindows") {
+    reply = shell_command("ps","")
+#    calltip(reply)
+    if (language in $nspell_daemon_pid) {
+        f = search_string(reply, "<"$nspell_daemon_pid[language]">", 0, "regex")
+        if (f == -1) {
+            hit = -1
+        }
+        else { #search three times, since we need both - daemon and dependent aspell process 
+            hit = search_string(reply, "<"$nspell_daemon_pid[language]">", $search_end, "regex")
+            hit = search_string(reply, "<"$nspell_daemon_pid[language]">", $search_end, "regex")
+        }
+#         $global_out = reply "\n|\n" $nspell_daemon_pid[language]
+    }
+    else {
+        hit = -1
+    }
+}
+else { # this is the original check. It is probably better to use the daemon's PID.
+    user = getenv("USER")
+    reply = shell_command("ps -U "user" -o pid,args", "")
+    # t_print(reply)
+    hit = search_string(reply, "NEchoesd "language, 0)
+    if (hit != -1) {
+        reply = shell_command("ps -U "user" -o pid,args", "")
+        hit = search_string(reply, "aspell --language-tag="language, 0)
+    }
+#        if (language in $nspell_daemon_pid) {
+#            shell_command("kill "$nspell_daemon_pid[language], "")
+#        }
+#        return $FALSE
+#    }
+    
+#     if (language in $nspell_daemon_pid) {
+#         reply = shell_command("ps --ppid "$nspell_daemon_pid[language], "")
+#         hit = search_string(reply, "aspell", 0)
+#     }
+#     else {
+#         hit = -1
+#     }
+    
+}
+#calltip(reply"\n"hit)
+# t_print(reply)
+if (hit == -1){
+    return $FALSE
+}
+return $TRUE
+}
+
+
+# void nspell_startDaemon(string language)
+#   Unconditionally attempts to start a new NEchoesd instance for the
+#   specified language.
+#   'language' is the aspell-tag for the dictionary to use. 
+#   Returns: no return value
+#
+define nspell_startDaemon {
+    language = $1
+    # for (t)csh we get the PID of the daemon process, although we redirect to /dev/null
+    # When a job is started asynchronysly with `&', the shell prints a line which 
+    # looks like "[1] 1234", where 1 is the job number and 1234 is the PID.
+    t = shell_command("NEchoesd "language $NSPELL_globals["spawn"], "")
+    # wait a bit, so that aspell will also be up for nspell_checkDaemon
+    for (i = 0; i < 70000; i++) {}
+    found = search_string(t, "]", 0)
+    start = search_string(t, "\\d+", $search_end, "regex")
+    $nspell_daemon_pid[language] = substring(t, start, $search_end)
+#     dialog("startd\n"$nspell_daemon_pid[language])
+}
+
+# void nspell_killDaemon([language])
+# Especially for Cygwin we need to kill all daemons *before* we try to exit NEdit.
+# Otherwise we hang up. (For Unix we can leave the daemons running.)
+define nspell_killDaemon {
+if ($n_args > 0) {
+    language = $1
+}
+else {
+    language = ""
+}
+
+if (language == "") { # if no language given, we kill all daemons
+    for (lang in $nspell_daemon_pid) {
+        shell_command("kill -9 "$nspell_daemon_pid[lang], "")
+        $NSPELL_globals["daemEnabled"][lang] = $FALSE
+    }
+}
+else {
+    if (language in $nspell_daemon_pid) {
+        shell_command("kill -9 "$nspell_daemon_pid[language], "")
+        $NSPELL_globals["daemEnabled"][language] = $FALSE        
+    }
+}
+
+}
+
+#==================================================================================
+# Utility functions for nspell_skip()
+# don't check math in LaTeX documents
+
+# returns 1, if inside math, and 0 if not inside math 
+define insideMath {
+pos = $1
+outer_pat = "\\\\(?:begin|end)\\s?\\{"\
+    "(?:displaymath|equation|align|gather|multline|flalign|alignat|xalignat|xxalignat|math|eqnarray)"\
+    "\\*?\\}"
+end = 0
+end_bracket = 0
+start = search("\\\\(?:\\[|\\])", pos, "regex", "backward")
+if (start != -1) {
+    end_bracket = $search_end
+    test = get_range(start + 1, start + 2)
+    if (test == "[") {
+        return(insideMbox(start + 2, pos))
+    }
+}
+start = search(outer_pat, pos, "regex", "backward")
+#dialog(start)
+if (start != -1) {
+    test = get_range(start + 1, start + 2)
+    # if we have b, then we found \begin, if we have e, then  \end
+    if (test == "b") { # we are inside display math
+        return(insideMbox($search_end, pos))
+    }
+    else { # we are outside display math
+        end = $search_end
+    }
+}
+# look for paragraph end, or section start?
+f = search("\n\n", pos, "backward")
+end = max(end_bracket, end, $search_end)
+#dialog(end)
+return(insideTextMath(end, pos))
+}
+
+# only called if we are in math
+# returns 1, if no \mbox,\text found
+define insideMbox {
+start = $1
+end = $2
+text = get_range(start, end)
+local = search_string(text, "\\\\(?:mbox|text)\\{", length(text), "regex", "backward")
+while (local != -1) {
+    start_box = start + $search_end
+    # check if cursor inside box|text{...}
+    cpos = $cursor
+    set_cursor_pos(start_box)
+    goto_matching()
+    end_box = $cursor
+    set_cursor_pos(cpos)
+    if (start_box == end_box) {
+        return(insideTextMath(start_box, end))
+    }
+    # matching } found
+    if (end < end_box) {
+        return(insideTextMath(start_box, end))
+    }
+    else { # search for next mbox
+        if (end_box > end) {
+            dialog("insideMbox: error end_box > end")
+            break
+        }
+        start = end_box
+        text = get_range(start, end)
+        local = search_string(text, "\\\\(?:mbox|text)\\{", length(text), "regex", "backward")
+    }
+}
+# no mbox or text found, or outside last mbox 
+return 1
+}
+
+#only called if we think we are not in math
+define insideTextMath {
+start = $1
+end = $2
+text = get_range(start, end)
+if (search_string(text, "$", 0) != -1) {
+    # first check if inside $...$
+    test = split(text, "$")
+    null = test[] % 2
+    if (null == 0) {
+        # we are inside $ .. $
+        # get preceding $ and look for \mbox (end is cursor position)
+        pre = search_string(text, "$", end, "backward")
+        return(insideMbox(start + pre + 1, end))
+    }
+}
+# We have no $, or we have but cursor outside $..$
+# search for \ensuremath
+ensure = search_string(text, "\\ensuremath{", length(text), "backward")
+while (ensure != -1) {
+    start_ensure = start + $search_end
+    # check if cursor inside \ensuremath{...}
+    cpos = $cursor
+    # Attention: start = offset
+    set_cursor_pos(start_ensure)
+    goto_matching()
+    end_ensure = $cursor
+    set_cursor_pos(cpos)
+    if (start_ensure == end_ensure) {
+        # no matching } found => we are inside \ensuremath
+        return(insideMbox(start_ensure, end))
+    }
+    # matching } found
+    if (end < end_ensure) { #inside ensuremath
+        return(insideMbox(start_ensure, end))
+    }
+    else {# search for next ensure
+        if (end_ensure > end) {
+            dialog("insideTextMath: error end_ensure > end")
+            break
+        }
+        start = end_ensure
+        text = get_range(start, end)
+        ensure = search_string(text, "\\ensuremath{", length(text), "backward")
+    }
+}
+# outside last ensuremath, and outside $...$
+return 0
+
+}
+
+$TRUE = 1
+$FALSE = 0
+

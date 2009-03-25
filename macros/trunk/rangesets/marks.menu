@@ -1,0 +1,43 @@
+! INSTALLATION
+!
+! Load these macros and/or background menu commands by starting nedit with:
+!
+!       nedit -import <name of this file>
+!
+! Then, check that the macros and/or background menu commands were loaded
+! correctly, and choose Save Defaults from the Preferences menu.  The new
+! macros and/or background menu commands will now be incorporated into your
+! own nedit.rc file, so the next time you start NEdit, you will no longer need
+! to use -import.
+!
+! These comments will not appear in your nedit.rc file
+!
+
+nedit.macroCommands: \
+	Rangesets>marks>mark_line:Ctrl+5::: {\n\
+		jf_mark_line(1)\n\
+	}\n\
+	Rangesets>marks>unmark_line:Shift+Ctrl+5::: {\n\
+		jf_mark_line(-1)\n\
+	}\n\
+	Rangesets>marks>next_mark:Ctrl+3::: {\n\
+		jf_next_mark(1)\n\
+	}\n\
+	Rangesets>marks>previous_mark:Shift+Ctrl+3::: {\n\
+		jf_next_mark(-1)\n\
+	}\n\
+	Rangesets>marks>next_mark_choose:Ctrl+4::: {\n\
+		jf_next_mark_choose(1)\n\
+	}\n\
+	Rangesets>marks>previous_mark_choose:Shift+Ctrl+4::: {\n\
+		jf_next_mark_choose(-1)\n\
+	}\n\
+	Rangesets>marks>clear_all_marks:Ctrl+7::: {\n\
+		jf_clear_all_marks()\n\
+	}\n\
+	Rangesets>marks>save_as:Shift+Ctrl+S::: {\n\
+		jf_marks_save_as()\n\
+	}\n\
+	Rangesets>marks>go_back:Alt+Comma::: {\n\
+		goto_mark(9)\n\
+	}\n

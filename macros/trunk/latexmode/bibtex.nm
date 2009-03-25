@@ -1,0 +1,64 @@
+define insertBibTeX {
+#
+# Set BibTeX fields
+#
+fields["article"]="author title journal year volume number pages month note"
+fields["book"]="author title publisher year volume series address edition month note"
+fields["booklet"]="title author howpublished address month year note"
+fields["conference"]="author title booktitle year editor volume organization series"\
+                        " pages publisher address month note"
+fields["inbook"]="autor title chapter publisher type year volume series address edition month note"
+fields["incollection"]="author title booktitle pages publisher address year"
+fields["inproceedings"]="author title booktitle year editor volume organization series"\
+                        " pages publisher address month note"
+fields["manual"]="title"
+fields["mastersthesis"]="author title school type year"
+fields["misc"]="author title year howpublished note"
+fields["phdthesis"]="author title school type year"
+fields["proceedings"]="title year"
+fields["techreport"]="author title institution year type number address month note"
+fields["unpublished"]="author title note month year"
+# maximal item length (HOWPUBLISHED), to align things neatly
+lmax=12
+list = ""
+for (entry in fields) {
+   list = list entry "\n"
+}
+list = substring(list, 0, length(list) - 1)
+list = qsort_list(list)
+
+entry = list_dialog("Choose Entry:", list, "OK", "Cancel")
+
+if (entry in fields)
+    {
+    beginning_of_line()
+    c=$cursor
+    output="@" entry " {ref,\n"
+    #insert_string("@" entry " {")
+
+    while (length(fields[entry]) > 0) 
+	   {
+	   index = search_string(fields[entry], " ", 0)
+	   if (index < 0) index = length(fields[entry])
+	   item = substring(fields[entry], 0, index)
+	   # adjust length of item for aligning
+	   while (length(item)<lmax)
+	   	 {
+		 item=" " item
+		 }
+	   fields[entry] = substring(fields[entry], index+1, length(fields[entry]))
+	   output=output item " = {|><|},\n"
+	   #insert_string(",\n    " item " =\t{}")
+	   }
+
+    output=output "}\n\n"
+    insert_string(output)
+    set_cursor_pos(search("{",c)+1)
+    select($cursor, $cursor+3)
+    }
+    else
+        {
+	   return
+	   }
+
+}

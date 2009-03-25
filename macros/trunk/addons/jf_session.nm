@@ -1,0 +1,79 @@
+
+$jf_last_session = $jf_path_to["/NEDIT_HOME/"] ".last"
+$jf_temp_session = $jf_path_to["/NEDIT_HOME/"] ".tmp#"
+
+define jf_session_store {
+
+current = $file_path $file_name
+file_list = ""
+active = 0
+i = 0
+pos = search_string($jf_temp_session, "/", length($jf_temp_session), "backward") + 1
+tmp_file_name = substring($jf_temp_session, pos, length($jf_temp_session))
+
+filename = focus_window("last")
+# First loop to save edit-buffers
+while (filename != "")  {
+    if (search_string($file_name, "^Untitled(?:_\\d+)?$", 0, "regex") == 0) {
+        if (read_file(filename) == "" && $read_status == 0) {
+        # This file doesn't exist yet, should it be saved ?
+        raise_window()
+        newfile = filename_dialog("Save As ...", "new")
+        if (newfile != "") {
+            save_as(newfile)
+        }
+        else {
+            # save this edit-buffer into a temporary file
+            i += 1
+            save_as($jf_temp_session i)
+        }
+        }
+    } 
+    filename = focus_window("next")
+}
+
+filename = focus_window("last")
+# Second loop to actually store this session
+while (filename != "") {
+
+    if (filename == current) active = 1 
+        else active = 0
+
+    save() 
+    # exclude the edit-buffers (saved into temporary files) from the list
+    if (search_string($file_name, "^" tmp_file_name "\\d+$", 0, "regex") != 0) {
+    file_list = file_list filename $sub_sep $cursor $sub_sep active "\n"
+    }
+    filename = focus_window("next")
+}
+focus_window(current)
+write_file(file_list, $jf_last_session)
+exit()
+}
+
+
+
+define jf_session_restore {
+current = $file_path $file_name
+active = ""
+file_list = read_file($jf_last_session)
+# remove trailin \n
+file_list = substring(file_list, 0, length(file_list) - 1)
+files = split(file_list, "\n")
+for (i = files[] - 1; i > -1; i--) {
+   file = split(files[i], $sub_sep)
+   open(file[0])
+   t = focus_window(file[0])
+   if (t != "") set_cursor_pos(file[1])
+   if (file[2]) active = file[0]
+
+}
+focus_window(current)
+
+# close the start window
+if ($file_name == "Untitled" && $modified == 0) close()
+
+focus_window(active)
+raise_window()
+}
+

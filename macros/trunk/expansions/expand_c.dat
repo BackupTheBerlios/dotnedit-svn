@@ -1,0 +1,21 @@
+This is an example file.
+
+abbr
+expansion
+
+iff
+if (|><|) {
+
+}
+els
+else {
+|><|
+}
+ife
+|>iff<|
+|>els<|
+
+
+
+
+
