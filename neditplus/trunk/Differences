@@ -1,0 +1,11 @@
+Differences between NEdit and NEdit Plus:
+
+* Definable File, Edit, and Search menus.
+* Drag'n Drop Tabs (Motif only) and move Tabs left and right.
+* Open Previous enhancements.
+* list_multisel_dialog() function.
+* $loaded_tags/tips_files and $marks arrays.
+* Backlight macro support. (Disabled in NEdit since v5.4).
+* Open Selected allows for spaces in the file name.
+* SH background coloring beyond newlines possible.
+
