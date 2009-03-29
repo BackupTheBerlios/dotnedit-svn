@@ -148,7 +148,7 @@ nedit*text.Translations: #override \n\
  <Key>F10 : insert_string("F6")\n\
  <Key>F7 : insert_string("F7")\n\
  ~Shift~Alt~Meta~Ctrl<Btn1Down> : mark(0) grab_focus() \n\
- <Btn1Up> :  macro_menu_command("LTXMode>tcl_hook@keys") extend_end()\n\
+ <Btn1Up> :  extend_end()\n\
  ~Alt~Meta~Ctrl Shift<Btn3Down> : macro_menu_command("LTXMode>Editing>Change Bras/Env@LaTeX")\n\
  ~Shift~Meta~Ctrl~Alt<Btn3Down> : move_destination() bg_menu_command("Comments>(Un)Quote") move_destination()\n\
  ~Shift~Meta Ctrl Alt<Btn3Down> : mouse_pan() \n\
@@ -160,7 +160,7 @@ nedit*text.Translations: #override \n\
 ! <Btn2Up> : copy_primary() copy_to_or_end_drag()\n
 !  Alt~Ctrl<Btn1Down> : insert_string("000")\n\
 !  Alt <Btn2Down> : move_destination()
-
+! for Btn1Up: macro_menu_command("LTXMode>tcl_hook@keys")
 ! Ctrl<KeyRelease>osfRight : mark(0)\n\
 ! Ctrl<KeyRelease>osfLeft : mark(0)\n\
 

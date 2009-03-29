@@ -1253,11 +1253,8 @@ nedit.bgMenuCommands: \
 	Spell-Checker>AutoCorrect::::: {\n\
 		macro_menu_command("Spell-Checker>AutoCorrect@mouse")\n\
 	}\n\
-	Spell-Checker>Ignore Word::::: {\n\
-		macro_menu_command("Spell-Checker>Ignore Word@mouse")\n\
-	}\n\
-	Spell-Checker>AddWord2Dict.::::: {\n\
-		macro_menu_command("Spell-Checker>Add Word to Dict.@mouse")\n\
+	Spell-Checker>IgnoreOrAddWord::::: {\n\
+		macro_menu_command("Spell-Checker>IgnoreOrAddWord@mouse")\n\
 	}\n\
 	Spell-Checker>Goto next error::::: {\n\
 		macro_menu_command("Spell-Checker>Goto next error")\n\
@@ -2453,7 +2450,11 @@ nedit.smartIndentInit: 	C:	# C Macros and tuning parameters are shared with C++,
 	    nspell_keyPress($1, $2)\n\
 	}\n\
 	--End-of-Macro--\n\
-	Spelling:	set_auto_indent("smart")\n\
+	Spelling:	# This mode is required to be able to do\n\
+	# continuous spell checking in the non-language-mode\n\
+	# 'Plain', which doesn't support smart-indent!\n\
+	jf_require("n-spell.nm")\n\
+	set_auto_indent("smart")\n\
 	nspell_initialise()\n\
 	--End-of-Macro--\n\
 	nspell_keyPress($1, "\\n")\n\

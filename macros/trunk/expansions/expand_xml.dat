@@ -3,5 +3,11 @@ This is an example file.
 abbreviation
 expansion
 
+@dus
+date +%m-%d-%y
+@dde
+date +%d.%m.%y
+
+
 
 

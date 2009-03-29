@@ -91,7 +91,7 @@ Full Installation
       - Check that the first line of the "NEchoesd" script reflects where
         Perl is installed on your system. Edit it if necessary.
       - Copy NEchoesd to somewhere in your path (or change your path to
-        include your N-spell directory).
+        include your N-spell directory), and make it executable.
 
   3) Install the N-spell menu:
 

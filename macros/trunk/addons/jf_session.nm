@@ -54,26 +54,29 @@ exit()
 
 
 define jf_session_restore {
-current = $file_path $file_name
-active = ""
-file_list = read_file($jf_last_session)
-# remove trailin \n
-file_list = substring(file_list, 0, length(file_list) - 1)
-files = split(file_list, "\n")
-for (i = files[] - 1; i > -1; i--) {
-   file = split(files[i], $sub_sep)
-   open(file[0])
-   t = focus_window(file[0])
-   if (t != "") set_cursor_pos(file[1])
-   if (file[2]) active = file[0]
+  current = $file_path $file_name
+  active = ""
+  file_list = read_file($jf_last_session)
+  if (file_list == "" || $read_status == 0) {
+    dialog("No last session found.", "OK")
+    return
+  }
+  # remove trailin \n
+  file_list = substring(file_list, 0, length(file_list) - 1)
+  files = split(file_list, "\n")
+  for (i = files[] - 1; i > -1; i--) {
+     file = split(files[i], $sub_sep)
+     open(file[0])
+     t = focus_window(file[0])
+     if (t != "") set_cursor_pos(file[1])
+     if (file[2]) active = file[0]
+  }
+  focus_window(current)
 
-}
-focus_window(current)
+  # close the start window
+  if ($file_name == "Untitled" && $modified == 0) close()
 
-# close the start window
-if ($file_name == "Untitled" && $modified == 0) close()
-
-focus_window(active)
-raise_window()
+  focus_window(active)
+  raise_window()
 }
 

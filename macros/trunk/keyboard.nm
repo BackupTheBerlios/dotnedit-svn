@@ -313,6 +313,7 @@ define jfCloseBraArray {
   moreBrackets["ResText"] = "`:`"
   moreBrackets["NEdit Macro"] = "\":\""
   moreBrackets["SGML HTML"] = "<:>\n\":\""
+  moreBrackets["Python"] = "\":\""
   
   if (language in moreBrackets) {
       keyValuePairs = split(moreBrackets[language], "\n")
